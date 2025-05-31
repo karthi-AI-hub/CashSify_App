@@ -1,21 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'dart:async';
-import 'package:cashsify_app/core/widgets/custom_button.dart';
-import 'package:cashsify_app/core/widgets/custom_text_field.dart';
-import 'package:cashsify_app/core/widgets/loading_overlay.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cashsify_app/core/services/supabase_service.dart';
 import 'package:cashsify_app/core/utils/app_utils.dart';
-import 'package:cashsify_app/core/utils/performance_utils.dart';
-import 'package:cashsify_app/core/providers/loading_provider.dart';
-import 'package:cashsify_app/core/providers/performance_provider.dart';
-import 'package:cashsify_app/core/mixins/performance_mixin.dart';
-import 'package:cashsify_app/core/providers/supabase_provider.dart';
+import 'package:cashsify_app/core/providers/providers.dart';
 import 'package:cashsify_app/core/error/app_error.dart';
-import 'package:cashsify_app/core/providers/error_provider.dart';
+import 'package:cashsify_app/features/auth/presentation/widgets/auth_layout.dart';
+import 'package:cashsify_app/features/auth/presentation/widgets/animated_form_field.dart';
+import 'package:cashsify_app/features/auth/presentation/widgets/animated_button.dart';
+import 'package:cashsify_app/features/auth/presentation/widgets/auth_page_transition.dart';
+import 'package:cashsify_app/features/auth/presentation/screens/register_screen.dart';
+import 'package:cashsify_app/features/auth/presentation/screens/forgot_password_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -24,145 +21,249 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  String? _errorMessage;
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _shakeAnimation = Tween<double>(begin: 0, end: 10).animate(
+      CurvedAnimation(
+        parent: _shakeController,
+        curve: Curves.easeInOut,
+      ),
+    );
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _shakeController.dispose();
     super.dispose();
   }
 
+  void _clearFieldsAndErrors() {
+    if (mounted) {
+      setState(() {
+        _errorMessage = null;
+        _isLoading = false;
+      });
+      _emailController.clear();
+      _passwordController.clear();
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    setState(() {
+      _errorMessage = message;
+      _isLoading = false;
+    });
+    _shakeController.forward(from: 0);
+  }
+
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!mounted) return;
+    
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
 
-    try {
-      ref.read(loadingProvider.notifier).startLoading();
-
-      final supabaseService = ref.read(supabaseServiceProvider);
-
-      final response = await supabaseService.signIn(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      if (response.user != null) {
-        await supabaseService.updateLastLogin(response.user!.id);
-        if (mounted) {
-          ref.read(loadingProvider.notifier).finishLoading();
-          context.go('/home');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ref.read(loadingProvider.notifier).setError();
-        ref.read(errorProvider.notifier).setError(
-          e.toString(),
-          code: e is AuthError ? e.code : 'UNKNOWN_ERROR',
+      try {
+        await ref.read(authProvider.notifier).signInWithPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
         );
+        
+        if (!mounted) return;
+        _clearFieldsAndErrors();
+      } catch (e) {
+        if (!mounted) return;
+        String errorMessage;
+        
+        if (e is AuthException) {
+          switch (e.message) {
+            case 'Invalid login credentials':
+              errorMessage = 'Invalid email or password';
+              break;
+            case 'Email not confirmed':
+              errorMessage = 'Please verify your email first';
+              break;
+            default:
+              errorMessage = e.message;
+          }
+        } else if (e is AuthError) {
+          errorMessage = e.message;
+        } else {
+          errorMessage = 'An unexpected error occurred';
+        }
+        
+        print('Error message: $errorMessage');
+        setState(() {
+          _errorMessage = errorMessage;
+          _isLoading = false;
+        });
+        _shakeController.forward(from: 0);
       }
     }
   }
 
+  void _navigateToRegister() {
+    _clearFieldsAndErrors();
+    Navigator.of(context).push(
+      AuthPageTransition(
+        page: const RegisterScreen(),
+      ),
+    );
+  }
+
+  void _navigateToForgotPassword() {
+    _clearFieldsAndErrors();
+    Navigator.of(context).push(
+      AuthPageTransition(
+        page: const ForgotPasswordScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(loadingProvider) == LoadingState.loading;
-    final error = ref.watch(errorProvider);
+    final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-      ),
-      body: LoadingOverlay(
-        isLoading: isLoading,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (error.message != null)
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      error.message!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                      ),
-                    ),
-                  ),
-                CustomTextField(
-                  label: 'Email',
-                  hint: 'Enter your email',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                CustomTextField(
-                  label: 'Password',
-                  hint: 'Enter your password',
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    return null;
-                  },
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
+    return AuthLayout(
+      title: 'Welcome Back',
+      isLoading: _isLoading,
+      errorMessage: _errorMessage,
+      onErrorDismiss: () {
+        setState(() {
+          _errorMessage = null;
+        });
+      },
+      child: AnimatedBuilder(
+        animation: _shakeAnimation,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(_shakeAnimation.value, 0),
+            child: child,
+          );
+        },
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Logo or App Name
+              Center(
+                child: Text(
+                  'CashSify',
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
-                const SizedBox(height: 24),
-                CustomButton(
-                  text: 'Login',
-                  onPressed: _handleLogin,
-                  isLoading: isLoading,
-                ),
-                const SizedBox(height: 16),
-                TextButton(
+              ),
+              const SizedBox(height: 32),
+
+              // Email Field
+              AnimatedFormField(
+                label: 'Email',
+                hint: 'Enter your email',
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                prefixIcon: const Icon(Icons.email_outlined),
+                index: 0,
+                totalFields: 2,
+                hasError: _errorMessage != null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  if (!value.contains('@')) {
+                    return 'Please enter a valid email';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Password Field
+              AnimatedFormField(
+                label: 'Password',
+                hint: 'Enter your password',
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                prefixIcon: const Icon(Icons.lock_outline),
+                index: 1,
+                totalFields: 2,
+                hasError: _errorMessage != null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your password';
+                  }
+                  return null;
+                },
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                  ),
                   onPressed: () {
-                    context.go('/auth/forgot-password');
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
                   },
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Forgot Password
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _navigateToForgotPassword,
                   child: const Text('Forgot Password?'),
                 ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () {
-                    context.go('/auth/register');
-                  },
-                  child: const Text('Don\'t have an account? Register'),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 24),
+
+              // Login Button
+              AnimatedButton(
+                text: 'Login',
+                onPressed: _handleLogin,
+                isLoading: _isLoading,
+              ),
+              const SizedBox(height: 24),
+
+              // Register Link
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Don\'t have an account?',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  TextButton(
+                    onPressed: _navigateToRegister,
+                    child: const Text('Register'),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

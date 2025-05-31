@@ -29,6 +29,8 @@ class ErrorState {
   ErrorState clear() {
     return ErrorState();
   }
+
+  static ErrorState none() => ErrorState();
 }
 
 /// Notifier for managing error state
@@ -68,6 +70,10 @@ class ErrorNotifier extends StateNotifier<ErrorState> {
   /// Clear the current error state
   void clear() {
     state = state.clear();
+  }
+
+  void clearError() {
+    state = ErrorState.none();
   }
 
   void setError(String message, {String? code, dynamic originalError}) {

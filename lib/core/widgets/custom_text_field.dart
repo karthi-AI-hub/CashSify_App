@@ -11,6 +11,7 @@ class CustomTextField extends StatelessWidget {
   final TextCapitalization textCapitalization;
   final String? Function(String?)? validator;
   final List<TextInputFormatter>? inputFormatters;
+  final Widget? prefixIcon;
   final Widget? suffixIcon;
   final int? maxLines;
   final int? maxLength;
@@ -30,6 +31,7 @@ class CustomTextField extends StatelessWidget {
     this.textCapitalization = TextCapitalization.none,
     this.validator,
     this.inputFormatters,
+    this.prefixIcon,
     this.suffixIcon,
     this.maxLines = 1,
     this.maxLength,
@@ -42,84 +44,80 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Theme.of(context).colorScheme.onBackground,
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      textCapitalization: textCapitalization,
+      validator: validator,
+      inputFormatters: inputFormatters,
+      maxLines: maxLines,
+      maxLength: maxLength,
+      enabled: enabled,
+      focusNode: focusNode,
+      onChanged: onChanged,
+      onTap: onTap,
+      readOnly: readOnly,
+      style: GoogleFonts.poppins(
+        fontSize: 16,
+        color: colorScheme.onBackground,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: prefixIcon,
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: colorScheme.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.outline,
           ),
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          textCapitalization: textCapitalization,
-          validator: validator,
-          inputFormatters: inputFormatters,
-          maxLines: maxLines,
-          maxLength: maxLength,
-          enabled: enabled,
-          focusNode: focusNode,
-          onChanged: onChanged,
-          onTap: onTap,
-          readOnly: readOnly,
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            color: Theme.of(context).colorScheme.onBackground,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: GoogleFonts.poppins(
-              fontSize: 16,
-              color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
-            ),
-            suffixIcon: suffixIcon,
-            filled: true,
-            fillColor: Theme.of(context).colorScheme.surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.primary,
-                width: 2,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.error,
-              ),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.error,
-                width: 2,
-              ),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.outline.withOpacity(0.5),
           ),
         ),
-      ],
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.primary,
+            width: 2,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.error,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.error,
+            width: 2,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        labelStyle: GoogleFonts.poppins(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: colorScheme.onBackground,
+        ),
+        hintStyle: GoogleFonts.poppins(
+          fontSize: 16,
+          color: colorScheme.onBackground.withOpacity(0.5),
+        ),
+      ),
     );
   }
 } 

@@ -10,9 +10,10 @@ import 'package:cashsify_app/features/auth/presentation/screens/register_screen.
 import 'package:cashsify_app/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:cashsify_app/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:cashsify_app/features/error/presentation/screens/error_screen.dart';
+import 'package:cashsify_app/features/auth/presentation/screens/auth_callback_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final authState = ref.watch(authProvider);
 
   return GoRouter(
     initialLocation: '/',
@@ -20,13 +21,31 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
       final isOnboardingRoute = state.matchedLocation == '/';
+      final isLoginCallbackRoute = state.matchedLocation == '/login-callback';
 
-      if (!isAuthenticated && !isAuthRoute && !isOnboardingRoute) {
+      // If not authenticated and trying to access protected route
+      if (!isAuthenticated && !isAuthRoute && !isOnboardingRoute && !isLoginCallbackRoute) {
         return '/auth/login';
       }
 
-      if (isAuthenticated && isAuthRoute) {
+      // If authenticated and trying to access auth routes or onboarding
+      if (isAuthenticated && (isAuthRoute || isOnboardingRoute)) {
         return '/dashboard';
+      }
+
+      // If not authenticated and on auth route, stay there
+      if (!isAuthenticated && isAuthRoute) {
+        return null;
+      }
+
+      // If not authenticated and not on auth route, go to login
+      if (!isAuthenticated && !isAuthRoute) {
+        return '/auth/login';
+      }
+
+      // If authenticated and on protected route, stay there
+      if (isAuthenticated && !isAuthRoute && !isOnboardingRoute) {
+        return null;
       }
 
       return null;
@@ -56,11 +75,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
-        path: '/auth/forgot-password',
-        name: 'forgot_password',
-        builder: (context, state) => const ForgotPasswordScreen(),
-      ),
-      GoRoute(
         path: '/dashboard',
         name: 'dashboard',
         builder: (context, state) => const DashboardScreen(),
@@ -73,6 +87,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           onRetry: () => context.go('/'),
         ),
       ),
+      GoRoute(
+        path: '/login-callback',
+        name: 'login-callback',
+        builder: (context, state) => AuthCallbackScreen(
+          queryParams: state.uri.queryParameters,
+        ),
+      ), // Handles all Supabase auth callbacks (verify, reset, magiclink)
     ],
   );
 }); 

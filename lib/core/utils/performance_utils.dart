@@ -4,32 +4,7 @@ import 'dart:async';
 
 class PerformanceUtils {
   static Widget withPerformanceOverlay(Widget child) {
-    return Builder(
-      builder: (context) => Stack(
-        children: [
-          child,
-          Positioned(
-            top: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(8),
-                ),
-              ),
-              child: Text(
-                'Performance Overlay',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    return child;
   }
 
   static Future<T> computeInBackground<T>({
@@ -84,30 +59,6 @@ class PerformanceOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        child,
-        if (kDebugMode)
-          Positioned(
-            top: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(8),
-                ),
-              ),
-              child: Text(
-                'Performance Overlay',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
+    return child;
   }
 } 

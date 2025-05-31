@@ -1,21 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:async';
-import 'package:cashsify_app/core/widgets/custom_button.dart';
-import 'package:cashsify_app/core/widgets/custom_text_field.dart';
-import 'package:cashsify_app/core/widgets/loading_overlay.dart';
 import 'package:cashsify_app/core/services/supabase_service.dart';
 import 'package:cashsify_app/core/utils/app_utils.dart';
-import 'package:cashsify_app/core/utils/performance_utils.dart';
-import 'package:cashsify_app/core/providers/loading_provider.dart';
-import 'package:cashsify_app/core/providers/error_provider.dart';
-import 'package:cashsify_app/core/mixins/performance_mixin.dart';
-import 'package:cashsify_app/core/providers/supabase_provider.dart';
+import 'package:cashsify_app/core/providers/providers.dart';
 import 'package:cashsify_app/core/error/app_error.dart';
+import 'package:cashsify_app/features/auth/presentation/widgets/auth_layout.dart';
+import 'package:cashsify_app/features/auth/presentation/widgets/animated_form_field.dart';
+import 'package:cashsify_app/features/auth/presentation/widgets/animated_button.dart';
+import 'package:cashsify_app/features/auth/presentation/widgets/auth_page_transition.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -46,31 +40,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  void _clearFieldsAndErrors() {
+    _nameController.clear();
+    _emailController.clear();
+    _phoneController.clear();
+    _passwordController.clear();
+    _confirmPasswordController.clear();
+    _referralCodeController.clear();
+    ref.read(errorProvider.notifier).clearError();
+  }
+
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
     try {
       ref.read(loadingProvider.notifier).startLoading();
 
-      final supabaseService = ref.read(supabaseServiceProvider);
-
-      // Sign up with Supabase Auth
-      final authResponse = await supabaseService.signUpWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        displayName: _nameController.text.trim(),
-      );
-
-      if (authResponse.user == null) {
-        throw AuthError(
-          message: 'Failed to create user account. Please try again.',
-          code: 'AUTH_ERROR',
-        );
-      }
-
-      // Register user profile with referral
-      await supabaseService.registerUserWithReferral(
-        id: authResponse.user!.id,
+      // Use the centralized auth provider
+      await ref.read(authProvider.notifier).registerWithReferral(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         name: _nameController.text.trim(),
@@ -80,212 +67,239 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             : _referralCodeController.text.trim(),
       );
 
-      // Update last login
-      await supabaseService.updateLastLogin(authResponse.user!.id);
-
+      // Success: show message and redirect
       if (mounted) {
         ref.read(loadingProvider.notifier).finishLoading();
-        context.go('/home');
-      }
-    } on AuthError catch (e) {
-      if (mounted) {
-        ref.read(loadingProvider.notifier).setError();
-        ref.read(errorProvider.notifier).setError(
-          e.message,
-          code: e.code,
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful! Please check your email to verify your account.'),
+            backgroundColor: Colors.green,
+          ),
         );
+        _clearFieldsAndErrors();
+        context.go('/auth/login');
       }
-    } on PostgrestException catch (e) {
+    } catch (error) {
       if (mounted) {
-        ref.read(loadingProvider.notifier).setError();
-        ref.read(errorProvider.notifier).setError(
-          'Failed to create user profile. Please try again.',
-          code: 'DB_ERROR',
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ref.read(loadingProvider.notifier).setError();
-        ref.read(errorProvider.notifier).setError(
-          'An unexpected error occurred. Please try again.',
-          code: 'UNKNOWN_ERROR',
+        ref.read(loadingProvider.notifier).finishLoading();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Registration failed. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
   }
 
+  void _navigateToLogin() {
+    _clearFieldsAndErrors();
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(loadingProvider) == LoadingState.loading;
-    final error = ref.watch(errorProvider);
+    final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Register'),
-      ),
-      body: LoadingOverlay(
-        isLoading: isLoading,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+    return AuthLayout(
+      title: 'Create Account',
+      isLoading: isLoading,
+      onBack: null,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Logo or App Name
+            Center(
+              child: Text(
+                'CashSify',
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Name Field
+            AnimatedFormField(
+              label: 'Full Name',
+              hint: 'Enter your full name',
+              controller: _nameController,
+              prefixIcon: const Icon(Icons.person_outline),
+              index: 0,
+              totalFields: 6,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your name';
+                }
+                if (value.length < 2) {
+                  return 'Name must be at least 2 characters';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Email Field
+            AnimatedFormField(
+              label: 'Email',
+              hint: 'Enter your email',
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              prefixIcon: const Icon(Icons.email_outlined),
+              index: 1,
+              totalFields: 6,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your email';
+                }
+                if (!value.contains('@')) {
+                  return 'Please enter a valid email';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Phone Field
+            AnimatedFormField(
+              label: 'Phone Number',
+              hint: 'Enter your phone number',
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              prefixIcon: const Icon(Icons.phone_outlined),
+              index: 2,
+              totalFields: 6,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your phone number';
+                }
+                if (value.length < 10) {
+                  return 'Please enter a valid phone number';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Password Field
+            AnimatedFormField(
+              label: 'Password',
+              hint: 'Enter your password',
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              prefixIcon: const Icon(Icons.lock_outline),
+              index: 3,
+              totalFields: 6,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your password';
+                }
+                if (value.length < 6) {
+                  return 'Password must be at least 6 characters';
+                }
+                return null;
+              },
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Confirm Password Field
+            AnimatedFormField(
+              label: 'Confirm Password',
+              hint: 'Confirm your password',
+              controller: _confirmPasswordController,
+              obscureText: _obscureConfirmPassword,
+              prefixIcon: const Icon(Icons.lock_outline),
+              index: 4,
+              totalFields: 6,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please confirm your password';
+                }
+                if (value != _passwordController.text) {
+                  return 'Passwords do not match';
+                }
+                return null;
+              },
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureConfirmPassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscureConfirmPassword = !_obscureConfirmPassword;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Referral Code Field
+            AnimatedFormField(
+              label: 'Referral Code (Optional)',
+              hint: 'Enter referral code if you have one',
+              controller: _referralCodeController,
+              prefixIcon: const Icon(Icons.card_giftcard_outlined),
+              index: 5,
+              totalFields: 6,
+              validator: (value) {
+                if (value != null && value.isNotEmpty) {
+                  final code = value.trim().toUpperCase();
+                  if (!code.startsWith('REF')) {
+                    return 'Referral code must start with REF';
+                  }
+                  if (code.length != 9) {
+                    return 'Referral code must be 9 characters';
+                  }
+                  if (!RegExp(r'^REF[A-Z0-9]{6}$').hasMatch(code)) {
+                    return 'Invalid referral code format';
+                  }
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 32),
+
+            // Register Button
+            AnimatedButton(
+              text: 'Create Account',
+              onPressed: _handleRegister,
+              isLoading: isLoading,
+            ),
+            const SizedBox(height: 24),
+
+            // Login Link
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (error.message != null)
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      error.message!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                      ),
-                    ),
-                  ),
-                CustomTextField(
-                  label: 'Full Name',
-                  hint: 'Enter your full name',
-                  controller: _nameController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your name';
-                    }
-                    if (value.length < 2) {
-                      return 'Name must be at least 2 characters';
-                    }
-                    return null;
-                  },
+                Text(
+                  'Already have an account?',
+                  style: theme.textTheme.bodyMedium,
                 ),
-                const SizedBox(height: 16),
-                CustomTextField(
-                  label: 'Email',
-                  hint: 'Enter your email',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                CustomTextField(
-                  label: 'Phone Number',
-                  hint: 'Enter your phone number',
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your phone number';
-                    }
-                    if (value.length < 10) {
-                      return 'Please enter a valid phone number';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                CustomTextField(
-                  label: 'Password',
-                  hint: 'Enter your password',
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
-                    return null;
-                  },
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                CustomTextField(
-                  label: 'Confirm Password',
-                  hint: 'Confirm your password',
-                  controller: _confirmPasswordController,
-                  obscureText: _obscureConfirmPassword,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please confirm your password';
-                    }
-                    if (value != _passwordController.text) {
-                      return 'Passwords do not match';
-                    }
-                    return null;
-                  },
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureConfirmPassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureConfirmPassword = !_obscureConfirmPassword;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                CustomTextField(
-                  label: 'Referral Code (Optional)',
-                  hint: 'Enter referral code if you have one',
-                  controller: _referralCodeController,
-                  validator: (value) {
-                    if (value != null && value.isNotEmpty) {
-                      final code = value.trim().toUpperCase();
-                      if (!code.startsWith('REF')) {
-                        return 'Referral code must start with REF';
-                      }
-                      if (code.length != 9) { // REF + 6 characters
-                        return 'Referral code must be 9 characters';
-                      }
-                      if (!RegExp(r'^REF[A-Z0-9]{6}$').hasMatch(code)) {
-                        return 'Invalid referral code format';
-                      }
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                CustomButton(
-                  text: 'Register',
-                  onPressed: _handleRegister,
-                  isLoading: isLoading,
-                ),
-                const SizedBox(height: 16),
                 TextButton(
-                  onPressed: () {
-                    context.go('/auth/login');
-                  },
-                  child: const Text('Already have an account? Login'),
+                  onPressed: _navigateToLogin,
+                  child: const Text('Login'),
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );

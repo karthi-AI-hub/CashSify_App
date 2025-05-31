@@ -95,20 +95,31 @@ class SupabaseService {
   }) async {
     try {
       AppLogger.info('Attempting to sign in user: $email');
+      
       final response = await _client.auth.signInWithPassword(
         email: email,
         password: password,
       );
-      AppLogger.info('User signed in successfully: ${response.user?.id}');
+
+      if (response.user == null) {
+        throw AuthError(message: 'Failed to sign in', code: 'AUTH_ERROR');
+      }
+
+      AppLogger.info('Successfully signed in user: ${response.user?.id}');
       return response;
     } on AuthException catch (e) {
-      AppLogger.error('Sign in failed', e);
-      throw AuthError(message: e.toString(), code: 'AUTH_ERROR');
-    } catch (e, stackTrace) {
-      AppLogger.error('Unexpected error during sign in', e, stackTrace);
+      AppLogger.error('Error signing in user: $e');
+      throw AuthError(
+        message: e.message,
+        code: e.statusCode.toString(),
+        originalError: e,
+      );
+    } catch (e) {
+      AppLogger.error('Error signing in user: $e');
       throw AuthError(
         message: 'An unexpected error occurred during sign in',
         code: 'UNEXPECTED_ERROR',
+        originalError: e,
       );
     }
   }
@@ -244,27 +255,30 @@ class SupabaseService {
 
       final referralCode = generateReferralCode(phoneNumber);
 
-      final response = await _client.rpc(
+      await _client.rpc(
         'register_user_with_referral',
         params: {
-          'id': id,
-          'email': email,
-          'password': password,
-          'name': name,
-          'phone_number': phoneNumber,
-          'referral_code': referralCode,
-          'referred_code': referredCode,
+          'p_id': id,
+          'p_email': email,
+          'p_password': password,
+          'p_name': name,
+          'p_phone_number': phoneNumber,
+          'p_referral_code': referralCode,
+          'p_referred_code': referredCode,
         },
       );
 
-      if (response == null) {
-        throw AuthError(message: 'Failed to create user profile', code: 'RPC_ERROR');
-      }
-
-      AppLogger.info('Successfully registered user profile: $id');
+      AppLogger.info('Successfully registered user profile via RPC: $id');
     } catch (e) {
       AppLogger.error('Error registering user profile: $e');
-      throw AuthError(message: e.toString(), code: 'RPC_ERROR');
+      if (e is AuthError) {
+        rethrow;
+      }
+      throw AuthError(
+        message: 'Failed to create user profile. Please try again.',
+        code: 'RPC_ERROR',
+        originalError: e,
+      );
     }
   }
 
@@ -272,18 +286,16 @@ class SupabaseService {
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
       AppLogger.info('Fetching user profile: $userId');
-
       final response = await _client
           .from('users')
           .select()
           .eq('id', userId)
-          .single();
-
+          .maybeSingle();
       AppLogger.info('Successfully fetched user profile: $userId');
       return response;
     } catch (e) {
       AppLogger.error('Error fetching user profile: $e');
-      throw AuthError(message: e.toString(), code: 'PROFILE_ERROR');
+      return null;
     }
   }
 
@@ -295,12 +307,33 @@ class SupabaseService {
       await _client
           .from('users')
           .update({'last_login': DateTime.now().toIso8601String()})
-          .eq('id', userId);
+          .eq('id', userId)
+          .select()
+          .single();
 
       AppLogger.info('Successfully updated last login: $userId');
     } catch (e) {
       AppLogger.error('Error updating last login: $e');
-      throw AuthError(message: e.toString(), code: 'UPDATE_ERROR');
+      throw AuthError(
+        message: 'Failed to update last login',
+        code: 'UPDATE_ERROR',
+        originalError: e,
+      );
     }
+  }
+
+  // Get current session
+  Future<Session?> getCurrentSession() async {
+    try {
+      return await _client.auth.currentSession;
+    } catch (e) {
+      AppLogger.error('Error getting current session: $e');
+      return null;
+    }
+  }
+
+  // Get auth state changes stream
+  Stream<AuthState> get onAuthStateChange {
+    return _client.auth.onAuthStateChange;
   }
 } 
