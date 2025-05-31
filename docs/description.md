@@ -229,7 +229,7 @@
 | `coins`              | int       | Current coin balance                           |
 | `referral_code`      | text      | Unique code assigned to each user              |
 | `referral_count`     | int       | How many users they referred                   |
-| `referred_by`        | text      | Referral code used (nullable)                  |
+| `referred_by`        | uuid      | public.user(id) on delete set null                  |
 | `upi_id`             | text      | Optional                                       |
 | `bank_account`       | jsonb     | `{ "account_no": "", "ifsc": "", "name": "" }` |
 | `is_verified`        | bool      | Manual or email verified                       |

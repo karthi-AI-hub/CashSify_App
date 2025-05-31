@@ -23,9 +23,34 @@ class OnboardingPage extends StatelessWidget {
         children: [
           Expanded(
             flex: 3,
-            child: Lottie.asset(
-              animation,
-              fit: BoxFit.contain,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Lottie animation with loading state
+                Lottie.asset(
+                  'assets/animations/$animation',
+                  fit: BoxFit.contain,
+                  width: MediaQuery.of(context).size.width * 0.8,
+                  height: MediaQuery.of(context).size.width * 0.8,
+                  options: LottieOptions(enableMergePaths: true),
+                  frameBuilder: (context, child, composition) {
+                    if (composition != null) {
+                      return child;
+                    }
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    debugPrint('Lottie error: $error');
+                    return Icon(
+                      Icons.animation,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.outline,
+                    );
+                  },
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 32),
@@ -42,7 +67,7 @@ class OnboardingPage extends StatelessWidget {
             description,
             style: GoogleFonts.poppins(
               fontSize: 16,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
             ),
             textAlign: TextAlign.center,
           ),
