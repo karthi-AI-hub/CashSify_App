@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cashsify_app/core/widgets/custom_button.dart';
+import 'package:cashsify_app/core/widgets/form/custom_button.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});

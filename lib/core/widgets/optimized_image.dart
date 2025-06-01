@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:cashsify_app/core/utils/image_utils.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class OptimizedImage extends StatelessWidget {
   final String imageUrl;
   final double? width;
   final double? height;
   final BoxFit fit;
+  final BorderRadius? borderRadius;
   final Widget? placeholder;
   final Widget? errorWidget;
-  final BorderRadius? borderRadius;
-  final bool useHero;
 
   const OptimizedImage({
     super.key,
@@ -17,33 +16,29 @@ class OptimizedImage extends StatelessWidget {
     this.width,
     this.height,
     this.fit = BoxFit.cover,
+    this.borderRadius,
     this.placeholder,
     this.errorWidget,
-    this.borderRadius,
-    this.useHero = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final image = ImageUtils.cachedImage(
+    Widget image = CachedNetworkImage(
       imageUrl: imageUrl,
       width: width,
       height: height,
       fit: fit,
-      placeholder: placeholder,
-      errorWidget: errorWidget,
+      placeholder: (context, url) => placeholder ?? const Center(
+        child: CircularProgressIndicator(),
+      ),
+      errorWidget: (context, url, error) => errorWidget ?? const Center(
+        child: Icon(Icons.error),
+      ),
     );
 
     if (borderRadius != null) {
-      return ClipRRect(
+      image = ClipRRect(
         borderRadius: borderRadius!,
-        child: image,
-      );
-    }
-
-    if (useHero) {
-      return Hero(
-        tag: imageUrl,
         child: image,
       );
     }

@@ -14,7 +14,7 @@ class AppConfig {
 
   // App Configuration
   static const String appName = 'CashSify';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '2.0.0';
   
   // API Endpoints
   static String get apiBaseUrl => dotenv.env['API_BASE_URL'] ?? '';

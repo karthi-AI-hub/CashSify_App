@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cashsify_app/core/widgets/custom_toast.dart';
+import 'package:cashsify_app/core/widgets/feedback/custom_toast.dart';
 import 'package:cashsify_app/core/utils/logger.dart';
 import 'package:cashsify_app/core/error/app_error.dart';
 
@@ -28,39 +28,37 @@ class AppUtils {
     );
   }
 
-  static void showToast({
-    required BuildContext context,
+  static void showToast(
+    BuildContext context, {
     required String message,
     ToastType type = ToastType.info,
-    Duration duration = const Duration(seconds: 3),
   }) {
     CustomToast.show(
       context,
       message: message,
       type: type,
-      duration: duration,
     );
   }
 
   static void showSuccessToast(BuildContext context, String message) {
-    showToast(
-      context: context,
+    CustomToast.show(
+      context,
       message: message,
       type: ToastType.success,
     );
   }
 
   static void showErrorToast(BuildContext context, String message) {
-    showToast(
-      context: context,
+    CustomToast.show(
+      context,
       message: message,
       type: ToastType.error,
     );
   }
 
   static void showInfoToast(BuildContext context, String message) {
-    showToast(
-      context: context,
+    CustomToast.show(
+      context,
       message: message,
       type: ToastType.info,
     );

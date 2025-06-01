@@ -11,6 +11,11 @@ import 'package:cashsify_app/features/auth/presentation/screens/forgot_password_
 import 'package:cashsify_app/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:cashsify_app/features/error/presentation/screens/error_screen.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/auth_callback_screen.dart';
+import 'package:cashsify_app/presentation/widgets/app_layout.dart';
+import 'package:cashsify_app/features/ads/presentation/screens/watch_ads_screen.dart';
+import 'package:cashsify_app/features/refer/presentation/screens/refer_screen.dart';
+import 'package:cashsify_app/features/wallet/presentation/screens/wallet_screen.dart';
+import 'package:cashsify_app/features/profile/presentation/screens/profile_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -74,10 +79,35 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
       ),
-      GoRoute(
-        path: '/dashboard',
-        name: 'dashboard',
-        builder: (context, state) => const DashboardScreen(),
+      ShellRoute(
+        builder: (context, state, child) => AppLayout(child: child),
+        routes: [
+          GoRoute(
+            path: '/dashboard',
+            name: 'dashboard',
+            builder: (context, state) => const SizedBox(), // Empty because IndexedStack handles it
+          ),
+          GoRoute(
+            path: '/watch-ads',
+            name: 'watch-ads',
+            builder: (context, state) => const SizedBox(), // Empty because IndexedStack handles it
+          ),
+          GoRoute(
+            path: '/refer',
+            name: 'refer',
+            builder: (context, state) => const SizedBox(), // Empty because IndexedStack handles it
+          ),
+          GoRoute(
+            path: '/wallet',
+            name: 'wallet',
+            builder: (context, state) => const SizedBox(), // Empty because IndexedStack handles it
+          ),
+          GoRoute(
+            path: '/profile',
+            name: 'profile',
+            builder: (context, state) => const SizedBox(), // Empty because IndexedStack handles it
+          ),
+        ],
       ),
       GoRoute(
         path: '/error',

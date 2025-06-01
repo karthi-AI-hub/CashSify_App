@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cashsify_app/core/widgets/loading_overlay.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import '../../../../theme/app_theme.dart';
+import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
 
 class AuthLayout extends StatefulWidget {
   final String title;

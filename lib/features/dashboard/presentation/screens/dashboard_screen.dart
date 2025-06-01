@@ -1,131 +1,455 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:cashsify_app/core/providers/providers.dart';
-import 'package:intl/intl.dart';
+import '../../../../theme/app_spacing.dart';
+import 'dart:async';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
-  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
-    try {
-      await ref.read(authProvider.notifier).signOut();
-      if (context.mounted) {
-        context.go('/auth/login');
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Logout failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
-    final user = authState.user;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+    final horizontalPadding = isSmallScreen ? AppSpacing.md : AppSpacing.xl;
+    final verticalPadding = isSmallScreen ? AppSpacing.lg : AppSpacing.xxl;
+    final cardSpacing = isSmallScreen ? AppSpacing.md : AppSpacing.xl;
+    final cardFontSize = isSmallScreen ? 18.0 : null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Dashboard',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
+    return SafeArea(
+      child: ListView(
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
+        children: [
+          // Welcome Header
+          _AnimatedFadeIn(
+            delay: 0,
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Welcome back, KS',
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                        fontSize: cardFontSize != null ? cardFontSize + 2 : null,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                  ),
+                  SizedBox(height: AppSpacing.xs),
+                  Text("Let's earn today!",
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: cardFontSize,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _handleLogout(context, ref),
+          SizedBox(height: AppSpacing.xl),
+          // Coin Summary Cards
+          _AnimatedFadeIn(
+            delay: 100,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth < 360) {
+                  // Stack vertically on very small screens
+                  return Column(
+                    children: [
+                      _CoinCard(
+                        title: 'Total Coins',
+                        value: 12580,
+                        label: 'Lifetime earnings',
+                        color: colorScheme.primary,
+                        textColor: colorScheme.onPrimary,
+                        icon: Icons.monetization_on,
+                        animate: true,
+                        isSmall: true,
+                      ),
+                      SizedBox(height: cardSpacing),
+                      _CoinCard(
+                        title: "Today's Coins",
+                        value: 640,
+                        label: 'Since midnight',
+                        color: colorScheme.surface,
+                        textColor: colorScheme.onSurface,
+                        icon: Icons.monetization_on_outlined,
+                        animate: true,
+                        isSmall: true,
+                      ),
+                    ],
+                  );
+                } else {
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: _CoinCard(
+                          title: 'Total Coins',
+                          value: 12580,
+                          label: 'Lifetime earnings',
+                          color: colorScheme.primary,
+                          textColor: colorScheme.onPrimary,
+                          icon: Icons.monetization_on,
+                          animate: true,
+                          isSmall: isSmallScreen,
+                        ),
+                      ),
+                      SizedBox(width: cardSpacing),
+                      Expanded(
+                        child: _CoinCard(
+                          title: "Today's Coins",
+                          value: 640,
+                          label: 'Since midnight',
+                          color: colorScheme.surface,
+                          textColor: colorScheme.onSurface,
+                          icon: Icons.monetization_on_outlined,
+                          animate: true,
+                          isSmall: isSmallScreen,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+              },
+            ),
+          ),
+          SizedBox(height: AppSpacing.xl),
+          // Tasks Section
+          _AnimatedFadeIn(
+            delay: 300,
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text("Today's Tasks",
+                          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: cardFontSize),
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: false,
+                        ),
+                      ),
+                      SizedBox(width: AppSpacing.sm),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text('0/1 Completed', 
+                          style: textTheme.labelMedium?.copyWith(
+                            color: colorScheme.primary, 
+                            fontWeight: FontWeight.bold, 
+                            fontSize: cardFontSize != null ? cardFontSize - 2 : null
+                          ), 
+                          overflow: TextOverflow.ellipsis, 
+                          softWrap: false
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: AppSpacing.xs),
+                  Text('1 task remaining today', 
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant, 
+                      fontSize: cardFontSize != null ? cardFontSize - 4 : null
+                    ), 
+                    overflow: TextOverflow.ellipsis, 
+                    softWrap: false
+                  ),
+                  SizedBox(height: AppSpacing.md),
+                  Divider(thickness: 1, color: colorScheme.surfaceVariant),
+                  SizedBox(height: AppSpacing.md),
+                  _TaskCard(isSmall: isSmallScreen),
+                ],
+              ),
+            ),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+    );
+  }
+}
+
+class _CoinCard extends StatelessWidget {
+  final String title;
+  final int value;
+  final String label;
+  final Color color;
+  final Color textColor;
+  final IconData icon;
+  final bool animate;
+  final bool isSmall;
+  const _CoinCard({
+    required this.title,
+    required this.value,
+    required this.label,
+    required this.color,
+    required this.textColor,
+    required this.icon,
+    this.animate = false,
+    this.isSmall = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final double iconSize = isSmall ? 22 : 28;
+    final double? titleFontSize = isSmall ? 14 : null;
+    final double? valueFontSize = isSmall ? 22 : null;
+    final double? labelFontSize = isSmall ? 11 : null;
+    final double cardPadding = isSmall ? AppSpacing.md : AppSpacing.lg;
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
+      color: color,
+      child: Padding(
+        padding: EdgeInsets.all(cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Welcome, ${user?.name ?? 'User'}!',
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 24),
-            _buildInfoCard(
-              title: 'Account Details',
+            Row(
               children: [
-                _buildInfoRow('Email', user?.email ?? 'N/A'),
-                _buildInfoRow('User ID', user?.id ?? 'N/A'),
-                _buildInfoRow('Phone', user?.phoneNumber ?? 'N/A'),
-                _buildInfoRow('Referral Code', user?.referralCode ?? 'N/A'),
-                _buildInfoRow(
-                  'Last Login',
-                  user?.lastLogin != null
-                      ? DateFormat('MMM dd, yyyy HH:mm').format(user!.lastLogin!)
-                      : 'N/A',
+                Flexible(child: Icon(icon, color: textColor, size: iconSize)),
+                SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(title,
+                    style: textTheme.labelLarge?.copyWith(color: textColor, fontWeight: FontWeight.bold, fontSize: titleFontSize),
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
                 ),
               ],
             ),
+            SizedBox(height: AppSpacing.md),
+            animate
+                ? AnimatedSwitcher(
+                    duration: Duration(milliseconds: 600),
+                    transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+                    child: Text(
+                      value.toString(),
+                      key: ValueKey(value),
+                      style: textTheme.displaySmall?.copyWith(color: textColor, fontWeight: FontWeight.bold, fontSize: valueFontSize),
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                  )
+                : Text(
+                    value.toString(),
+                    style: textTheme.displaySmall?.copyWith(color: textColor, fontWeight: FontWeight.bold, fontSize: valueFontSize),
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
+            SizedBox(height: AppSpacing.xs),
+            Text(label, style: textTheme.bodySmall?.copyWith(color: textColor.withOpacity(0.8), fontSize: labelFontSize), overflow: TextOverflow.ellipsis, softWrap: false),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildInfoCard({
-    required String title,
-    required List<Widget> children,
-  }) {
+class _TaskCard extends StatelessWidget {
+  final bool isSmall;
+  const _TaskCard({this.isSmall = false});
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final double cardPadding = isSmall ? AppSpacing.md : AppSpacing.lg;
+    final double? titleFontSize = isSmall ? 14 : null;
+    final double? labelFontSize = isSmall ? 11 : null;
+    final double? statusFontSize = isSmall ? 11 : null;
     return Card(
       elevation: 2,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: colorScheme.primary.withOpacity(0.1),
+                  child: Icon(Icons.play_arrow, color: colorScheme.primary, size: isSmall ? 18 : 24),
+                  radius: isSmall ? 16 : 20,
+                ),
+                SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text('Watch 20 ads to earn coins',
+                    style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: titleFontSize),
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text('In Progress', style: textTheme.labelMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold, fontSize: statusFontSize), overflow: TextOverflow.ellipsis, softWrap: false),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            ...children,
+            SizedBox(height: AppSpacing.md),
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 0.2),
+              duration: Duration(milliseconds: 800),
+              curve: Curves.easeOut,
+              builder: (context, value, child) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LinearProgressIndicator(
+                      value: value,
+                      minHeight: isSmall ? 6 : 8,
+                      backgroundColor: colorScheme.surfaceVariant,
+                      valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                    ),
+                    SizedBox(height: AppSpacing.xs),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('4/20 ads watched', 
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant, 
+                            fontSize: labelFontSize
+                          ), 
+                          overflow: TextOverflow.ellipsis, 
+                          softWrap: false
+                        ),
+                        _ResetCountdown(
+                          isSmall: isSmall,
+                          textColor: colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
-            ),
-          ),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+class _ResetCountdown extends StatefulWidget {
+  final bool isSmall;
+  final Color textColor;
+  
+  const _ResetCountdown({
+    required this.isSmall,
+    required this.textColor,
+  });
+
+  @override
+  State<_ResetCountdown> createState() => _ResetCountdownState();
+}
+
+class _ResetCountdownState extends State<_ResetCountdown> {
+  late Timer _timer;
+  late Duration _timeUntilMidnight;
+  late TextTheme textTheme;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateTimeUntilMidnight();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _calculateTimeUntilMidnight();
+      });
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    textTheme = Theme.of(context).textTheme;
+  }
+
+  void _calculateTimeUntilMidnight() {
+    final now = DateTime.now();
+    final midnight = DateTime(now.year, now.month, now.day + 1);
+    _timeUntilMidnight = midnight.difference(now);
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    return 'Reset in ${hours}h:${minutes}m';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      _formatDuration(_timeUntilMidnight),
+      style: textTheme.bodySmall?.copyWith(
+        color: widget.textColor,
+        fontSize: widget.isSmall ? 11 : null,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+}
+
+// Animated fade-in widget for section transitions
+class _AnimatedFadeIn extends StatefulWidget {
+  final Widget child;
+  final int delay;
+  const _AnimatedFadeIn({required this.child, required this.delay});
+
+  @override
+  State<_AnimatedFadeIn> createState() => _AnimatedFadeInState();
+}
+
+class _AnimatedFadeInState extends State<_AnimatedFadeIn> with SingleTickerProviderStateMixin {
+  double _opacity = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) {
+        setState(() {
+          _opacity = 1;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: _opacity,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      child: AnimatedSlide(
+        offset: _opacity == 1 ? Offset.zero : const Offset(0, 0.1),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+        child: widget.child,
       ),
     );
   }
