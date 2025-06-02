@@ -336,4 +336,10 @@ class SupabaseService {
   Stream<AuthState> get onAuthStateChange {
     return _client.auth.onAuthStateChange;
   }
+
+  // Fetch server time from Supabase
+  Future<DateTime> getServerTime() async {
+    final data = await _client.rpc('get_server_time');
+    return DateTime.parse(data as String);
+  }
 } 

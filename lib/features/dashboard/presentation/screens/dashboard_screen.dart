@@ -2,12 +2,66 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../theme/app_spacing.dart';
 import 'dart:async';
+import 'package:intl/intl.dart';
+import 'package:cashsify_app/core/services/supabase_service.dart';
+import 'package:cashsify_app/core/widgets/feedback/shimmer_loading.dart';
+import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
+import 'package:cashsify_app/core/providers/loading_provider.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  DateTime? serverTime;
+  DateTime? deviceTimeAtFetch;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchServerTime();
+  }
+
+  Future<void> _fetchServerTime() async {
+    try {
+      ref.read(loadingProvider.notifier).startLoading();
+      final fetched = await SupabaseService().getServerTime();
+      setState(() {
+        serverTime = fetched;
+        deviceTimeAtFetch = DateTime.now();
+        isLoading = false;
+      });
+      ref.read(loadingProvider.notifier).finishLoading();
+    } catch (e) {
+      // Optionally handle error
+      setState(() { isLoading = false; });
+      ref.read(loadingProvider.notifier).setError();
+    }
+  }
+
+  DateTime getTrustedNow() {
+    if (serverTime == null || deviceTimeAtFetch == null) return DateTime.now();
+    final elapsed = DateTime.now().difference(deviceTimeAtFetch!);
+    return serverTime!.add(elapsed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loadingState = ref.watch(loadingProvider);
+    return LoadingOverlay(
+      isLoading: loadingState == LoadingState.loading,
+      message: loadingState == LoadingState.loading ? 'Loading dashboard...' : null,
+      child: isLoading
+          ? const SizedBox.shrink()
+          : _buildDashboardContent(context),
+    );
+  }
+
+  Widget _buildDashboardContent(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -17,6 +71,8 @@ class DashboardScreen extends ConsumerWidget {
     final verticalPadding = isSmallScreen ? AppSpacing.lg : AppSpacing.xxl;
     final cardSpacing = isSmallScreen ? AppSpacing.md : AppSpacing.xl;
     final cardFontSize = isSmallScreen ? 18.0 : null;
+    final trustedNow = getTrustedNow();
+    final todayDate = DateFormat('dd/MM/yyyy').format(trustedNow);
 
     return SafeArea(
       child: ListView(
@@ -65,7 +121,7 @@ class DashboardScreen extends ConsumerWidget {
                       _CoinCard(
                         title: 'Total Coins',
                         value: 12580,
-                        label: 'Lifetime earnings',
+                        label: 'Available in Wallet',
                         color: colorScheme.primary,
                         textColor: colorScheme.onPrimary,
                         icon: Icons.monetization_on,
@@ -74,7 +130,7 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       SizedBox(height: cardSpacing),
                       _CoinCard(
-                        title: "Today's Coins",
+                        title: "Today's Coins ($todayDate)",
                         value: 640,
                         label: 'Since midnight',
                         color: colorScheme.surface,
@@ -103,7 +159,7 @@ class DashboardScreen extends ConsumerWidget {
                       SizedBox(width: cardSpacing),
                       Expanded(
                         child: _CoinCard(
-                          title: "Today's Coins",
+                          title: "Today's Coins ($todayDate)",
                           value: 640,
                           label: 'Since midnight',
                           color: colorScheme.surface,
@@ -207,6 +263,12 @@ class _CoinCard extends StatelessWidget {
     final double? valueFontSize = isSmall ? 22 : null;
     final double? labelFontSize = isSmall ? 11 : null;
     final double cardPadding = isSmall ? AppSpacing.md : AppSpacing.lg;
+    final isTodayCoins = title.startsWith("Today's Coins");
+    final todayDate = DateFormat('dd/MM/yyyy').format(DateTime.now());
+    String displayTitle = title;
+    if (isTodayCoins) {
+      displayTitle = "Today's Coins ($todayDate)";
+    }
     return Card(
       elevation: 2,
       margin: EdgeInsets.zero,
@@ -217,40 +279,32 @@ class _CoinCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              displayTitle,
+              style: textTheme.labelLarge?.copyWith(color: textColor, fontWeight: FontWeight.bold, fontSize: titleFontSize),
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+            ),
+            SizedBox(height: AppSpacing.md),
             Row(
               children: [
-                Flexible(child: Icon(icon, color: textColor, size: iconSize)),
+                Icon(icon, color: textColor, size: iconSize),
                 SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(title,
-                    style: textTheme.labelLarge?.copyWith(color: textColor, fontWeight: FontWeight.bold, fontSize: titleFontSize),
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                  ),
+                Text(
+                  value.toString(),
+                  style: textTheme.displaySmall?.copyWith(color: textColor, fontWeight: FontWeight.bold, fontSize: valueFontSize),
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
                 ),
               ],
             ),
-            SizedBox(height: AppSpacing.md),
-            animate
-                ? AnimatedSwitcher(
-                    duration: Duration(milliseconds: 600),
-                    transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
-                    child: Text(
-                      value.toString(),
-                      key: ValueKey(value),
-                      style: textTheme.displaySmall?.copyWith(color: textColor, fontWeight: FontWeight.bold, fontSize: valueFontSize),
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: false,
-                    ),
-                  )
-                : Text(
-                    value.toString(),
-                    style: textTheme.displaySmall?.copyWith(color: textColor, fontWeight: FontWeight.bold, fontSize: valueFontSize),
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                  ),
             SizedBox(height: AppSpacing.xs),
-            Text(label, style: textTheme.bodySmall?.copyWith(color: textColor.withOpacity(0.8), fontSize: labelFontSize), overflow: TextOverflow.ellipsis, softWrap: false),
+            Text(
+              label,
+              style: textTheme.bodySmall?.copyWith(color: textColor.withOpacity(0.8), fontSize: labelFontSize),
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+            ),
           ],
         ),
       ),
@@ -398,7 +452,8 @@ class _ResetCountdownState extends State<_ResetCountdown> {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final hours = twoDigits(duration.inHours);
     final minutes = twoDigits(duration.inMinutes.remainder(60));
-    return 'Reset in ${hours}h:${minutes}m';
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return 'Reset in ${hours}h:${minutes}m:${seconds}s';
   }
 
   @override

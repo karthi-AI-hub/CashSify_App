@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import '../../../../theme/app_theme.dart';
 import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
 import 'package:cashsify_app/core/widgets/form/custom_text_field.dart';
 import 'package:cashsify_app/core/widgets/form/custom_button.dart';
 import 'package:cashsify_app/core/widgets/feedback/custom_toast.dart';
 import 'package:cashsify_app/core/utils/captcha_utils.dart';
+import 'package:cashsify_app/core/widgets/feedback/success_animation.dart';
+import 'package:cashsify_app/core/widgets/feedback/custom_tooltip.dart';
 
 // State providers for verification
 final captchaTextProvider = StateProvider<String>((ref) => generateCaptcha());
@@ -28,6 +33,15 @@ class VerificationScreen extends HookConsumerWidget {
     final maxAttempts = 3;
     final failed = attempts >= maxAttempts;
     final focusNode = useFocusNode();
+    final isSuccess = useState(false);
+    final controller = useTextEditingController(text: userInput);
+    useEffect(() {
+      if (controller.text != userInput) {
+        controller.text = userInput;
+        controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+      }
+      return null;
+    }, [userInput]);
     useEffect(() {
       Future.delayed(const Duration(milliseconds: 200), () {
         if (!failed) focusNode.requestFocus();
@@ -35,78 +49,132 @@ class VerificationScreen extends HookConsumerWidget {
       return null;
     }, [failed]);
 
-    return LoadingOverlay(
-      isLoading: isVerifying,
-      child: Material(
-        color: Theme.of(context).colorScheme.background,
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-              return SingleChildScrollView(
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: EdgeInsets.only(
-                  left: 20, right: 20, top: 24, bottom: 24 + bottomInset,
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: LoadingOverlay(
+        isLoading: isVerifying,
+        child: Material(
+          color: Theme.of(context).colorScheme.background,
+          child: Container(
+            decoration: BoxDecoration(
+              color: colorScheme.background,
+              image: DecorationImage(
+                image: _createPatternImage(
+                  color: colorScheme.primary.withOpacity(0.03),
+                  size: 20,
                 ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        _buildHeader(context, colorScheme, textTheme),
-                        const SizedBox(height: 32),
-                        _buildCaptchaCard(context, colorScheme, textTheme, captchaText, failed, ref),
-                        const SizedBox(height: 32),
-                        _buildInputField(context, colorScheme, textTheme, userInput, ref, focusNode, failed),
-                        const SizedBox(height: 18),
-                        _buildAttemptsChips(context, colorScheme, textTheme, attempts, maxAttempts, failed),
-                        const SizedBox(height: 32),
-                        _buildVerifyButton(context, colorScheme, textTheme, isVerifying, ref, failed),
-                      ],
+                repeat: ImageRepeat.repeat,
+              ),
+            ),
+            child: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+                  final isSmallScreen = constraints.maxWidth < 360;
+                  return SizedBox.expand(
+                    child: SingleChildScrollView(
+                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: EdgeInsets.only(
+                        left: isSmallScreen ? 16 : 20,
+                        right: isSmallScreen ? 16 : 20,
+                        top: isSmallScreen ? 16 : 24,
+                        bottom: 24 + bottomInset,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Header: Avatar above title, centered
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircleAvatar(
+                                radius: 28,
+                                backgroundColor: colorScheme.primary.withOpacity(0.12),
+                                child: Icon(Icons.verified_user_rounded, color: colorScheme.primary, size: 28),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                'Human Verification',
+                                style: textTheme.titleMedium?.copyWith(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Enter the code below to prove you're not a robot.",
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 13,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: isSmallScreen ? 24 : 32),
+                          _buildCaptchaCard(
+                            context,
+                            colorScheme,
+                            textTheme,
+                            captchaText,
+                            failed,
+                            ref,
+                            focusNode,
+                          ),
+                          SizedBox(height: isSmallScreen ? 24 : 32),
+                          _buildInputField(
+                            context,
+                            colorScheme,
+                            textTheme,
+                            userInput,
+                            ref,
+                            focusNode,
+                            failed,
+                            controller,
+                          ),
+                          SizedBox(height: isSmallScreen ? 16 : 18),
+                          _buildAttemptsChips(
+                            context,
+                            colorScheme,
+                            textTheme,
+                            attempts,
+                            maxAttempts,
+                            failed,
+                          ),
+                          SizedBox(height: isSmallScreen ? 24 : 32),
+                          _buildVerifyButton(
+                            context,
+                            colorScheme,
+                            textTheme,
+                            isVerifying,
+                            ref,
+                            failed,
+                            isSuccess,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-              );
-            },
+                  );
+                },
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, ColorScheme colorScheme, TextTheme textTheme) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 26,
-          backgroundColor: colorScheme.primary.withOpacity(0.1),
-          child: Icon(Icons.verified_user_rounded, color: colorScheme.primary, size: 24),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Human Verification',
-          style: textTheme.titleMedium?.copyWith(
-            color: colorScheme.primary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "Enter the code below to prove you're not a robot.",
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            fontSize: 13,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCaptchaCard(BuildContext context, ColorScheme colorScheme, TextTheme textTheme, String captchaText, bool failed, WidgetRef ref) {
+  Widget _buildCaptchaCard(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    String captchaText,
+    bool failed,
+    WidgetRef ref,
+    FocusNode focusNode,
+  ) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeOut,
@@ -120,52 +188,59 @@ class VerificationScreen extends HookConsumerWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.primary.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: colorScheme.primary.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 300),
-                  style: textTheme.headlineMedium!.copyWith(
-                    color: failed ? colorScheme.error : colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22,
-                    letterSpacing: 10,
-                    shadows: [
-                      Shadow(
-                        color: failed ? colorScheme.error.withOpacity(0.2) : colorScheme.primary.withOpacity(0.2),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+          SizedBox(
+            height: 36,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Center(
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 300),
+                    style: textTheme.headlineMedium!.copyWith(
+                      color: failed ? colorScheme.error : colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                      letterSpacing: 10,
+                      shadows: [
+                        Shadow(
+                          color: failed ? colorScheme.error.withOpacity(0.2) : colorScheme.primary.withOpacity(0.2),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(captchaText, textAlign: TextAlign.center),
                   ),
-                  child: Text(captchaText, textAlign: TextAlign.center),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Refresh CAPTCHA',
-                icon: Icon(Icons.refresh_rounded, color: colorScheme.primary, size: 20),
-                onPressed: () {
-                  ref.read(captchaTextProvider.notifier).state = generateCaptcha();
-                  ref.read(userInputProvider.notifier).state = '';
-                  CustomToast.show(
-                    context,
-                    message: 'CAPTCHA refreshed!',
-                    type: ToastType.info,
-                    duration: const Duration(seconds: 2),
-                    showCloseButton: false,
-                  );
-                },
-              ),
-            ],
+                Positioned(
+                  right: 0,
+                  child: IconButton(
+                    tooltip: 'Refresh CAPTCHA',
+                    icon: Icon(Icons.refresh_rounded, color: colorScheme.primary, size: 20),
+                    onPressed: () {
+                      ref.read(captchaTextProvider.notifier).state = generateCaptcha();
+                      ref.read(userInputProvider.notifier).state = '';
+                      focusNode.requestFocus();
+                      CustomToast.show(
+                        context,
+                        message: 'CAPTCHA refreshed!',
+                        type: ToastType.info,
+                        duration: const Duration(seconds: 2),
+                        showCloseButton: false,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -180,7 +255,7 @@ class VerificationScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildInputField(BuildContext context, ColorScheme colorScheme, TextTheme textTheme, String userInput, WidgetRef ref, FocusNode focusNode, bool failed) {
+  Widget _buildInputField(BuildContext context, ColorScheme colorScheme, TextTheme textTheme, String userInput, WidgetRef ref, FocusNode focusNode, bool failed, TextEditingController controller) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
@@ -197,6 +272,7 @@ class VerificationScreen extends HookConsumerWidget {
             : [],
       ),
       child: TextField(
+        controller: controller,
         focusNode: focusNode,
         onChanged: (value) => ref.read(userInputProvider.notifier).state = value,
         textAlign: TextAlign.center,
@@ -275,38 +351,55 @@ class VerificationScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildVerifyButton(BuildContext context, ColorScheme colorScheme, TextTheme textTheme, bool isVerifying, WidgetRef ref, bool failed) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        icon: Icon(Icons.verified, color: colorScheme.onPrimary, size: 16),
-        label: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 7),
-          child: Text(
-            failed ? 'Blocked' : 'Verify',
-            style: textTheme.labelLarge?.copyWith(
-              color: colorScheme.onPrimary,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+  Widget _buildVerifyButton(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    bool isVerifying,
+    WidgetRef ref,
+    bool failed,
+    ValueNotifier<bool> isSuccess,
+  ) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      child: isSuccess.value
+          ? SuccessAnimation(
+              key: const ValueKey('success'),
+              onComplete: () => Navigator.pop(context, true),
+            )
+          : SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: Icon(Icons.verified, color: colorScheme.onPrimary, size: 16),
+                label: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  child: Text(
+                    failed ? 'Blocked' : 'Verify',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: failed ? colorScheme.error : colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: failed ? 0 : 4,
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 36),
+                ),
+                onPressed: isVerifying || failed ? null : () => _handleVerification(context, ref, isSuccess),
+              ),
             ),
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: failed ? colorScheme.error : colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: failed ? 0 : 4,
-          padding: EdgeInsets.zero,
-          minimumSize: const Size(0, 36),
-        ),
-        onPressed: isVerifying || failed ? null : () => _handleVerification(context, ref),
-      ),
     );
   }
 
-  void _handleVerification(BuildContext context, WidgetRef ref) async {
+  void _handleVerification(BuildContext context, WidgetRef ref, ValueNotifier<bool> isSuccess) async {
+    FocusScope.of(context).unfocus(); // Hide keyboard
     final captchaText = ref.read(captchaTextProvider);
     final userInput = ref.read(userInputProvider);
     final attempts = ref.read(verificationAttemptsProvider);
@@ -345,7 +438,7 @@ class VerificationScreen extends HookConsumerWidget {
             duration: const Duration(seconds: 2),
             showCloseButton: false,
           );
-          Navigator.pop(context, true);
+          isSuccess.value = true;
         }
       } else {
         ref.read(verificationAttemptsProvider.notifier).state++;
@@ -365,4 +458,78 @@ class VerificationScreen extends HookConsumerWidget {
       ref.read(isVerifyingProvider.notifier).state = false;
     }
   }
+
+  ImageProvider _createPatternImage({required Color color, required double size}) {
+    return CustomPatternImage(
+      color: color,
+      size: size,
+    );
+  }
+}
+
+class CustomPatternImage extends ImageProvider<CustomPatternImage> {
+  final Color color;
+  final double size;
+
+  const CustomPatternImage({
+    required this.color,
+    required this.size,
+  });
+
+  @override
+  Future<CustomPatternImage> obtainKey(ImageConfiguration configuration) {
+    return SynchronousFuture<CustomPatternImage>(this);
+  }
+
+  @override
+  ImageStreamCompleter loadBuffer(
+    CustomPatternImage key,
+    Future<ui.Codec> Function(ui.ImmutableBuffer, {bool allowUpscaling, int? cacheHeight, int? cacheWidth}) decode,
+  ) {
+    return OneFrameImageStreamCompleter(_loadImage(key));
+  }
+
+  Future<ImageInfo> _loadImage(CustomPatternImage key) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    // Draw dots in a grid pattern
+    for (var i = 0; i < 10; i++) {
+      for (var j = 0; j < 10; j++) {
+        canvas.drawCircle(
+          Offset(i * size, j * size),
+          size / 4,
+          paint,
+        );
+      }
+    }
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(
+      (size * 10).toInt(),
+      (size * 10).toInt(),
+    );
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (bytes == null) {
+      throw Exception('Failed to generate pattern image');
+    }
+    final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
+    final frame = await codec.getNextFrame();
+
+    return ImageInfo(image: frame.image);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (other.runtimeType != runtimeType) return false;
+    return other is CustomPatternImage &&
+        other.color == color &&
+        other.size == size;
+  }
+
+  @override
+  int get hashCode => Object.hash(color, size);
 } 
