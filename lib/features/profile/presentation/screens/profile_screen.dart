@@ -7,6 +7,11 @@ import '../../../../core/widgets/layout/custom_card.dart';
 import '../../../../core/widgets/feedback/custom_toast.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import '../../../../features/common_screens/terms_screen.dart';
+import '../../../../features/common_screens/privacy_policy_screen.dart';
+import '../../../../features/common_screens/contact_us_screen.dart';
+import '../../../../features/common_screens/faq_screen.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends HookConsumerWidget {
   const ProfileScreen({super.key});
@@ -348,7 +353,17 @@ class ProfileScreen extends HookConsumerWidget {
       margin: EdgeInsets.only(top: AppSpacing.md),
       child: Column(
         children: [
-          _settingsTile(context, colorScheme, textTheme, Icons.edit, 'Edit Profile', onTap: () {}),
+          _settingsTile(
+            context,
+            colorScheme,
+            textTheme,
+            Icons.edit,
+            'Edit Profile',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+            ),
+          ),
           Divider(height: 1),
           _settingsTile(context, colorScheme, textTheme, Icons.lock, 'Change Password', onTap: () {}),
           Divider(height: 1),
@@ -361,6 +376,30 @@ class ProfileScreen extends HookConsumerWidget {
             trailing: Switch(
               value: isDarkMode,
               onChanged: (value) => themeNotifier.toggleTheme(),
+            ),
+          ),
+          Divider(height: 1),
+          _settingsTile(
+            context,
+            colorScheme,
+            textTheme,
+            Icons.support_agent,
+            'Contact Us',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ContactUsScreen()),
+            ),
+          ),
+          Divider(height: 1),
+          _settingsTile(
+            context,
+            colorScheme,
+            textTheme,
+            Icons.help_outline,
+            'FAQ',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const FAQScreen()),
             ),
           ),
         ],
@@ -415,9 +454,29 @@ class ProfileScreen extends HookConsumerWidget {
       margin: EdgeInsets.only(top: AppSpacing.md),
       child: Column(
         children: [
-          _settingsTile(context, colorScheme, textTheme, Icons.description, 'Terms & Conditions', onTap: () {}),
+          _settingsTile(
+            context,
+            colorScheme,
+            textTheme,
+            Icons.description,
+            'Terms & Conditions',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const TermsScreen()),
+            ),
+          ),
           Divider(height: 1),
-          _settingsTile(context, colorScheme, textTheme, Icons.privacy_tip, 'Privacy Policy', onTap: () {}),
+          _settingsTile(
+            context,
+            colorScheme,
+            textTheme,
+            Icons.privacy_tip,
+            'Privacy Policy',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
+            ),
+          ),
           Divider(height: 1),
           _settingsTile(context, colorScheme, textTheme, Icons.info, 'About Us', onTap: () {}),
         ],
