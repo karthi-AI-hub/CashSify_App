@@ -23,23 +23,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchServerTime();
+    Future.microtask(_fetchServerTime);
   }
 
   Future<void> _fetchServerTime() async {
     try {
-      ref.read(loadingProvider.notifier).startLoading();
+      await Future(() => ref.read(loadingProvider.notifier).startLoading());
       final fetched = await SupabaseService().getServerTime();
       setState(() {
         serverTime = fetched;
         deviceTimeAtFetch = DateTime.now();
         isLoading = false;
       });
-      ref.read(loadingProvider.notifier).finishLoading();
+      await Future(() => ref.read(loadingProvider.notifier).finishLoading());
     } catch (e) {
       // Optionally handle error
       setState(() { isLoading = false; });
-      ref.read(loadingProvider.notifier).setError();
+      await Future(() => ref.read(loadingProvider.notifier).setError());
     }
   }
 

@@ -4,7 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../theme/app_theme.dart';
 import 'package:cashsify_app/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:cashsify_app/features/ads/presentation/screens/watch_ads_screen.dart';
-import 'package:cashsify_app/features/refer/presentation/screens/refer_screen.dart';
+import 'package:cashsify_app/features/referrals/presentation/screens/referrals_screen.dart';
 import 'package:cashsify_app/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:cashsify_app/features/profile/presentation/screens/profile_screen.dart';
 
@@ -43,7 +43,7 @@ class NavigationState {
   Widget getCurrentScreen() {
     switch (currentIndex) {
       case 0:
-        return const ReferScreen();
+        return const ReferralsScreen();
       case 1:
         return const WatchAdsScreen();
       case 2:
@@ -110,6 +110,14 @@ class NavigationNotifier extends StateNotifier<NavigationState> {
         );
         break;
     }
+  }
+
+  void setReferralsScreen() {
+    state = state.copyWith(
+      title: 'Earn by Referring',
+      showNotifications: false,
+      showBonus: false,
+    );
   }
 }
 

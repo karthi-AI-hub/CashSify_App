@@ -13,9 +13,10 @@ import 'package:cashsify_app/features/error/presentation/screens/error_screen.da
 import 'package:cashsify_app/features/auth/presentation/screens/auth_callback_screen.dart';
 import 'package:cashsify_app/presentation/widgets/app_layout.dart';
 import 'package:cashsify_app/features/ads/presentation/screens/watch_ads_screen.dart';
-import 'package:cashsify_app/features/refer/presentation/screens/refer_screen.dart';
 import 'package:cashsify_app/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:cashsify_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:cashsify_app/features/referrals/presentation/screens/referrals_screen.dart';
+import 'package:cashsify_app/features/wallet/presentation/screens/withdraw_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -93,9 +94,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const SizedBox(), // Empty because IndexedStack handles it
           ),
           GoRoute(
-            path: '/refer',
-            name: 'refer',
-            builder: (context, state) => const SizedBox(), // Empty because IndexedStack handles it
+            path: '/referrals',
+            name: 'referrals',
+            builder: (context, state) => const ReferralsScreen(),
           ),
           GoRoute(
             path: '/wallet',
@@ -124,6 +125,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           queryParams: state.uri.queryParameters,
         ),
       ), // Handles all Supabase auth callbacks (verify, reset, magiclink)
+      GoRoute(
+        path: '/withdraw',
+        name: 'withdraw',
+        builder: (context, state) => const WithdrawScreen(),
+      ),
     ],
   );
 }); 

@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:cashsify_app/core/providers/navigation_provider.dart';
+import '../../features/wallet/presentation/screens/wallet_screen.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/app_spacing.dart';
 
 class AppLayout extends HookConsumerWidget {
-  final Widget child;
+  final Widget? child;
 
-  const AppLayout({
-    super.key,
-    required this.child,
-  });
+  const AppLayout({super.key, this.child});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -18,11 +16,20 @@ class AppLayout extends HookConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    Widget getCurrentScreen() {
+      switch (state.currentIndex) {
+        case 3:
+          return const WalletScreen();
+        default:
+          return state.getCurrentScreen();
+      }
+    }
+
     return Scaffold(
       extendBody: true,
       backgroundColor: colorScheme.background,
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(60),
+        preferredSize: const Size.fromHeight(60),
         child: Container(
           decoration: BoxDecoration(
             color: colorScheme.surface,
@@ -30,14 +37,14 @@ class AppLayout extends HookConsumerWidget {
               BoxShadow(
                 color: colorScheme.shadow.withOpacity(0.06),
                 blurRadius: 8,
-                offset: Offset(0, 2),
+                offset: const Offset(0, 2),
               ),
             ],
           ),
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
                 children: [
                   Expanded(
@@ -94,7 +101,7 @@ class AppLayout extends HookConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: state.getCurrentScreen(),
+        child: getCurrentScreen(),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -103,7 +110,7 @@ class AppLayout extends HookConsumerWidget {
             BoxShadow(
               color: colorScheme.shadow.withOpacity(0.04),
               blurRadius: 8,
-              offset: Offset(0, -2),
+              offset: const Offset(0, -2),
             ),
           ],
         ),
@@ -114,30 +121,30 @@ class AppLayout extends HookConsumerWidget {
           onDestinationSelected: (index) {
             ref.read(navigationProvider.notifier).setIndex(index);
           },
-          destinations: [
+          destinations: const [
             NavigationDestination(
               icon: Icon(Icons.people_outline),
-              selectedIcon: Icon(Icons.people, color: colorScheme.primary),
+              selectedIcon: Icon(Icons.people),
               label: 'Refer',
             ),
             NavigationDestination(
               icon: Icon(Icons.play_circle_outline),
-              selectedIcon: Icon(Icons.play_circle, color: colorScheme.primary),
+              selectedIcon: Icon(Icons.play_circle),
               label: 'Watch',
             ),
             NavigationDestination(
               icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home, color: colorScheme.primary),
+              selectedIcon: Icon(Icons.home),
               label: 'Home',
             ),
             NavigationDestination(
               icon: Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: Icon(Icons.account_balance_wallet, color: colorScheme.primary),
+              selectedIcon: Icon(Icons.account_balance_wallet),
               label: 'Wallet',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person, color: colorScheme.primary),
+              selectedIcon: Icon(Icons.person),
               label: 'Profile',
             ),
           ],
