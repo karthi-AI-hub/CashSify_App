@@ -20,18 +20,18 @@ class OnboardingScreen extends HookConsumerWidget {
 
     final pages = [
       OnboardingPage(
-        title: 'Earn Real Money',
-        description: 'Watch ads and earn coins that you can withdraw via UPI',
+        title: 'Watch & Earn Rewards',
+        description: 'Complete tasks and earn rewards through our platform',
         animation: 'earnmoney.json',
       ),
       OnboardingPage(
-        title: 'Refer & Earn More',
-        description: 'Invite friends and earn bonus coins for every referral',
+        title: 'Invite Friends',
+        description: 'Share with friends and earn bonus rewards',
         animation: 'referral.json',
       ),
       OnboardingPage(
-        title: 'Easy Withdrawals',
-        description: 'Withdraw your earnings directly to your UPI account',
+        title: 'Redeem Rewards',
+        description: 'Convert your rewards through our platform',
         animation: 'withdraw.json',
       ),
     ];

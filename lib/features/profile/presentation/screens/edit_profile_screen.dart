@@ -3,20 +3,23 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../theme/app_spacing.dart';
 import '../../../../theme/app_text_styles.dart';
 import '../../../../core/widgets/form/custom_button.dart';
 import '../../../../core/widgets/form/custom_text_field.dart';
+import 'package:cashsify_app/core/providers/loading_provider.dart';
+import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
 
-class EditProfileScreen extends StatefulWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> with SingleTickerProviderStateMixin {
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -169,296 +172,301 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final loadingState = ref.watch(loadingProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Profile'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+    return LoadingOverlay(
+      isLoading: loadingState == LoadingState.loading,
+      message: loadingState == LoadingState.loading ? 'Saving profile...' : null,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Edit Profile'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
         ),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Profile Picture Section
-              _buildAnimatedSection(
-                Center(
-                  child: Stack(
-                    children: [
-                      Hero(
-                        tag: 'profile_picture',
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: colorScheme.primary.withOpacity(0.2),
-                                blurRadius: 10,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            radius: 50,
-                            backgroundColor: colorScheme.primaryContainer,
-                            child: Text(
-                              _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : 'K',
-                              style: textTheme.headlineLarge?.copyWith(
-                                color: colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Material(
-                          color: colorScheme.primary,
-                          borderRadius: BorderRadius.circular(20),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: () {
-                              // TODO: Implement image picker
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: colorScheme.primary.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.camera_alt,
-                                size: 20,
-                                color: colorScheme.onPrimary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-
-              // Account Information Section
-              _buildAnimatedSection(
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Profile Picture Section
+                _buildAnimatedSection(
+                  Center(
+                    child: Stack(
                       children: [
-                        Icon(
-                          Icons.person_outline,
-                          color: colorScheme.primary,
-                          size: 24,
+                        Hero(
+                          tag: 'profile_picture',
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorScheme.primary.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundColor: colorScheme.primaryContainer,
+                              child: Text(
+                                _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : 'K',
+                                style: textTheme.headlineLarge?.copyWith(
+                                  color: colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          'Account Information',
-                          style: textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Material(
+                            color: colorScheme.primary,
+                            borderRadius: BorderRadius.circular(20),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () {
+                                // TODO: Implement image picker
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primary,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: colorScheme.primary.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  size: 20,
+                                  color: colorScheme.onPrimary,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    CustomTextField(
-                      controller: _nameController,
-                      label: 'Full Name',
-                      prefix: Icon(
-                        Icons.person_outline,
-                        color: colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // Account Information Section
+                _buildAnimatedSection(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline,
+                            color: colorScheme.primary,
+                            size: 24,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Text(
+                            'Account Information',
+                            style: textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
                       ),
-                      error: _validateName(_nameController.text),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    CustomTextField(
-                      controller: _emailController,
-                      label: 'Email Address',
-                      prefix: Icon(
-                        Icons.email_outlined,
-                        color: colorScheme.primary,
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      error: _validateEmail(_emailController.text),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    CustomTextField(
-                      enabled: false,
-                      label: 'Mobile Number',
-                      prefix: Icon(
-                        Icons.phone_android,
-                        color: colorScheme.primary,
-                      ),
-                      controller: _mobileController,
-                      hint: 'Primary identity - cannot be changed',
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    DropdownButtonFormField<String>(
-                      value: _selectedGender,
-                      decoration: InputDecoration(
-                        labelText: 'Gender',
-                        prefixIcon: Icon(
+                      const SizedBox(height: AppSpacing.md),
+                      CustomTextField(
+                        controller: _nameController,
+                        label: 'Full Name',
+                        prefix: Icon(
                           Icons.person_outline,
                           color: colorScheme.primary,
                         ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        error: _validateName(_nameController.text),
                       ),
-                      items: ['Male', 'Female', 'Other']
-                          .map((gender) => DropdownMenuItem(
-                                value: gender,
-                                child: Text(gender),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedGender = value;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    InkWell(
-                      onTap: () => _selectDate(context),
-                      child: InputDecorator(
+                      const SizedBox(height: AppSpacing.md),
+                      CustomTextField(
+                        controller: _emailController,
+                        label: 'Email Address',
+                        prefix: Icon(
+                          Icons.email_outlined,
+                          color: colorScheme.primary,
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        error: _validateEmail(_emailController.text),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      CustomTextField(
+                        enabled: false,
+                        label: 'Mobile Number',
+                        prefix: Icon(
+                          Icons.phone_android,
+                          color: colorScheme.primary,
+                        ),
+                        controller: _mobileController,
+                        hint: 'Primary identity - cannot be changed',
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      DropdownButtonFormField<String>(
+                        value: _selectedGender,
                         decoration: InputDecoration(
-                          labelText: 'Date of Birth',
+                          labelText: 'Gender',
                           prefixIcon: Icon(
-                            Icons.calendar_today,
+                            Icons.person_outline,
                             color: colorScheme.primary,
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Text(
-                          _selectedDate != null
-                              ? _dateFormat.format(_selectedDate!)
-                              : 'Select Date',
-                          style: textTheme.bodyLarge,
-                        ),
+                        items: ['Male', 'Female', 'Other']
+                            .map((gender) => DropdownMenuItem(
+                                  value: gender,
+                                  child: Text(gender),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedGender = value;
+                            });
+                          }
+                        },
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-
-              // Payment Details Section
-              _buildAnimatedSection(
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.payment_outlined,
-                          color: colorScheme.primary,
-                          size: 24,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          'Payment Details',
-                          style: textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
+                      const SizedBox(height: AppSpacing.md),
+                      InkWell(
+                        onTap: () => _selectDate(context),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Date of Birth',
+                            prefixIcon: Icon(
+                              Icons.calendar_today,
+                              color: colorScheme.primary,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            _selectedDate != null
+                                ? _dateFormat.format(_selectedDate!)
+                                : 'Select Date',
+                            style: textTheme.bodyLarge,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    CustomTextField(
-                      controller: _bankAccountController,
-                      label: 'Bank Account Number',
-                      prefix: Icon(
-                        Icons.account_balance,
-                        color: colorScheme.primary,
                       ),
-                      keyboardType: TextInputType.number,
-                      error: _validateBankAccount(_bankAccountController.text),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    CustomTextField(
-                      controller: _ifscController,
-                      label: 'IFSC Code',
-                      prefix: Icon(
-                        Icons.code,
-                        color: colorScheme.primary,
-                      ),
-                      inputFormatters: [
-                        TextInputFormatter.withFunction((oldValue, newValue) {
-                          return TextEditingValue(
-                            text: newValue.text.toUpperCase(),
-                            selection: newValue.selection,
-                          );
-                        }),
-                        FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
-                      ],
-                      error: _validateIFSC(_ifscController.text),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    CustomTextField(
-                      controller: _upiController,
-                      label: 'UPI ID',
-                      prefix: Icon(
-                        Icons.payment,
-                        color: colorScheme.primary,
-                      ),
-                      error: _validateUPI(_upiController.text),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.xl),
 
-              // Save Changes Button
-              _buildAnimatedSection(
-                CustomButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      final nameError = _validateName(_nameController.text);
-                      final emailError = _validateEmail(_emailController.text);
-                      final bankError = _validateBankAccount(_bankAccountController.text);
-                      final ifscError = _validateIFSC(_ifscController.text);
-                      final upiError = _validateUPI(_upiController.text);
+                // Payment Details Section
+                _buildAnimatedSection(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.payment_outlined,
+                            color: colorScheme.primary,
+                            size: 24,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Text(
+                            'Payment Details',
+                            style: textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      CustomTextField(
+                        controller: _bankAccountController,
+                        label: 'Bank Account Number',
+                        prefix: Icon(
+                          Icons.account_balance,
+                          color: colorScheme.primary,
+                        ),
+                        keyboardType: TextInputType.number,
+                        error: _validateBankAccount(_bankAccountController.text),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      CustomTextField(
+                        controller: _ifscController,
+                        label: 'IFSC Code',
+                        prefix: Icon(
+                          Icons.code,
+                          color: colorScheme.primary,
+                        ),
+                        inputFormatters: [
+                          TextInputFormatter.withFunction((oldValue, newValue) {
+                            return TextEditingValue(
+                              text: newValue.text.toUpperCase(),
+                              selection: newValue.selection,
+                            );
+                          }),
+                          FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                        ],
+                        error: _validateIFSC(_ifscController.text),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      CustomTextField(
+                        controller: _upiController,
+                        label: 'UPI ID',
+                        prefix: Icon(
+                          Icons.payment,
+                          color: colorScheme.primary,
+                        ),
+                        error: _validateUPI(_upiController.text),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
 
-                      if (nameError == null &&
-                          emailError == null &&
-                          bankError == null &&
-                          ifscError == null &&
-                          upiError == null) {
-                        // TODO: Implement save changes logic
-                        context.pop();
+                // Save Changes Button
+                _buildAnimatedSection(
+                  CustomButton(
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        final nameError = _validateName(_nameController.text);
+                        final emailError = _validateEmail(_emailController.text);
+                        final bankError = _validateBankAccount(_bankAccountController.text);
+                        final ifscError = _validateIFSC(_ifscController.text);
+                        final upiError = _validateUPI(_upiController.text);
+
+                        if (nameError == null &&
+                            emailError == null &&
+                            bankError == null &&
+                            ifscError == null &&
+                            upiError == null) {
+                          // TODO: Implement save changes logic
+                          context.pop();
+                        }
                       }
-                    }
-                  },
-                  text: 'Save Changes',
-                  isFullWidth: true,
+                    },
+                    text: 'Save Changes',
+                    isFullWidth: true,
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-            ],
+                const SizedBox(height: AppSpacing.lg),
+              ],
+            ),
           ),
         ),
       ),

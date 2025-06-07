@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:cashsify_app/core/providers/loading_provider.dart';
+import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
 // import 'package:lottie/lottie.dart'; // Uncomment if you have a Lottie asset
 
 final userBalanceProvider = StateProvider<int>((ref) => 15300);
@@ -44,73 +46,78 @@ class WithdrawScreen extends HookConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final balance = ref.watch(userBalanceProvider);
     final tabController = useTabController(initialLength: 2);
+    final loadingState = ref.watch(loadingProvider);
 
-    return Scaffold(
-      backgroundColor: colorScheme.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Custom AppBar with Back Button and Title
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Withdraw',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: colorScheme.primary,
+    return LoadingOverlay(
+      isLoading: loadingState == LoadingState.loading,
+      message: loadingState == LoadingState.loading ? 'Processing withdrawal...' : null,
+      child: Scaffold(
+        backgroundColor: colorScheme.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar with Back Button and Title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            // Improved TabBar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(22),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Withdraw',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ],
                 ),
-                child: TabBar(
-                  controller: tabController,
-                  indicator: BoxDecoration(
-                    color: colorScheme.primary,
+              ),
+              // Improved TabBar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(22),
                   ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  labelColor: colorScheme.onPrimary,
-                  unselectedLabelColor: colorScheme.primary,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-                  tabs: const [
-                    Tab(text: 'Withdraw Coins'),
-                    Tab(text: 'Withdraw History'),
-                  ],
-                  splashFactory: NoSplash.splashFactory,
-                  overlayColor: MaterialStateProperty.all(Colors.transparent),
+                  child: TabBar(
+                    controller: tabController,
+                    indicator: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelColor: colorScheme.onPrimary,
+                    unselectedLabelColor: colorScheme.primary,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                    tabs: const [
+                      Tab(text: 'Redeem Rewards'),
+                      Tab(text: 'Withdraw History'),
+                    ],
+                    splashFactory: NoSplash.splashFactory,
+                    overlayColor: MaterialStateProperty.all(Colors.transparent),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 18),
-            Expanded(
-              child: TabBarView(
-                controller: tabController,
-                children: [
-                  _WithdrawCoinsTab(balance: balance),
-                  _WithdrawHistoryTab(),
-                ],
+              const SizedBox(height: 18),
+              Expanded(
+                child: TabBarView(
+                  controller: tabController,
+                  children: [
+                    _WithdrawCoinsTab(balance: balance),
+                    _WithdrawHistoryTab(),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -167,7 +174,7 @@ class _WithdrawCoinsTab extends HookConsumerWidget {
           children: [
             // Balance & Instruction
             Text(
-              'Your Balance: $balance coins',
+              'Your Balance: $balance points',
               style: TextStyle(
                 color: colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -176,7 +183,7 @@ class _WithdrawCoinsTab extends HookConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Minimum 15,000 coins required to withdraw',
+              'Minimum 15,000 points required to redeem',
               style: TextStyle(
                 color: colorScheme.onSurface.withOpacity(0.7),
                 fontSize: 14,

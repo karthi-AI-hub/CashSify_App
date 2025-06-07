@@ -13,6 +13,7 @@ import 'package:cashsify_app/features/auth/presentation/widgets/auth_layout.dart
 import 'package:cashsify_app/features/auth/presentation/widgets/animated_form_field.dart';
 import 'package:cashsify_app/features/auth/presentation/widgets/animated_button.dart';
 import 'package:cashsify_app/features/auth/presentation/widgets/auth_page_transition.dart';
+import 'package:cashsify_app/features/auth/presentation/screens/login_screen.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -27,12 +28,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   void _clearFieldsAndErrors() {
     _emailController.clear();
-    ref.read(errorProvider.notifier).clearError();
+    if (mounted) {
+      ref.read(errorProvider.notifier).clearError();
+    }
   }
 
   @override
   void dispose() {
-    _clearFieldsAndErrors();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -64,6 +67,20 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         );
       }
     }
+  }
+
+  void _handleLoginNavigation() {
+    print("Entered in _handleLoginNavigation");
+    if (!mounted) return;
+    
+    // Clear fields and errors before navigation
+    _emailController.clear();
+    ref.read(errorProvider.notifier).clearError();
+    
+    print("Before navigation");
+    // Navigate back to login screen
+    Navigator.of(context).pop();
+    print("After navigation");
   }
 
   @override
@@ -142,7 +159,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   style: theme.textTheme.bodyMedium,
                 ),
                 TextButton(
-                  onPressed: _clearFieldsAndErrors,
+                  onPressed: _handleLoginNavigation,
                   child: const Text('Login'),
                 ),
               ],

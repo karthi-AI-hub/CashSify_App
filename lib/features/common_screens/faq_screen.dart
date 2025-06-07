@@ -20,7 +20,7 @@ class FAQScreen extends StatelessWidget {
             questions: [
               FAQItem(
                 question: 'What is CashSify?',
-                answer: 'CashSify is a reward-based app where users earn money by watching ads and completing simple tasks like CAPTCHA verification.',
+                answer: 'CashSify is a platform where users can complete tasks and earn rewards.',
               ),
               FAQItem(
                 question: 'Is CashSify free to use?',
@@ -32,8 +32,8 @@ class FAQScreen extends StatelessWidget {
             title: 'Earnings',
             questions: [
               FAQItem(
-                question: 'How can I earn money?',
-                answer: 'You can earn money by watching rewarded ads and passing CAPTCHA challenges successfully.',
+                question: 'How can I earn rewards?',
+                answer: 'You can earn rewards by completing tasks and watching content.',
               ),
               FAQItem(
                 question: 'Is there a daily earning limit?',

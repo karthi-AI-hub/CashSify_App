@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../theme/app_theme.dart';
 import '../../../../theme/app_spacing.dart';
 import '../../../../theme/theme_provider.dart';
@@ -12,6 +13,10 @@ import '../../../../features/common_screens/privacy_policy_screen.dart';
 import '../../../../features/common_screens/contact_us_screen.dart';
 import '../../../../features/common_screens/faq_screen.dart';
 import 'edit_profile_screen.dart';
+import 'package:cashsify_app/core/providers/loading_provider.dart';
+import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
+import 'package:cashsify_app/core/providers/user_provider.dart';
+import 'package:cashsify_app/core/services/supabase_service.dart';
 
 class ProfileScreen extends HookConsumerWidget {
   const ProfileScreen({super.key});
@@ -22,82 +27,88 @@ class ProfileScreen extends HookConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final themeNotifier = ref.read(themeProviderProvider.notifier);
     final isDarkMode = ref.watch(themeProviderProvider).isDarkMode;
+    final loadingState = ref.watch(loadingProvider);
+    final userNotifier = ref.read(userProvider.notifier);
 
-    return Scaffold(
-      backgroundColor: colorScheme.background,
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: AppSpacing.xxl),
-              _AnimatedFadeIn(
-                delay: 0,
-                child: _profileHeader(context),
-              ),
-              SizedBox(height: AppSpacing.xxl),
-              _AnimatedFadeIn(
-                delay: 100,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionHeader(context, 'Account Information'),
-                    _accountInfoCard(context),
-                  ],
+    return LoadingOverlay(
+      isLoading: loadingState == LoadingState.loading,
+      message: loadingState == LoadingState.loading ? 'Loading profile...' : null,
+      child: Scaffold(
+        backgroundColor: colorScheme.background,
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: AppSpacing.xxl),
+                _AnimatedFadeIn(
+                  delay: 0,
+                  child: _profileHeader(context),
                 ),
-              ),
-              SizedBox(height: AppSpacing.xxl),
-              _AnimatedFadeIn(
-                delay: 200,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionHeader(context, 'Payment Details'),
-                    _paymentDetailsCard(context),
-                  ],
+                SizedBox(height: AppSpacing.xxl),
+                _AnimatedFadeIn(
+                  delay: 100,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionHeader(context, 'Account Information'),
+                      _accountInfoCard(context),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: AppSpacing.xxl),
-              _AnimatedFadeIn(
-                delay: 300,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionHeader(context, 'Settings'),
-                    _settingsCard(context, colorScheme, textTheme, isDarkMode, themeNotifier),
-                  ],
+                SizedBox(height: AppSpacing.xxl),
+                _AnimatedFadeIn(
+                  delay: 200,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionHeader(context, 'Payment Details'),
+                      _paymentDetailsCard(context),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: AppSpacing.xxl),
-              _AnimatedFadeIn(
-                delay: 400,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionHeader(context, 'Account Management'),
-                    _accountManagementCard(context),
-                  ],
+                SizedBox(height: AppSpacing.xxl),
+                _AnimatedFadeIn(
+                  delay: 300,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionHeader(context, 'Settings'),
+                      _settingsCard(context, colorScheme, textTheme, isDarkMode, themeNotifier),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: AppSpacing.xxl),
-              _AnimatedFadeIn(
-                delay: 500,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionHeader(context, 'Legal'),
-                    _legalCard(context),
-                  ],
+                SizedBox(height: AppSpacing.xxl),
+                _AnimatedFadeIn(
+                  delay: 400,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionHeader(context, 'Account Management'),
+                      _accountManagementCard(context, userNotifier, ref),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: AppSpacing.xxl),
-              _AnimatedFadeIn(
-                delay: 600,
-                child: _footer(context),
-              ),
-              SizedBox(height: AppSpacing.xxl),
-            ],
+                SizedBox(height: AppSpacing.xxl),
+                _AnimatedFadeIn(
+                  delay: 500,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionHeader(context, 'Legal'),
+                      _legalCard(context),
+                    ],
+                  ),
+                ),
+                SizedBox(height: AppSpacing.xxl),
+                _AnimatedFadeIn(
+                  delay: 600,
+                  child: _footer(context),
+                ),
+                SizedBox(height: AppSpacing.xxl),
+              ],
+            ),
           ),
         ),
       ),
@@ -407,9 +418,14 @@ class ProfileScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _accountManagementCard(BuildContext context) {
+  Widget _accountManagementCard(
+    BuildContext context,
+    UserNotifier userNotifier,
+    WidgetRef ref,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
     return CustomCard(
       margin: EdgeInsets.only(top: AppSpacing.md),
       child: Column(
@@ -440,7 +456,62 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.logout,
             'Logout',
-            onTap: () {},
+            onTap: () async {
+              try {
+                ref.read(loadingProvider.notifier).state = LoadingState.loading;
+                
+                // Show confirmation dialog
+                final shouldLogout = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('Logout'),
+                    content: Text('Are you sure you want to logout?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text('Logout'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (shouldLogout == true && context.mounted) {
+                  // Call Supabase service to sign out
+                  await SupabaseService().signOut();
+                  
+                  // Update user provider state
+                  await userNotifier.signOut();
+
+                  if (context.mounted) {
+                    // Show success message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Successfully logged out'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+
+                    // Navigate to login screen using go_router
+                    context.go('/auth/login');
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to logout. Please try again.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } finally {
+                ref.read(loadingProvider.notifier).state = LoadingState.initial;
+              }
+            },
           ),
         ],
       ),

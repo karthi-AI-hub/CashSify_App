@@ -5,6 +5,8 @@ import '../../../../theme/app_colors.dart';
 import '../../../../theme/app_spacing.dart';
 import '../../../../theme/app_text_styles.dart';
 import '../../../../core/widgets/layout/custom_card.dart';
+import '../../../../core/providers/loading_provider.dart';
+import '../../../../core/widgets/layout/loading_overlay.dart';
 
 class ReferralHistoryScreen extends HookConsumerWidget {
   const ReferralHistoryScreen({super.key});
@@ -13,6 +15,7 @@ class ReferralHistoryScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final loadingState = ref.watch(loadingProvider);
     
     // Set up the animation controller
     final controller = useAnimationController(
@@ -66,54 +69,58 @@ class ReferralHistoryScreen extends HookConsumerWidget {
         final isSmallScreen = constraints.maxWidth < 600;
         final padding = isSmallScreen ? AppSpacing.md : AppSpacing.lg;
 
-        return Scaffold(
-          appBar: AppBar(
-            backgroundColor: colorScheme.surface,
-            elevation: 0,
-            leading: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            title: Text(
-              'Referral History',
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            centerTitle: true,
-          ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                // Main Content
-                Expanded(
-                  child: FadeTransition(
-                    opacity: animation,
-                    child: referredUsers.isEmpty
-                        ? _buildEmptyState(context, isSmallScreen)
-                        : ListView.builder(
-                            padding: EdgeInsets.all(padding),
-                            itemCount: referredUsers.length,
-                            itemBuilder: (context, index) {
-                              final user = referredUsers[index];
-                              return _buildReferralCard(
-                                context,
-                                user,
-                                isSmallScreen,
-                              );
-                            },
-                          ),
-                  ),
+        return LoadingOverlay(
+          isLoading: loadingState == LoadingState.loading,
+          message: loadingState == LoadingState.loading ? 'Loading referral history...' : null,
+          child: Scaffold(
+            appBar: AppBar(
+              backgroundColor: colorScheme.surface,
+              elevation: 0,
+              leading: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: colorScheme.onSurface,
                 ),
+              ),
+              title: Text(
+                'Referral History',
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              centerTitle: true,
+            ),
+            body: SafeArea(
+              child: Column(
+                children: [
+                  // Main Content
+                  Expanded(
+                    child: FadeTransition(
+                      opacity: animation,
+                      child: referredUsers.isEmpty
+                          ? _buildEmptyState(context, isSmallScreen)
+                          : ListView.builder(
+                              padding: EdgeInsets.all(padding),
+                              itemCount: referredUsers.length,
+                              itemBuilder: (context, index) {
+                                final user = referredUsers[index];
+                                return _buildReferralCard(
+                                  context,
+                                  user,
+                                  isSmallScreen,
+                                );
+                              },
+                            ),
+                    ),
+                  ),
 
-                // Bottom Summary
-                if (referredUsers.isNotEmpty)
-                  _buildBottomSummary(context, isSmallScreen),
-              ],
+                  // Bottom Summary
+                  if (referredUsers.isNotEmpty)
+                    _buildBottomSummary(context, isSmallScreen),
+                ],
+              ),
             ),
           ),
         );

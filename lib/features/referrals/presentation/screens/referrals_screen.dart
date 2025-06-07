@@ -10,6 +10,8 @@ import '../../../../core/widgets/form/custom_button.dart';
 import '../../../../core/widgets/layout/custom_card.dart';
 import '../../../../core/providers/navigation_provider.dart';
 import 'referral_history_screen.dart';
+import '../../../../core/providers/loading_provider.dart';
+import '../../../../core/widgets/layout/loading_overlay.dart';
 
 class ReferralsScreen extends HookConsumerWidget {
   const ReferralsScreen({super.key});
@@ -18,6 +20,7 @@ class ReferralsScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final loadingState = ref.watch(loadingProvider);
     
     // Set up the animation controller
     final controller = useAnimationController(
@@ -57,43 +60,38 @@ class ReferralsScreen extends HookConsumerWidget {
       return null;
     }, []);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isSmallScreen = constraints.maxWidth < 600;
-        final padding = isSmallScreen ? AppSpacing.md : AppSpacing.lg;
-        final horizontalPadding = isSmallScreen ? AppSpacing.sm : AppSpacing.lg;
+    return LoadingOverlay(
+      isLoading: loadingState == LoadingState.loading,
+      message: loadingState == LoadingState.loading ? 'Loading referrals...' : null,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isSmallScreen = constraints.maxWidth < 600;
+          final padding = isSmallScreen ? AppSpacing.md : AppSpacing.lg;
+          final horizontalPadding = isSmallScreen ? AppSpacing.sm : AppSpacing.lg;
 
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(padding),
-          child: FadeTransition(
-            opacity: animation,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Section 1: Referral Code & Share Box
-                _buildReferralCodeSection(context, isSmallScreen, horizontalPadding),
-                SizedBox(height: padding),
-
-                // Section 2: How It Works
-                _buildHowItWorksSection(context, isSmallScreen),
-                SizedBox(height: padding),
-
-                // Section 3: Tips & Rules
-                _buildTipsSection(context, isSmallScreen),
-                SizedBox(height: padding),
-
-                // Section 4: Referral Stats
-                _buildStatsSection(context, isSmallScreen),
-                SizedBox(height: padding),
-
-                // Bottom CTAs
-                _buildBottomCTAs(context, isSmallScreen),
-                SizedBox(height: AppSpacing.lg),
-              ],
+          return SingleChildScrollView(
+            padding: EdgeInsets.all(padding),
+            child: FadeTransition(
+              opacity: animation,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildReferralCodeSection(context, isSmallScreen, horizontalPadding),
+                  SizedBox(height: padding),
+                  _buildHowItWorksSection(context, isSmallScreen),
+                  SizedBox(height: padding),
+                  _buildTipsSection(context, isSmallScreen),
+                  SizedBox(height: padding),
+                  _buildStatsSection(context, isSmallScreen),
+                  SizedBox(height: padding),
+                  _buildBottomCTAs(context, isSmallScreen),
+                  SizedBox(height: AppSpacing.lg),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -228,7 +226,7 @@ class ReferralsScreen extends HookConsumerWidget {
             ),
             SizedBox(height: AppSpacing.lg),
             Text(
-              'Share this code to earn coins when your friends join',
+              'Share this code with friends to earn bonus rewards',
               style: textTheme.bodyLarge?.copyWith(
                 color: colorScheme.onSurfaceVariant,
                 fontSize: isSmallScreen ? 14 : 16,

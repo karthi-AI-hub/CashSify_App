@@ -63,7 +63,7 @@ class WalletScreen extends HookConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Track your earnings and spendings',
+              'Track your rewards and redemptions',
               style: TextStyle(
                 color: colorScheme.onSurface.withOpacity(0.7),
                 fontSize: 15,
@@ -197,14 +197,6 @@ class _BalanceCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            '≈ ₹${(balance / 1000).toStringAsFixed(2)}',
-            style: TextStyle(
-              color: colorScheme.onSurface.withOpacity(0.6),
-              fontSize: 15,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
         ],
       ),
     );

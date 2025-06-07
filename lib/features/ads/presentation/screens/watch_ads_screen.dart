@@ -12,6 +12,7 @@ import 'package:cashsify_app/core/widgets/layout/custom_card.dart';
 import 'package:cashsify_app/core/utils/performance_utils.dart';
 import 'package:cashsify_app/core/widgets/feedback/shimmer_loading.dart';
 import 'package:cashsify_app/core/widgets/feedback/custom_tooltip.dart';
+import 'package:cashsify_app/core/providers/loading_provider.dart';
 
 // State providers for managing UI states
 final isAdPlayingProvider = StateProvider<bool>((ref) => false);
@@ -35,6 +36,7 @@ class WatchAdsScreen extends HookConsumerWidget {
     final progress = dailyProgress / maxDailyAds;
     final isLimit = dailyProgress >= maxDailyAds;
     final isLoading = ref.watch(isLoadingProvider);
+    final loadingState = ref.watch(loadingProvider);
 
     // For pulse animation
     final pulseController = useAnimationController(
@@ -44,49 +46,53 @@ class WatchAdsScreen extends HookConsumerWidget {
       upperBound: 1.0,
     )..repeat(reverse: true);
 
-    return SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isSmallScreen = constraints.maxWidth < 360;
-          return SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isSmallScreen ? 16 : 20,
-                vertical: isSmallScreen ? 16 : 24,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _buildHeader(context, colorScheme, textTheme, progress),
-                  SizedBox(height: isSmallScreen ? 24 : 32),
-                  if (isLoading)
-                    const _ShimmerLoadingCard()
-                  else
-                    _buildTimerCard(
+    return LoadingOverlay(
+      isLoading: loadingState == LoadingState.loading,
+      message: loadingState == LoadingState.loading ? 'Loading ads...' : null,
+      child: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 360;
+            return SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 16 : 20,
+                  vertical: isSmallScreen ? 16 : 24,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _buildHeader(context, colorScheme, textTheme, progress),
+                    SizedBox(height: isSmallScreen ? 24 : 32),
+                    if (isLoading)
+                      const _ShimmerLoadingCard()
+                    else
+                      _buildTimerCard(
+                        context,
+                        colorScheme,
+                        textTheme,
+                        isAdPlaying,
+                        timerSeconds,
+                        ref,
+                        pulseController,
+                        isLimit,
+                      ),
+                    SizedBox(height: isSmallScreen ? 24 : 32),
+                    _buildProgressCard(
                       context,
                       colorScheme,
                       textTheme,
-                      isAdPlaying,
-                      timerSeconds,
-                      ref,
-                      pulseController,
+                      dailyProgress,
+                      maxDailyAds,
+                      progress,
                       isLimit,
                     ),
-                  SizedBox(height: isSmallScreen ? 24 : 32),
-                  _buildProgressCard(
-                    context,
-                    colorScheme,
-                    textTheme,
-                    dailyProgress,
-                    maxDailyAds,
-                    progress,
-                    isLimit,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
