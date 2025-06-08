@@ -4,6 +4,8 @@ create table public.users (
   password text,
   name text not null,
   phone_number text not null,
+  gender text,
+  dob date,
   coins int default 0,
   referral_code text unique not null,
   referral_count int default 0,

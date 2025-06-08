@@ -1,63 +1,108 @@
+import 'dart:async';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_state.dart';
+import '../services/user_service.dart';
 
-final userProvider = StateNotifierProvider<UserNotifier, UserState?>((ref) {
-  return UserNotifier();
+final userServiceProvider = Provider<UserService>((ref) => UserService());
+
+final userStreamProvider = StreamProvider<UserState?>((ref) {
+  final userService = ref.watch(userServiceProvider);
+  final userId = userService.supabase.client.auth.currentUser?.id;
+  if (userId == null) return const Stream.empty();
+  return userService.getUserStream(userId);
 });
 
-class UserNotifier extends StateNotifier<UserState?> {
-  UserNotifier() : super(null) {
-    // Initialize with current session if exists
-    final session = Supabase.instance.client.auth.currentSession;
-    if (session != null) {
-      state = UserState.fromUser(session.user);
-    }
+final userProvider = StateNotifierProvider<UserNotifier, AsyncValue<UserState?>>((ref) {
+  final userService = ref.watch(userServiceProvider);
+  return UserNotifier(userService);
+});
 
-    // Listen to auth state changes
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      final AuthChangeEvent event = data.event;
-      final Session? session = data.session;
-
-      switch (event) {
-        case AuthChangeEvent.signedIn:
-          if (session?.user != null) {
-            state = UserState.fromUser(session!.user);
-          }
-          break;
-        case AuthChangeEvent.signedOut:
-          state = null;
-          break;
-        case AuthChangeEvent.tokenRefreshed:
-          if (session?.user != null) {
-            state = UserState.fromUser(session!.user);
-          }
-          break;
-        default:
-          break;
-      }
-    });
+class UserNotifier extends StateNotifier<AsyncValue<UserState?>> {
+  final UserService _userService;
+  UserNotifier(this._userService) : super(const AsyncValue.loading()) {
+    _initializeUser();
   }
 
-  // Update user metadata
-  Future<void> updateUserMetadata(Map<String, dynamic> metadata) async {
+  Future<void> _initializeUser() async {
     try {
-      final response = await Supabase.instance.client.auth.updateUser(
-        UserAttributes(
-          data: metadata,
-        ),
-      );
-      if (response.user != null) {
-        state = UserState.fromUser(response.user!);
-      }
-    } catch (e) {
-      rethrow;
+      final userState = await _userService.getCurrentUserState();
+      state = AsyncValue.data(userState);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
     }
   }
 
-  // Sign out
+  Future<void> refreshUser() async {
+    state = const AsyncValue.loading();
+    await _initializeUser();
+  }
+
+  Future<void> updateProfile({
+    String? name,
+    String? phoneNumber,
+    String? gender,
+    DateTime? dob,
+    String? upiId,
+    Map<String, dynamic>? bankAccount,
+    String? profileImageUrl,
+  }) async {
+    try {
+      // Set loading state
+      state = const AsyncValue.loading();
+
+      // Perform the actual update
+      await _userService.updateUserProfile(
+        name: name,
+        phoneNumber: phoneNumber,
+        gender: gender,
+        dob: dob,
+        upiId: upiId,
+        bankAccount: bankAccount,
+        profileImageUrl: profileImageUrl,
+      );
+
+      // Get the latest data
+      final userState = await _userService.getCurrentUserState();
+      state = AsyncValue.data(userState);
+    } catch (e) {
+      // Set error state
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  Future<void> updatePhoneNumber(String phoneNumber) async {
+    try {
+      await _userService.updatePhoneNumber(phoneNumber);
+      await refreshUser();
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  Future<void> updateEmail(String email) async {
+    try {
+      await _userService.updateEmail(email);
+      await refreshUser();
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    try {
+      await _userService.deleteAccount();
+      state = const AsyncValue.data(null);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
   Future<void> signOut() async {
-    await Supabase.instance.client.auth.signOut();
-    state = null;
+    try {
+      await _userService.signOut();
+      state = const AsyncValue.data(null);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+    }
   }
 } 

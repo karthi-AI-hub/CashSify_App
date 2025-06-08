@@ -340,6 +340,8 @@ class SupabaseService {
   // Fetch server time from Supabase
   Future<DateTime> getServerTime() async {
     final data = await _client.rpc('get_server_time');
+    // print(data);
     return DateTime.parse(data as String);
+    // print(DateTime.parse(data as String));
   }
 } 

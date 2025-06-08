@@ -11,6 +11,11 @@ import '../../../../core/widgets/form/custom_button.dart';
 import '../../../../core/widgets/form/custom_text_field.dart';
 import 'package:cashsify_app/core/providers/loading_provider.dart';
 import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
+import 'package:cashsify_app/core/providers/user_provider.dart';
+import 'package:cashsify_app/core/models/user_state.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cashsify_app/core/services/supabase_service.dart';
+import 'dart:io';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -22,41 +27,59 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _mobileController = TextEditingController(text: '+91 80722 23275');
+  final _upiController = TextEditingController();
   final _bankAccountController = TextEditingController();
   final _ifscController = TextEditingController();
-  final _upiController = TextEditingController();
+  final _accountHolderController = TextEditingController();
   String _selectedGender = 'Male';
   DateTime? _selectedDate;
+  String? _phoneNumber;
+  String? _email;
+  String? _profileImageUrl;
   final _dateFormat = DateFormat('dd MMM yyyy');
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  bool _isSaving = false;
+  bool _hasChanged = false;
+  XFile? _pickedImage;
+  bool _isDisposed = false;
 
   @override
   void initState() {
     super.initState();
-    // Initialize with current values
-    _nameController.text = 'KS'; // Replace with actual user data
-    _emailController.text = 'ks@email.com'; // Replace with actual user data
-    _bankAccountController.text = 'XXXXXX1234'; // Replace with actual user data
-    _ifscController.text = 'SBIN0001234'; // Replace with actual user data
-    _upiController.text = 'ks@upi'; // Replace with actual user data
+    _initializeData();
+    _initializeAnimations();
+  }
 
-    // Initialize animations
+  void _initializeData() {
+    final user = ref.read(userStreamProvider).asData?.value;
+    if (user != null) {
+      _nameController.text = user.name ?? '';
+      _upiController.text = user.upiId ?? '';
+      _phoneNumber = user.phoneNumber;
+      _email = user.email;
+      _profileImageUrl = user.profileImageUrl;
+      _selectedGender = user.gender ?? 'Male';
+      _selectedDate = user.dob;
+      final bank = user.bankAccount ?? {};
+      _bankAccountController.text = bank['account_no'] ?? '';
+      _ifscController.text = bank['ifsc'] ?? '';
+      _accountHolderController.text = bank['name'] ?? '';
+    }
+  }
+
+  void _initializeAnimations() {
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: Curves.easeOut,
       ),
     );
-
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.1),
       end: Offset.zero,
@@ -66,18 +89,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
         curve: Curves.easeOut,
       ),
     );
-
     _animationController.forward();
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _nameController.dispose();
-    _emailController.dispose();
-    _mobileController.dispose();
+    _upiController.dispose();
     _bankAccountController.dispose();
     _ifscController.dispose();
-    _upiController.dispose();
+    _accountHolderController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -134,7 +156,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
+      initialDate: _selectedDate ?? DateTime(2000),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
@@ -158,6 +180,37 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
     }
   }
 
+  void _onFieldChanged() {
+    setState(() {
+      _hasChanged = true;
+    });
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 800,
+      maxHeight: 800,
+    );
+    if (picked != null) {
+      setState(() {
+        _pickedImage = picked;
+        _hasChanged = true;
+      });
+    }
+  }
+
+  Future<String?> _uploadProfileImage(XFile image) async {
+    final userService = ref.read(userServiceProvider);
+    final userId = ref.read(userStreamProvider).asData?.value?.id;
+    if (userId == null) return null;
+
+    final file = File(image.path);
+    return await userService.uploadProfileImage(file, userId);
+  }
+
   Widget _buildAnimatedSection(Widget child, {int delay = 0}) {
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -168,15 +221,67 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
     );
   }
 
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_isDisposed) return;
+    setState(() => _isSaving = true);
+    String? uploadedUrl;
+
+    try {
+      if (_pickedImage != null) {
+        uploadedUrl = await _uploadProfileImage(_pickedImage!);
+        if (uploadedUrl == null) {
+          if (!mounted || _isDisposed) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to upload profile image')),
+          );
+          return;
+        }
+      }
+
+      if (_hasChanged) {
+        await ref.read(userProvider.notifier).updateProfile(
+          name: _nameController.text.trim(),
+          gender: _selectedGender,
+          dob: _selectedDate,
+          upiId: _upiController.text.trim(),
+          bankAccount: {
+            'account_no': _bankAccountController.text.trim(),
+            'ifsc': _ifscController.text.trim(),
+            'name': _accountHolderController.text.trim(),
+          },
+          profileImageUrl: uploadedUrl ?? _profileImageUrl,
+        );
+      }
+
+      if (!mounted || _isDisposed) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully!')),
+      );
+      context.pop();
+    } catch (e) {
+      if (!mounted || _isDisposed) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating profile: ${e.toString()}')),
+      );
+    } finally {
+      if (!_isDisposed) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final loadingState = ref.watch(loadingProvider);
+    final userNotifier = ref.read(userProvider.notifier);
 
     return LoadingOverlay(
-      isLoading: loadingState == LoadingState.loading,
-      message: loadingState == LoadingState.loading ? 'Saving profile...' : null,
+      isLoading: loadingState == LoadingState.loading || _isSaving,
+      message: (loadingState == LoadingState.loading || _isSaving) ? 'Saving profile...' : null,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Edit Profile'),
@@ -213,15 +318,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                               ],
                             ),
                             child: CircleAvatar(
-                              radius: 50,
-                              backgroundColor: colorScheme.primaryContainer,
-                              child: Text(
-                                _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : 'K',
-                                style: textTheme.headlineLarge?.copyWith(
-                                  color: colorScheme.onPrimaryContainer,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              radius: 48,
+                              backgroundColor: colorScheme.primary,
+                              backgroundImage: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                                  ? NetworkImage(_profileImageUrl!)
+                                  : null,
+                              child: (_profileImageUrl == null || _profileImageUrl!.isEmpty)
+                                  ? Text(
+                                      (_nameController.text.isNotEmpty ?? false) ? _nameController.text[0].toUpperCase() : 'U',
+                                      style: textTheme.headlineLarge?.copyWith(
+                                        color: colorScheme.onPrimary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ),
                         ),
@@ -233,9 +343,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                             borderRadius: BorderRadius.circular(20),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(20),
-                              onTap: () {
-                                // TODO: Implement image picker
-                              },
+                              onTap: _pickImage,
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
@@ -294,20 +402,25 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                           Icons.person_outline,
                           color: colorScheme.primary,
                         ),
-                        error: _validateName(_nameController.text),
+                        error: _nameController.text.isEmpty ? 'Name is required' : _validateName(_nameController.text),
+                        onChanged: (_) => _onFieldChanged(),
+                        validator: _validateName,
                       ),
                       const SizedBox(height: AppSpacing.md),
+                      // Email (read-only)
                       CustomTextField(
-                        controller: _emailController,
+                        controller: TextEditingController(text: _email ?? ''),
                         label: 'Email Address',
                         prefix: Icon(
                           Icons.email_outlined,
                           color: colorScheme.primary,
                         ),
-                        keyboardType: TextInputType.emailAddress,
-                        error: _validateEmail(_emailController.text),
+                        enabled: false,
+                        filled: true,
+                        fillColor: colorScheme.surfaceVariant.withOpacity(0.5),
                       ),
                       const SizedBox(height: AppSpacing.md),
+                      // Phone (read-only)
                       CustomTextField(
                         enabled: false,
                         label: 'Mobile Number',
@@ -315,8 +428,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                           Icons.phone_android,
                           color: colorScheme.primary,
                         ),
-                        controller: _mobileController,
+                        controller: TextEditingController(text: _phoneNumber ?? ''),
                         hint: 'Primary identity - cannot be changed',
+                        filled: true,
+                        fillColor: colorScheme.surfaceVariant.withOpacity(0.5),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       DropdownButtonFormField<String>(
@@ -341,13 +456,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                           if (value != null) {
                             setState(() {
                               _selectedGender = value;
+                              _hasChanged = true;
                             });
                           }
                         },
                       ),
                       const SizedBox(height: AppSpacing.md),
                       InkWell(
-                        onTap: () => _selectDate(context),
+                        onTap: () async {
+                          await _selectDate(context);
+                          _onFieldChanged();
+                        },
                         child: InputDecorator(
                           decoration: InputDecoration(
                             labelText: 'Date of Birth',
@@ -403,7 +522,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                           color: colorScheme.primary,
                         ),
                         keyboardType: TextInputType.number,
-                        error: _validateBankAccount(_bankAccountController.text),
+                        error: _bankAccountController.text.isEmpty ? 'Bank account is required' : _validateBankAccount(_bankAccountController.text),
+                        onChanged: (_) => _onFieldChanged(),
+                        validator: _validateBankAccount,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      CustomTextField(
+                        controller: _accountHolderController,
+                        label: 'Account Holder Name',
+                        prefix: Icon(
+                          Icons.account_box,
+                          color: colorScheme.primary,
+                        ),
+                        onChanged: (_) => _onFieldChanged(),
+                        validator: (value) => value?.isEmpty ?? true ? 'Account holder name is required' : null,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       CustomTextField(
@@ -422,7 +554,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                           }),
                           FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
                         ],
-                        error: _validateIFSC(_ifscController.text),
+                        error: _ifscController.text.isEmpty ? 'IFSC code is required' : _validateIFSC(_ifscController.text),
+                        onChanged: (_) => _onFieldChanged(),
+                        validator: _validateIFSC,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       CustomTextField(
@@ -432,7 +566,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                           Icons.payment,
                           color: colorScheme.primary,
                         ),
-                        error: _validateUPI(_upiController.text),
+                        error: _upiController.text.isEmpty ? 'UPI ID is required' : _validateUPI(_upiController.text),
+                        onChanged: (_) => _onFieldChanged(),
+                        validator: _validateUPI,
                       ),
                     ],
                   ),
@@ -442,26 +578,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                 // Save Changes Button
                 _buildAnimatedSection(
                   CustomButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        final nameError = _validateName(_nameController.text);
-                        final emailError = _validateEmail(_emailController.text);
-                        final bankError = _validateBankAccount(_bankAccountController.text);
-                        final ifscError = _validateIFSC(_ifscController.text);
-                        final upiError = _validateUPI(_upiController.text);
-
-                        if (nameError == null &&
-                            emailError == null &&
-                            bankError == null &&
-                            ifscError == null &&
-                            upiError == null) {
-                          // TODO: Implement save changes logic
-                          context.pop();
-                        }
-                      }
-                    },
-                    text: 'Save Changes',
+                    onPressed: !_hasChanged || _isSaving
+                        ? null
+                        : _saveProfile,
+                    text: _isSaving ? 'Saving...' : 'Save Changes',
                     isFullWidth: true,
+                    isLoading: _isSaving,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),

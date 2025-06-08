@@ -75,7 +75,7 @@
 
   * Current Coin Balance
   * Ads Watched Today (progress: e.g., 14/20)
-  * CTA: “Watch Ad”
+  * CTA: "Watch Ad"
 * Referral Banner
 * Optional: Referral bonus reminder
 
@@ -226,6 +226,8 @@
 | `password`           | text      | Hashed password (optional, for tracking)       |
 | `name`               | text      | User's full name                               |
 | `phone_number`       | text      | Optional                                       |
+| `gender`             | text      | User's gender (male, female, other, etc.)      |
+| `dob`                | date      | Date of birth                                  |
 | `coins`              | int       | Current coin balance                           |
 | `referral_code`      | text      | Unique code assigned to each user              |
 | `referral_count`     | int       | How many users they referred                   |
@@ -367,7 +369,7 @@ Supports UPI or Bank transfer.
 
 ### ❓ CAPTCHA Flow (String-Based)
 
-Since you’re using **random string CAPTCHA**, no table needed.
+Since you're using **random string CAPTCHA**, no table needed.
 
 **Flow:**
 

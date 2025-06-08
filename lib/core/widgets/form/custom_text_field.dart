@@ -37,6 +37,9 @@ class CustomTextField extends StatelessWidget {
   final Color? errorBorderColor;
   final Color? focusedErrorBorderColor;
   final TextAlign? textAlign;
+  final String? Function(String?)? validator;
+  final bool filled;
+  final Color? fillColor;
 
   const CustomTextField({
     super.key,
@@ -72,6 +75,9 @@ class CustomTextField extends StatelessWidget {
     this.errorBorderColor,
     this.focusedErrorBorderColor,
     this.textAlign,
+    this.validator,
+    this.filled = false,
+    this.fillColor,
   });
 
   @override
@@ -95,14 +101,14 @@ class CustomTextField extends StatelessWidget {
         ],
         SizedBox(
           height: defaultHeight,
-          child: TextField(
+          child: TextFormField(
             controller: controller,
             obscureText: obscureText,
             keyboardType: keyboardType,
             textInputAction: textInputAction,
             onChanged: onChanged,
             onEditingComplete: onEditingComplete,
-            onSubmitted: onSubmitted,
+            onFieldSubmitted: onSubmitted,
             inputFormatters: inputFormatters,
             maxLines: maxLines,
             minLines: minLines,
@@ -112,6 +118,7 @@ class CustomTextField extends StatelessWidget {
             autofocus: autofocus,
             focusNode: focusNode,
             textAlign: textAlign ?? TextAlign.start,
+            validator: validator,
             style: AppTextStyles.bodyLarge.copyWith(
               color: textColor ?? theme.colorScheme.onSurface,
             ),
@@ -130,8 +137,8 @@ class CustomTextField extends StatelessWidget {
                 horizontal: AppSpacing.md,
                 vertical: AppSpacing.md,
               ),
-              filled: true,
-              fillColor: backgroundColor ?? theme.colorScheme.surfaceVariant,
+              filled: filled,
+              fillColor: fillColor ?? backgroundColor ?? theme.colorScheme.surfaceVariant,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(defaultBorderRadius),
                 borderSide: BorderSide(

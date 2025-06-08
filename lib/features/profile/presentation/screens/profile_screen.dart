@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../theme/app_theme.dart';
 import '../../../../theme/app_spacing.dart';
@@ -17,6 +18,9 @@ import 'package:cashsify_app/core/providers/loading_provider.dart';
 import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
 import 'package:cashsify_app/core/providers/user_provider.dart';
 import 'package:cashsify_app/core/services/supabase_service.dart';
+import 'package:cashsify_app/core/models/user_state.dart';
+import 'package:flutter/rendering.dart';
+import 'package:cashsify_app/core/widgets/optimized_image.dart';
 
 class ProfileScreen extends HookConsumerWidget {
   const ProfileScreen({super.key});
@@ -28,86 +32,102 @@ class ProfileScreen extends HookConsumerWidget {
     final themeNotifier = ref.read(themeProviderProvider.notifier);
     final isDarkMode = ref.watch(themeProviderProvider).isDarkMode;
     final loadingState = ref.watch(loadingProvider);
-    final userNotifier = ref.read(userProvider.notifier);
+    final userState = ref.watch(userStreamProvider);
+
+    // Pre-fetch user data if not already loaded
+    useEffect(() {
+      final userService = ref.read(userServiceProvider);
+      final currentUser = userService.supabase.client.auth.currentUser;
+      if (userState.isLoading && currentUser != null) {
+        userService.getUserData(currentUser.id);
+      }
+      return null;
+    }, []);
 
     return LoadingOverlay(
-      isLoading: loadingState == LoadingState.loading,
+      isLoading: loadingState == LoadingState.loading && userState.isLoading,
       message: loadingState == LoadingState.loading ? 'Loading profile...' : null,
       child: Scaffold(
         backgroundColor: colorScheme.background,
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: AppSpacing.xxl),
-                _AnimatedFadeIn(
-                  delay: 0,
-                  child: _profileHeader(context),
+        body: userState.when(
+          data: (user) {
+            if (user == null) {
+              return Center(
+                child: Text(
+                  'Please login to view your profile',
+                  style: textTheme.bodyLarge,
                 ),
-                SizedBox(height: AppSpacing.xxl),
-                _AnimatedFadeIn(
-                  delay: 100,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionHeader(context, 'Account Information'),
-                      _accountInfoCard(context),
-                    ],
+              );
+            }
+
+            return CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: AppSpacing.xxl),
+                        _profileHeader(context, user),
+                        SizedBox(height: AppSpacing.xxl),
+                        _buildSection(
+                          context,
+                          'Personal Details',
+                          _personalDetailsCard(context, user),
+                          delay: 100,
+                        ),
+                        SizedBox(height: AppSpacing.xxl),
+                        _buildSection(
+                          context,
+                          'Account Information',
+                          _accountInfoCard(context, user),
+                          delay: 200,
+                        ),
+                        SizedBox(height: AppSpacing.xxl),
+                        _buildSection(
+                          context,
+                          'Payment Details',
+                          _paymentDetailsCard(context, user),
+                          delay: 300,
+                        ),
+                        SizedBox(height: AppSpacing.xxl),
+                        _buildSection(
+                          context,
+                          'Settings',
+                          _settingsCard(context, colorScheme, textTheme, isDarkMode, themeNotifier),
+                          delay: 400,
+                        ),
+                        SizedBox(height: AppSpacing.xxl),
+                        _buildSection(
+                          context,
+                          'Account Management',
+                          _accountManagementCard(context, ref),
+                          delay: 500,
+                        ),
+                        SizedBox(height: AppSpacing.xxl),
+                        _buildSection(
+                          context,
+                          'Legal',
+                          _legalCard(context),
+                          delay: 500,
+                        ),
+                        SizedBox(height: AppSpacing.xxl),
+                        _footer(context),
+                        SizedBox(height: AppSpacing.xxl),
+                      ],
+                    ),
                   ),
                 ),
-                SizedBox(height: AppSpacing.xxl),
-                _AnimatedFadeIn(
-                  delay: 200,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionHeader(context, 'Payment Details'),
-                      _paymentDetailsCard(context),
-                    ],
-                  ),
-                ),
-                SizedBox(height: AppSpacing.xxl),
-                _AnimatedFadeIn(
-                  delay: 300,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionHeader(context, 'Settings'),
-                      _settingsCard(context, colorScheme, textTheme, isDarkMode, themeNotifier),
-                    ],
-                  ),
-                ),
-                SizedBox(height: AppSpacing.xxl),
-                _AnimatedFadeIn(
-                  delay: 400,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionHeader(context, 'Account Management'),
-                      _accountManagementCard(context, userNotifier, ref),
-                    ],
-                  ),
-                ),
-                SizedBox(height: AppSpacing.xxl),
-                _AnimatedFadeIn(
-                  delay: 500,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionHeader(context, 'Legal'),
-                      _legalCard(context),
-                    ],
-                  ),
-                ),
-                SizedBox(height: AppSpacing.xxl),
-                _AnimatedFadeIn(
-                  delay: 600,
-                  child: _footer(context),
-                ),
-                SizedBox(height: AppSpacing.xxl),
               ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Text(
+              'Error loading profile: ${error.toString()}',
+              style: textTheme.bodyLarge?.copyWith(color: colorScheme.error),
             ),
           ),
         ),
@@ -115,13 +135,23 @@ class ProfileScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _profileHeader(BuildContext context) {
+  Widget _buildSection(BuildContext context, String title, Widget content, {required int delay}) {
+    return _AnimatedFadeIn(
+      delay: delay,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader(context, title),
+          content,
+        ],
+      ),
+    );
+  }
+
+  Widget _profileHeader(BuildContext context, UserState user) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    // Using the same verification status as in account info
-    final isPhoneVerified = true; // From your phone verification status
-    final isEmailVerified = true; // From your email verification status
-    final isFullyVerified = isPhoneVerified && isEmailVerified;
+    final isFullyVerified = user.isEmailVerified ?? false;
 
     return Center(
       child: Column(
@@ -140,34 +170,45 @@ class ProfileScreen extends HookConsumerWidget {
                 CircleAvatar(
                   radius: 48,
                   backgroundColor: colorScheme.primary,
-                  child: Text(
-                    'K',
-                    style: textTheme.headlineLarge?.copyWith(
-                      color: colorScheme.onPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  backgroundImage: user.profileImageUrl != null
+                      ? NetworkImage(user.profileImageUrl!)
+                      : null,
+                  child: user.profileImageUrl == null
+                      ? Text(
+                          (user.name?.isNotEmpty ?? false) ? user.name![0].toUpperCase() : 'U',
+                          style: textTheme.headlineLarge?.copyWith(
+                            color: colorScheme.onPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
                 ),
                 Positioned(
                   right: 0,
                   bottom: 0,
-                  child: Container(
-                    padding: EdgeInsets.all(AppSpacing.xs),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: colorScheme.primary.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const EditProfileScreen()),
                     ),
-                    child: Icon(
-                      Icons.edit,
-                      color: colorScheme.onPrimary,
-                      size: 20,
+                    child: Container(
+                      padding: EdgeInsets.all(AppSpacing.xs),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.primary.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.edit,
+                        color: colorScheme.onPrimary,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -176,35 +217,156 @@ class ProfileScreen extends HookConsumerWidget {
           ),
           SizedBox(height: AppSpacing.md),
           Text(
-            'KS',
+            user.name ?? 'User',
             style: textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: colorScheme.onSurface,
               letterSpacing: 0.5,
             ),
           ),
-          if (isFullyVerified) ...[
-            SizedBox(height: AppSpacing.xs),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.verified, color: colorScheme.primary, size: 16),
-                  SizedBox(width: AppSpacing.xs),
-                  Text(
-                    'Verified',
-                    style: textTheme.labelMedium?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+          SizedBox(height: AppSpacing.xs),
+          if (isFullyVerified)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.verified, color: colorScheme.primary, size: 16),
+                SizedBox(width: AppSpacing.xs),
+                Text(
+                  'verified',
+                  style: textTheme.labelMedium?.copyWith(color: colorScheme.primary),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _personalDetailsCard(BuildContext context, UserState user) {
+    return CustomCard(
+      margin: EdgeInsets.only(top: AppSpacing.md),
+      child: Column(
+        children: [
+          _infoRow(
+            context,
+            Icons.person,
+            'Name',
+            user.name ?? 'User',
+          ),
+          _infoRow(
+            context,
+            Icons.email,
+            'Email Address',
+            user.email,
+            isVerified: user.isEmailVerified ?? false,
+          ),
+          _infoRow(
+            context,
+            Icons.phone,
+            'Phone Number',
+            user.phoneNumber ?? 'Not set',
+          ),
+          _infoRow(
+            context,
+            Icons.person_outline,
+            'Gender',
+            user.gender ?? 'Not set',
+          ),
+          _infoRow(
+            context,
+            Icons.cake,
+            'Date of Birth',
+            user.dob != null ? _formatDate(user.dob) : 'Not set',
+          ),
+          if (user.referredBy != null)
+            _infoRow(
+              context,
+              Icons.group,
+              'Referred By',
+              user.referredBy!,
+            ),
+          _infoRow(
+            context,
+            Icons.calendar_today,
+            'Member Since',
+            _formatDate(user.createdAt),
+          ),
+          _infoRow(
+            context,
+            Icons.access_time,
+            'Last Login',
+            _formatDate(user.lastLogin),
+            showDivider: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _accountInfoCard(BuildContext context, UserState user) {
+    return CustomCard(
+      margin: EdgeInsets.only(top: AppSpacing.md),
+      child: Column(
+        children: [
+          _infoRow(
+            context,
+            Icons.monetization_on,
+            'Coins',
+            user.coins.toString(),
+          ),
+          _infoRow(
+            context,
+            Icons.code,
+            'Referral Code',
+            user.referralCode,
+          ),
+          _infoRow(
+            context,
+            Icons.people,
+            'Referral Count',
+            user.referralCount?.toString() ?? '0',
+          ),
+          _infoRow(
+            context,
+            Icons.verified_user,
+            'Is Verified',
+            user.isVerified ? 'Yes' : 'No',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _paymentDetailsCard(BuildContext context, UserState user) {
+    return CustomCard(
+      margin: EdgeInsets.only(top: AppSpacing.md),
+      child: Column(
+        children: [
+          _infoRow(
+            context,
+            Icons.payment,
+            'UPI ID',
+            user.upiId ?? 'Not set',
+          ),
+          if (user.bankAccount != null) ...[
+            _infoRow(
+              context,
+              Icons.account_balance,
+              'Bank Account Number',
+              user.bankAccount?['account_no'] ?? 'N/A',
+            ),
+            _infoRow(
+              context,
+              Icons.account_box,
+              'Account Holder Name',
+              user.bankAccount?['name'] ?? 'N/A',
+            ),
+            _infoRow(
+              context,
+              Icons.code,
+              'IFSC Code',
+              user.bankAccount?['ifsc'] ?? 'N/A',
+              showDivider: false,
             ),
           ],
         ],
@@ -212,151 +374,9 @@ class ProfileScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _accountInfoCard(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final hasReferrer = false; // This would come from your user data
-
-    return CustomCard(
-      margin: EdgeInsets.only(top: AppSpacing.md),
-      child: Column(
-        children: [
-          _infoRow(
-            context,
-            Icons.phone,
-            'Phone Number',
-            '+91 98765 43210',
-            isVerified: true,
-          ),
-          _infoRow(
-            context,
-            Icons.email,
-            'Email Address',
-            'ks@email.com',
-            isVerified: true,
-          ),
-          if (hasReferrer) // Only show if there's a referrer
-            _infoRow(
-              context,
-              Icons.person,
-              'Referred By',
-              'John Doe',
-            ),
-          _infoRow(
-            context,
-            Icons.calendar_today,
-            'Member Since',
-            'January 2024',
-          ),
-          _infoRow(
-            context,
-            Icons.access_time,
-            'Last Login',
-            '2 hours ago',
-            showDivider: false,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _paymentDetailsCard(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return CustomCard(
-      margin: EdgeInsets.only(top: AppSpacing.md),
-      child: Column(
-        children: [
-          _infoRow(
-            context,
-            Icons.account_balance,
-            'Bank Account',
-            'XXXXXX1234',
-          ),
-          // Divider(height: 1),
-          _infoRow(
-            context,
-            Icons.code,
-            'IFSC Code',
-            'SBIN0001234',
-          ),
-          // Divider(height: 1),
-          _infoRow(
-            context,
-            Icons.payment,
-            'UPI ID',
-            'ks@upi',
-            showDivider: false,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _infoRow(
-    BuildContext context,
-    IconData icon,
-    String label,
-    String value, {
-    bool isVerified = false,
-    bool showDivider = true,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: colorScheme.primary, size: AppSpacing.iconMd),
-              SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
-                    Row(
-                      children: [
-                        Text(
-                          value.isEmpty ? 'Not available' : value,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: value.isEmpty ? colorScheme.error : colorScheme.onSurface,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        if (isVerified) ...[
-                          SizedBox(width: AppSpacing.xs),
-                          Icon(Icons.verified, color: colorScheme.primary, size: 16),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (!isVerified && (label == 'Phone Number' || label == 'Email Address'))
-                TextButton(
-                  onPressed: () {},
-                  child: Text('Verify', style: textTheme.labelMedium?.copyWith(color: colorScheme.primary)),
-                ),
-            ],
-          ),
-          if (!isVerified && (label == 'Phone Number' || label == 'Email Address'))
-            Padding(
-              padding: EdgeInsets.only(left: AppSpacing.iconMd + AppSpacing.md, top: AppSpacing.xs),
-              child: Text(
-                'Verification mandatory for withdrawal process',
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.error,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-          if (showDivider) Divider(height: AppSpacing.md),
-        ],
-      ),
-    );
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'N/A';
+    return '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}';
   }
 
   Widget _settingsCard(BuildContext context, ColorScheme colorScheme, TextTheme textTheme, bool isDarkMode, ThemeNotifier themeNotifier) {
@@ -420,7 +440,6 @@ class ProfileScreen extends HookConsumerWidget {
 
   Widget _accountManagementCard(
     BuildContext context,
-    UserNotifier userNotifier,
     WidgetRef ref,
   ) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -484,7 +503,7 @@ class ProfileScreen extends HookConsumerWidget {
                   await SupabaseService().signOut();
                   
                   // Update user provider state
-                  await userNotifier.signOut();
+                  ref.read(userProvider.notifier).signOut();
 
                   if (context.mounted) {
                     // Show success message
@@ -687,6 +706,56 @@ class ProfileScreen extends HookConsumerWidget {
       ),
     );
   }
+
+  Widget _infoRow(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value, {
+    bool isVerified = false,
+    bool showDivider = true,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: colorScheme.primary, size: 20),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+                    Row(
+                      children: [
+                        Text(
+                          value.isEmpty ? 'Not available' : value,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: value.isEmpty ? colorScheme.error : colorScheme.onSurface,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (isVerified) ...[
+                          SizedBox(width: 4),
+                          Icon(Icons.verified, color: colorScheme.primary, size: 16),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (showDivider) Divider(height: 16),
+        ],
+      ),
+    );
+  }
 }
 
 // Animated fade-in widget for section transitions
@@ -700,30 +769,54 @@ class _AnimatedFadeIn extends StatefulWidget {
 }
 
 class _AnimatedFadeInState extends State<_AnimatedFadeIn> with SingleTickerProviderStateMixin {
-  double _opacity = 0;
+  late final AnimationController _controller;
+  late final Animation<double> _opacityAnimation;
+  late final Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
     Future.delayed(Duration(milliseconds: widget.delay), () {
       if (mounted) {
-        setState(() {
-          _opacity = 1;
-        });
+        _controller.forward();
       }
     });
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: _opacity,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOut,
-      child: AnimatedSlide(
-        offset: _opacity == 1 ? Offset.zero : const Offset(0, 0.1),
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOut,
+    return FadeTransition(
+      opacity: _opacityAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
         child: widget.child,
       ),
     );
