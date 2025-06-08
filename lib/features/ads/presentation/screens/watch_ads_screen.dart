@@ -13,13 +13,11 @@ import 'package:cashsify_app/core/utils/performance_utils.dart';
 import 'package:cashsify_app/core/widgets/feedback/shimmer_loading.dart';
 import 'package:cashsify_app/core/widgets/feedback/custom_tooltip.dart';
 import 'package:cashsify_app/core/providers/loading_provider.dart';
+import '../providers/earnings_provider.dart';
 
 // State providers for managing UI states
 final isAdPlayingProvider = StateProvider<bool>((ref) => false);
 final timerSecondsProvider = StateProvider<int>((ref) => 5);
-final dailyProgressProvider = StateProvider<int>((ref) =>19); // Current ads watched today
-final maxDailyAdsProvider = StateProvider<int>((ref) => 20); // Maximum ads per day
-final rewardAmountProvider = StateProvider<int>((ref) => 10); // Base reward amount
 final isLoadingProvider = StateProvider<bool>((ref) => false);
 
 class WatchAdsScreen extends HookConsumerWidget {
@@ -31,10 +29,9 @@ class WatchAdsScreen extends HookConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final isAdPlaying = ref.watch(isAdPlayingProvider);
     final timerSeconds = ref.watch(timerSecondsProvider);
-    final dailyProgress = ref.watch(dailyProgressProvider);
-    final maxDailyAds = ref.watch(maxDailyAdsProvider);
-    final progress = dailyProgress / maxDailyAds;
-    final isLimit = dailyProgress >= maxDailyAds;
+    final earningsState = ref.watch(earningsProvider);
+    final progress = earningsState.adsWatchedToday / 20;
+    final isLimit = earningsState.hasReachedDailyLimit;
     final isLoading = ref.watch(isLoadingProvider);
     final loadingState = ref.watch(loadingProvider);
 
@@ -76,14 +73,15 @@ class WatchAdsScreen extends HookConsumerWidget {
                         ref,
                         pulseController,
                         isLimit,
+                        earningsState.adsWatchedToday,
                       ),
                     SizedBox(height: isSmallScreen ? 24 : 32),
                     _buildProgressCard(
                       context,
                       colorScheme,
                       textTheme,
-                      dailyProgress,
-                      maxDailyAds,
+                      earningsState.adsWatchedToday,
+                      20,
                       progress,
                       isLimit,
                     ),
@@ -120,18 +118,6 @@ class WatchAdsScreen extends HookConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(Icons.emoji_events, color: colorScheme.onPrimary, size: 38),
-          // const SizedBox(height: 16),
-          // Removed header text for a more compact screen
-          // Text(
-          //   'Earn Rewards by Watching Ads',
-          //   style: textTheme.headlineSmall?.copyWith(
-          //     color: colorScheme.onPrimary,
-          //     fontWeight: FontWeight.w900,
-          //     fontSize: 22,
-          //     letterSpacing: 0.5,
-          //   ),
-          //   textAlign: TextAlign.center,
-          // ),
           const SizedBox(height: 10),
           Text(
             progress < 1.0
@@ -158,6 +144,7 @@ class WatchAdsScreen extends HookConsumerWidget {
     WidgetRef ref,
     AnimationController pulseController,
     bool isLimit,
+    int adsWatchedToday,
   ) {
     return Card(
       elevation: 8,
@@ -317,7 +304,7 @@ class WatchAdsScreen extends HookConsumerWidget {
     BuildContext context,
     ColorScheme colorScheme,
     TextTheme textTheme,
-    int dailyProgress,
+    int adsWatchedToday,
     int maxDailyAds,
     double progress,
     bool isLimit,
@@ -362,7 +349,7 @@ class WatchAdsScreen extends HookConsumerWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              '$dailyProgress / $maxDailyAds ads completed',
+              '$adsWatchedToday / $maxDailyAds ads completed',
               style: textTheme.headlineSmall?.copyWith(
                 color: colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -389,10 +376,8 @@ class WatchAdsScreen extends HookConsumerWidget {
   }
 
   Future<void> _handleTimerStart(BuildContext context, WidgetRef ref) async {
-    final dailyProgress = ref.read(dailyProgressProvider);
-    final maxDailyAds = ref.read(maxDailyAdsProvider);
-
-    if (dailyProgress >= maxDailyAds) {
+    final earningsState = ref.read(earningsProvider);
+    if (earningsState.hasReachedDailyLimit) {
       CustomToast.show(
         context,
         message: 'Daily limit reached. Come back tomorrow!',
@@ -402,7 +387,7 @@ class WatchAdsScreen extends HookConsumerWidget {
     }
 
     ref.read(isAdPlayingProvider.notifier).state = true;
-    ref.read(timerSecondsProvider.notifier).state = 5;
+    ref.read(timerSecondsProvider.notifier).state = 2;
 
     for (int i = 5; i > 0; i--) {
       await Future.delayed(const Duration(seconds: 1));
@@ -415,12 +400,13 @@ class WatchAdsScreen extends HookConsumerWidget {
         MaterialPageRoute(
           builder: (context) => const VerificationScreen(),
         ),
-      ).then((verified) {
+      ).then((verified) async {
         if (verified == true) {
-          ref.read(dailyProgressProvider.notifier).state++;
+          // After successful verification, reload earnings from Supabase
+          await ref.read(earningsProvider.notifier).loadEarnings();
           CustomToast.show(
             context,
-            message: 'Ad verified! Coins added to your balance.',
+            message: 'Ad verified! Coins will be credited after 20 ads.',
             type: ToastType.success,
             duration: const Duration(seconds: 2),
             showCloseButton: true,

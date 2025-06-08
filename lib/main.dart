@@ -10,6 +10,8 @@ import 'package:cashsify_app/core/utils/image_utils.dart';
 import 'package:cashsify_app/core/utils/performance_utils.dart';
 import 'package:cashsify_app/theme/theme_provider.dart';
 import 'package:cashsify_app/theme/app_theme.dart';
+import 'package:cashsify_app/features/ads/presentation/providers/earnings_provider.dart';
+import 'package:cashsify_app/features/ads/data/services/ad_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +42,12 @@ void main() async {
   
   runApp(
     ProviderScope(
+      overrides: [
+        earningsProvider.overrideWith((ref) => EarningsNotifier(
+          AdService(SupabaseService().supabase),
+          SupabaseService().supabase,
+        )),
+      ],
       child: MyApp(prefs: prefs),
     ),
   );

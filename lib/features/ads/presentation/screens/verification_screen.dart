@@ -12,6 +12,7 @@ import 'package:cashsify_app/core/widgets/feedback/custom_toast.dart';
 import 'package:cashsify_app/core/utils/captcha_utils.dart';
 import 'package:cashsify_app/core/widgets/feedback/success_animation.dart';
 import 'package:cashsify_app/core/widgets/feedback/custom_tooltip.dart';
+import 'package:cashsify_app/features/ads/presentation/providers/earnings_provider.dart';
 
 // State providers for verification
 final captchaTextProvider = StateProvider<String>((ref) => generateCaptcha());
@@ -255,7 +256,16 @@ class VerificationScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildInputField(BuildContext context, ColorScheme colorScheme, TextTheme textTheme, String userInput, WidgetRef ref, FocusNode focusNode, bool failed, TextEditingController controller) {
+  Widget _buildInputField(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    String userInput,
+    WidgetRef ref,
+    FocusNode focusNode,
+    bool failed,
+    TextEditingController controller,
+  ) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
@@ -408,53 +418,45 @@ class VerificationScreen extends HookConsumerWidget {
     if (attempts >= maxAttempts) {
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (context) => AlertDialog(
           title: const Text('Too Many Attempts'),
           content: const Text('You have been blocked for now. Please try again later.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context, false);
-              },
-              child: const Text('OK'),
-            ),
-          ],
         ),
       );
+      // Wait 2 seconds, then close both dialogs and go back
+      Future.delayed(const Duration(seconds: 2), () {
+        if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop(); // Close dialog
+          Navigator.of(context).pop(false); // Pop VerificationScreen, return to WatchAdsScreen
+        }
+      });
       return;
     }
 
     ref.read(isVerifyingProvider.notifier).state = true;
-
     try {
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (userInput.trim().toLowerCase() == captchaText.trim().toLowerCase()) {
-        if (context.mounted) {
-          CustomToast.show(
-            context,
-            message: 'Verification successful! 🎉',
-            type: ToastType.success,
-            duration: const Duration(seconds: 2),
-            showCloseButton: false,
-          );
-          isSuccess.value = true;
-        }
+      final success = await ref.read(earningsProvider.notifier).processAdWatch(userInput);
+      if (success) {
+        // Reload earnings only
+        await ref.read(earningsProvider.notifier).loadEarnings();
+        isSuccess.value = true;
       } else {
         ref.read(verificationAttemptsProvider.notifier).state++;
-        ref.read(userInputProvider.notifier).state = '';
-        ref.read(captchaTextProvider.notifier).state = generateCaptcha();
-        if (context.mounted) {
-          CustomToast.show(
-            context,
-            message: 'Incorrect code. Please try again.',
-            type: ToastType.error,
-            duration: const Duration(seconds: 2),
-            showCloseButton: false,
-          );
-        }
+        CustomToast.show(
+          context,
+          message: 'Verification failed. Please try again.',
+          type: ToastType.error,
+        );
+        ref.read(isVerifyingProvider.notifier).state = false;
       }
-    } finally {
+    } catch (e) {
+      ref.read(verificationAttemptsProvider.notifier).state++;
+      CustomToast.show(
+        context,
+        message: 'An error occurred. Please try again.',
+        type: ToastType.error,
+      );
       ref.read(isVerifyingProvider.notifier).state = false;
     }
   }
@@ -532,4 +534,4 @@ class CustomPatternImage extends ImageProvider<CustomPatternImage> {
 
   @override
   int get hashCode => Object.hash(color, size);
-} 
+}

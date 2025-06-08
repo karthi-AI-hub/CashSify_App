@@ -20,7 +20,7 @@ class SupabaseService {
 
   /// Initialize the Supabase client with the provided URL and anon key.
   /// This should be called before using any other methods.
-  Future<void> initialize({
+  Future<SupabaseClient> initialize({
     required String supabaseUrl,
     required String supabaseAnonKey,
   }) async {
@@ -32,6 +32,7 @@ class SupabaseService {
       );
       _client = Supabase.instance.client;
       AppLogger.info('Supabase client initialized successfully');
+      return _client;
     } catch (error, stackTrace) {
       AppLogger.error(
         'Failed to initialize Supabase client',
@@ -43,6 +44,9 @@ class SupabaseService {
   }
 
   /// Get the current Supabase client instance.
+  SupabaseClient get supabase => _client;
+  
+  /// Get the current Supabase client instance (alias for supabase).
   SupabaseClient get client => _client;
 
   /// Sign up a new user with email and password.
