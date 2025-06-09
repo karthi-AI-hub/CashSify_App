@@ -13,11 +13,11 @@ import 'package:cashsify_app/core/utils/performance_utils.dart';
 import 'package:cashsify_app/core/widgets/feedback/shimmer_loading.dart';
 import 'package:cashsify_app/core/widgets/feedback/custom_tooltip.dart';
 import 'package:cashsify_app/core/providers/loading_provider.dart';
-import '../providers/earnings_provider.dart';
+import 'package:cashsify_app/core/providers/earnings_provider.dart';
 
 // State providers for managing UI states
 final isAdPlayingProvider = StateProvider<bool>((ref) => false);
-final timerSecondsProvider = StateProvider<int>((ref) => 5);
+final timerSecondsProvider = StateProvider<int>((ref) => 2);
 final isLoadingProvider = StateProvider<bool>((ref) => false);
 
 class WatchAdsScreen extends HookConsumerWidget {
@@ -30,8 +30,16 @@ class WatchAdsScreen extends HookConsumerWidget {
     final isAdPlaying = ref.watch(isAdPlayingProvider);
     final timerSeconds = ref.watch(timerSecondsProvider);
     final earningsState = ref.watch(earningsProvider);
-    final progress = earningsState.adsWatchedToday / 20;
-    final isLimit = earningsState.hasReachedDailyLimit;
+    final progress = earningsState.when(
+      data: (earnings) => earnings?.adsWatchedToday ?? 0,
+      loading: () => 0,
+      error: (_, __) => 0,
+    ) / 20;
+    final isLimit = earningsState.when(
+      data: (earnings) => earnings?.hasReachedDailyLimit ?? false,
+      loading: () => false,
+      error: (_, __) => false,
+    );
     final isLoading = ref.watch(isLoadingProvider);
     final loadingState = ref.watch(loadingProvider);
 
@@ -59,31 +67,47 @@ class WatchAdsScreen extends HookConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    _buildHeader(context, colorScheme, textTheme, progress),
+                    _AnimatedFadeIn(
+                      delay: 0,
+                      child: _buildHeader(context, colorScheme, textTheme, progress),
+                    ),
                     SizedBox(height: isSmallScreen ? 24 : 32),
-                    if (isLoading)
-                      const _ShimmerLoadingCard()
-                    else
-                      _buildTimerCard(
+                    _AnimatedFadeIn(
+                      delay: 100,
+                      child: isLoading
+                          ? const _ShimmerLoadingCard()
+                          : _buildTimerCard(
+                              context,
+                              colorScheme,
+                              textTheme,
+                              isAdPlaying,
+                              timerSeconds,
+                              ref,
+                              pulseController,
+                              isLimit,
+                              earningsState.when(
+                                data: (earnings) => earnings?.adsWatchedToday ?? 0,
+                                loading: () => 0,
+                                error: (_, __) => 0,
+                              ),
+                            ),
+                    ),
+                    SizedBox(height: isSmallScreen ? 24 : 32),
+                    _AnimatedFadeIn(
+                      delay: 200,
+                      child: _buildProgressCard(
                         context,
                         colorScheme,
                         textTheme,
-                        isAdPlaying,
-                        timerSeconds,
-                        ref,
-                        pulseController,
+                        earningsState.when(
+                          data: (earnings) => earnings?.adsWatchedToday ?? 0,
+                          loading: () => 0,
+                          error: (_, __) => 0,
+                        ),
+                        20,
+                        progress,
                         isLimit,
-                        earningsState.adsWatchedToday,
                       ),
-                    SizedBox(height: isSmallScreen ? 24 : 32),
-                    _buildProgressCard(
-                      context,
-                      colorScheme,
-                      textTheme,
-                      earningsState.adsWatchedToday,
-                      20,
-                      progress,
-                      isLimit,
                     ),
                   ],
                 ),
@@ -121,8 +145,8 @@ class WatchAdsScreen extends HookConsumerWidget {
           const SizedBox(height: 10),
           Text(
             progress < 1.0
-                ? 'Watch ads, verify, and collect coins!'
-                : "🎉 You have reached today's limit!",
+                ? 'Watch ads, verify and get coins!'
+                : "🎉 You've completed today's task!",
             style: textTheme.bodyLarge?.copyWith(
               color: colorScheme.onPrimary.withOpacity(0.92),
               fontWeight: FontWeight.w500,
@@ -338,37 +362,49 @@ class WatchAdsScreen extends HookConsumerWidget {
               ],
             ),
             const SizedBox(height: 22),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 12,
-                backgroundColor: colorScheme.surfaceVariant,
-                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-              ),
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: progress),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOut,
+              builder: (context, value, child) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: value,
+                        minHeight: 12,
+                        backgroundColor: colorScheme.surfaceVariant,
+                        valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      '$adsWatchedToday / $maxDailyAds ads completed',
+                      style: textTheme.headlineSmall?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                    if (isLimit)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(
+                          "You've completed today's task. Great job! 🎉",
+                          style: textTheme.bodyLarge?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 18),
-            Text(
-              '$adsWatchedToday / $maxDailyAds ads completed',
-              style: textTheme.headlineSmall?.copyWith(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-            if (isLimit)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  "You've reached today's limit. Great job! 🎉",
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
           ],
         ),
       ),
@@ -377,7 +413,11 @@ class WatchAdsScreen extends HookConsumerWidget {
 
   Future<void> _handleTimerStart(BuildContext context, WidgetRef ref) async {
     final earningsState = ref.read(earningsProvider);
-    if (earningsState.hasReachedDailyLimit) {
+    if (earningsState.when(
+      data: (earnings) => earnings?.hasReachedDailyLimit ?? false,
+      loading: () => false,
+      error: (_, __) => false,
+    )) {
       CustomToast.show(
         context,
         message: 'Daily limit reached. Come back tomorrow!',
@@ -455,6 +495,46 @@ class _ShimmerLoadingCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AnimatedFadeIn extends StatefulWidget {
+  final Widget child;
+  final int delay;
+  const _AnimatedFadeIn({required this.child, required this.delay});
+
+  @override
+  State<_AnimatedFadeIn> createState() => _AnimatedFadeInState();
+}
+
+class _AnimatedFadeInState extends State<_AnimatedFadeIn> with SingleTickerProviderStateMixin {
+  double _opacity = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) {
+        setState(() {
+          _opacity = 1;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: _opacity,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      child: AnimatedSlide(
+        offset: _opacity == 1 ? Offset.zero : const Offset(0, 0.1),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+        child: widget.child,
       ),
     );
   }

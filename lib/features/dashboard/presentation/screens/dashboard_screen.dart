@@ -7,6 +7,11 @@ import 'package:cashsify_app/core/services/supabase_service.dart';
 import 'package:cashsify_app/core/widgets/feedback/shimmer_loading.dart';
 import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
 import 'package:cashsify_app/core/providers/loading_provider.dart';
+import 'package:cashsify_app/core/providers/user_provider.dart';
+import 'package:cashsify_app/core/providers/earnings_provider.dart';
+import 'package:cashsify_app/core/models/user_state.dart';
+import 'package:cashsify_app/core/models/earnings_state.dart';
+import 'package:cashsify_app/core/services/earnings_service.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -37,7 +42,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       });
       await Future(() => ref.read(loadingProvider.notifier).finishLoading());
     } catch (e) {
-      // Optionally handle error
       setState(() { isLoading = false; });
       await Future(() => ref.read(loadingProvider.notifier).setError());
     }
@@ -49,19 +53,45 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return serverTime!.add(elapsed);
   }
 
+  Future<void> _onWatchAdPressed() async {
+    final canWatch = await ref.read(earningsProvider.notifier).canWatchMoreAds();
+    if (!canWatch) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Daily ad limit reached. Try again tomorrow!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (mounted) {
+      Navigator.pushNamed(context, '/ad');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final loadingState = ref.watch(loadingProvider);
+    final userState = ref.watch(userProvider);
+    final earningsState = ref.watch(earningsProvider);
+
     return LoadingOverlay(
       isLoading: loadingState == LoadingState.loading,
       message: loadingState == LoadingState.loading ? 'Loading dashboard...' : null,
       child: isLoading
           ? const SizedBox.shrink()
-          : _buildDashboardContent(context),
+          : _buildDashboardContent(context, userState, earningsState),
     );
   }
 
-  Widget _buildDashboardContent(BuildContext context) {
+  Widget _buildDashboardContent(
+    BuildContext context,
+    AsyncValue<UserState?> userState,
+    AsyncValue<EarningsState?> earningsState,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -86,23 +116,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Welcome back, KS',
-                      style: textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                        fontSize: cardFontSize != null ? cardFontSize + 2 : null,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: false,
+                  Text(
+                    'Welcome back, ${userState.when(
+                      data: (user) => user?.name ?? 'User',
+                      loading: () => '...',
+                      error: (_, __) => 'User',
+                    )}',
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                      fontSize: cardFontSize != null ? cardFontSize + 2 : null,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
                   ),
                   SizedBox(height: AppSpacing.xs),
-                  Text("Let's earn today!",
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        fontSize: cardFontSize,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: false,
+                  Text(
+                    "Let's earn today!",
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: cardFontSize,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
                   ),
                 ],
               ),
@@ -120,7 +156,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     children: [
                       _CoinCard(
                         title: 'Total Coins',
-                        value: 12580,
+                        value: userState.when(
+                          data: (user) => user?.coins ?? 0,
+                          loading: () => 0,
+                          error: (_, __) => 0,
+                        ),
                         label: 'Available in Wallet',
                         color: colorScheme.primary,
                         textColor: colorScheme.onPrimary,
@@ -131,7 +171,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       SizedBox(height: cardSpacing),
                       _CoinCard(
                         title: "Today's Coins ($todayDate)",
-                        value: 640,
+                        value: earningsState.when(
+                          data: (earnings) => earnings?.coinsEarned ?? 0,
+                          loading: () => 0,
+                          error: (_, __) => 0,
+                        ),
                         label: 'Since midnight',
                         color: colorScheme.surface,
                         textColor: colorScheme.onSurface,
@@ -147,7 +191,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Expanded(
                         child: _CoinCard(
                           title: 'Total Coins',
-                          value: 12580,
+                          value: userState.when(
+                            data: (user) => user?.coins ?? 0,
+                            loading: () => 0,
+                            error: (_, __) => 0,
+                          ),
                           label: 'Lifetime earnings',
                           color: colorScheme.primary,
                           textColor: colorScheme.onPrimary,
@@ -160,7 +208,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Expanded(
                         child: _CoinCard(
                           title: "Today's Coins ($todayDate)",
-                          value: 640,
+                          value: earningsState.when(
+                            data: (earnings) => earnings?.coinsEarned ?? 0,
+                            loading: () => 0,
+                            error: (_, __) => 0,
+                          ),
                           label: 'Since midnight',
                           color: colorScheme.surface,
                           textColor: colorScheme.onSurface,
@@ -187,44 +239,68 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text("Today's Tasks",
-                          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: cardFontSize),
+                        child: Text(
+                          "Today's Tasks",
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: cardFontSize,
+                          ),
                           overflow: TextOverflow.ellipsis,
                           softWrap: false,
                         ),
                       ),
                       SizedBox(width: AppSpacing.sm),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.xs,
+                        ),
                         decoration: BoxDecoration(
                           color: colorScheme.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text('0/1 Completed', 
+                        child: Text(
+                          '${earningsState.when(
+                            data: (earnings) => earnings?.adsWatchedToday ?? 0,
+                            loading: () => 0,
+                            error: (_, __) => 0,
+                          )}/20 Completed',
                           style: textTheme.labelMedium?.copyWith(
-                            color: colorScheme.primary, 
-                            fontWeight: FontWeight.bold, 
-                            fontSize: cardFontSize != null ? cardFontSize - 2 : null
-                          ), 
-                          overflow: TextOverflow.ellipsis, 
-                          softWrap: false
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: cardFontSize != null ? cardFontSize - 2 : null,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: false,
                         ),
                       ),
                     ],
                   ),
                   SizedBox(height: AppSpacing.xs),
-                  Text('1 task remaining today', 
+                  Text(
+                    '${20 - (earningsState.when(
+                      data: (earnings) => earnings?.adsWatchedToday ?? 0,
+                      loading: () => 0,
+                      error: (_, __) => 0,
+                    ))} tasks remaining today',
                     style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant, 
-                      fontSize: cardFontSize != null ? cardFontSize - 4 : null
-                    ), 
-                    overflow: TextOverflow.ellipsis, 
-                    softWrap: false
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: cardFontSize != null ? cardFontSize - 4 : null,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
                   ),
                   SizedBox(height: AppSpacing.md),
                   Divider(thickness: 1, color: colorScheme.surfaceVariant),
                   SizedBox(height: AppSpacing.md),
-                  _TaskCard(isSmall: isSmallScreen),
+                  _TaskCard(
+                    isSmall: isSmallScreen,
+                    adsWatched: earningsState.when(
+                      data: (earnings) => earnings?.adsWatchedToday ?? 0,
+                      loading: () => 0,
+                      error: (_, __) => 0,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -232,6 +308,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }
 
@@ -314,7 +395,13 @@ class _CoinCard extends StatelessWidget {
 
 class _TaskCard extends StatelessWidget {
   final bool isSmall;
-  const _TaskCard({this.isSmall = false});
+  final int adsWatched;
+  
+  const _TaskCard({
+    this.isSmall = false,
+    required this.adsWatched,
+  });
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -323,6 +410,7 @@ class _TaskCard extends StatelessWidget {
     final double? titleFontSize = isSmall ? 14 : null;
     final double? labelFontSize = isSmall ? 11 : null;
     final double? statusFontSize = isSmall ? 11 : null;
+    
     return Card(
       elevation: 2,
       margin: EdgeInsets.zero,
@@ -341,48 +429,68 @@ class _TaskCard extends StatelessWidget {
                 ),
                 SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: Text('Watch 20 ads to earn coins',
-                    style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: titleFontSize),
+                  child: Text(
+                    'Task',
+                    style: textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: titleFontSize,
+                    ),
                     overflow: TextOverflow.ellipsis,
                     softWrap: false,
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs,
+                  ),
                   decoration: BoxDecoration(
                     color: colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text('In Progress', style: textTheme.labelMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold, fontSize: statusFontSize), overflow: TextOverflow.ellipsis, softWrap: false),
+                  child: Text(
+                    adsWatched >= 20 ? 'Completed' : 'In Progress',
+                    style: textTheme.labelMedium?.copyWith(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: statusFontSize,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
                 ),
               ],
             ),
             SizedBox(height: AppSpacing.md),
             TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: 0.2),
+              tween: Tween(begin: 0, end: adsWatched / 20),
               duration: Duration(milliseconds: 800),
               curve: Curves.easeOut,
               builder: (context, value, child) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    LinearProgressIndicator(
-                      value: value,
-                      minHeight: isSmall ? 6 : 8,
-                      backgroundColor: colorScheme.surfaceVariant,
-                      valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: value,
+                        minHeight: isSmall ? 6 : 8,
+                        backgroundColor: colorScheme.surfaceVariant,
+                        valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                      ),
                     ),
                     SizedBox(height: AppSpacing.xs),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('4/20 ads watched', 
+                        Text(
+                          '$adsWatched/20 ads watched',
                           style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant, 
-                            fontSize: labelFontSize
-                          ), 
-                          overflow: TextOverflow.ellipsis, 
-                          softWrap: false
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: labelFontSize,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: false,
                         ),
                         _ResetCountdown(
                           isSmall: isSmall,

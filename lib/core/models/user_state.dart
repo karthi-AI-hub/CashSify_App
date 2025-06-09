@@ -22,7 +22,6 @@ class UserState with _$UserState {
     Map<String, dynamic>? bankAccount,
     required bool isVerified,
     String? profileImageUrl,
-    DateTime? profileUpdatedAt,
     DateTime? lastLogin,
     required DateTime createdAt,
     bool? isEmailVerified,
@@ -44,7 +43,6 @@ class UserState with _$UserState {
       'upiId': json['upi_id'],
       'bankAccount': json['bank_account'],
       'profileImageUrl': json['profile_image_url'],
-      'profileUpdatedAt': json['profile_updated_at'],
       'lastLogin': json['last_login'],
       'createdAt': json['created_at'] ?? json['createdAt'],
     });
@@ -68,9 +66,6 @@ class UserState with _$UserState {
       bankAccount: metadata['bank_account'] as Map<String, dynamic>?,
       isVerified: appMetadata['is_verified'] as bool? ?? false,
       profileImageUrl: metadata['profile_image_url'] as String?,
-      profileUpdatedAt: metadata['profile_updated_at'] != null 
-          ? DateTime.tryParse(metadata['profile_updated_at'] as String)
-          : null,
       lastLogin: metadata['last_login'] != null 
           ? DateTime.tryParse(metadata['last_login'] as String)
           : null,

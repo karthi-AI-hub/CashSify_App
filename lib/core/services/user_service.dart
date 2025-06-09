@@ -7,7 +7,6 @@ import 'dart:io';
 class UserService {
   final _supabase = SupabaseService();
   SupabaseService get supabase => _supabase;
-  Stream<UserState>? _userStream;
 
   // Get current user state
   Future<UserState?> getCurrentUserState() async {
@@ -26,22 +25,6 @@ class UserService {
       AppLogger.error('Error getting user state: $e');
       return null;
     }
-  }
-
-  // Stream user data changes
-  Stream<UserState> getUserStream(String userId) {
-    if (_userStream != null) return _userStream!;
-
-    _userStream = _supabase.client
-        .from('users')
-        .stream(primaryKey: ['id'])
-        .eq('id', userId)
-        .map((data) {
-          if (data.isEmpty) return UserState.fromUser(_supabase.client.auth.currentUser!);
-          return UserState.fromJson(data.first);
-        });
-
-    return _userStream!;
   }
 
   // Get user data by ID
@@ -222,7 +205,6 @@ class UserService {
   Future<void> signOut() async {
     try {
       await _supabase.client.auth.signOut();
-      _userStream = null;
       AppLogger.info('User signed out successfully');
     } catch (e) {
       AppLogger.error('Error signing out: $e');
@@ -279,9 +261,5 @@ class UserService {
       AppLogger.error('Error uploading profile image: $e');
       rethrow;
     }
-  }
-
-  void dispose() {
-    _userStream = null;
   }
 } 

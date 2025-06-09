@@ -4,6 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
+import 'dart:math' as math;
 import '../../../../theme/app_theme.dart';
 import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
 import 'package:cashsify_app/core/widgets/form/custom_text_field.dart';
@@ -12,7 +13,10 @@ import 'package:cashsify_app/core/widgets/feedback/custom_toast.dart';
 import 'package:cashsify_app/core/utils/captcha_utils.dart';
 import 'package:cashsify_app/core/widgets/feedback/success_animation.dart';
 import 'package:cashsify_app/core/widgets/feedback/custom_tooltip.dart';
-import 'package:cashsify_app/features/ads/presentation/providers/earnings_provider.dart';
+import 'package:cashsify_app/core/providers/loading_provider.dart';
+import 'package:cashsify_app/core/providers/earnings_provider.dart';
+import 'package:cashsify_app/core/providers/user_provider.dart';
+import 'package:cashsify_app/theme/theme_provider.dart';
 
 // State providers for verification
 final captchaTextProvider = StateProvider<String>((ref) => generateCaptcha());
@@ -27,6 +31,9 @@ class VerificationScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final userState = ref.watch(userProvider);
+    final loadingState = ref.watch(loadingProvider);
+    final isDarkMode = ref.watch(themeProviderProvider).isDarkMode;
     final captchaText = ref.watch(captchaTextProvider);
     final userInput = ref.watch(userInputProvider);
     final isVerifying = ref.watch(isVerifyingProvider);
@@ -36,6 +43,18 @@ class VerificationScreen extends HookConsumerWidget {
     final focusNode = useFocusNode();
     final isSuccess = useState(false);
     final controller = useTextEditingController(text: userInput);
+
+    // Reset all state providers when screen is mounted
+    useEffect(() {
+      Future.microtask(() {
+        ref.read(captchaTextProvider.notifier).state = generateCaptcha();
+        ref.read(userInputProvider.notifier).state = '';
+        ref.read(isVerifyingProvider.notifier).state = false;
+        ref.read(verificationAttemptsProvider.notifier).state = 0;
+      });
+      return null;
+    }, []);
+
     useEffect(() {
       if (controller.text != userInput) {
         controller.text = userInput;
@@ -43,6 +62,7 @@ class VerificationScreen extends HookConsumerWidget {
       }
       return null;
     }, [userInput]);
+
     useEffect(() {
       Future.delayed(const Duration(milliseconds: 200), () {
         if (!failed) focusNode.requestFocus();
@@ -53,7 +73,8 @@ class VerificationScreen extends HookConsumerWidget {
     return WillPopScope(
       onWillPop: () async => false,
       child: LoadingOverlay(
-        isLoading: isVerifying,
+        isLoading: loadingState == LoadingState.loading,
+        message: loadingState == LoadingState.loading ? 'Verifying...' : null,
         child: Material(
           color: Theme.of(context).colorScheme.background,
           child: Container(

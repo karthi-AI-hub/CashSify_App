@@ -21,6 +21,7 @@ import 'package:cashsify_app/core/services/supabase_service.dart';
 import 'package:cashsify_app/core/models/user_state.dart';
 import 'package:flutter/rendering.dart';
 import 'package:cashsify_app/core/widgets/optimized_image.dart';
+import 'dart:async';
 
 class ProfileScreen extends HookConsumerWidget {
   const ProfileScreen({super.key});
@@ -32,17 +33,28 @@ class ProfileScreen extends HookConsumerWidget {
     final themeNotifier = ref.read(themeProviderProvider.notifier);
     final isDarkMode = ref.watch(themeProviderProvider).isDarkMode;
     final loadingState = ref.watch(loadingProvider);
-    final userState = ref.watch(userStreamProvider);
+    final userState = ref.watch(userProvider);
 
-    // Pre-fetch user data if not already loaded
+    // Refresh user data when returning to profile screen
     useEffect(() {
       final userService = ref.read(userServiceProvider);
       final currentUser = userService.supabase.client.auth.currentUser;
-      if (userState.isLoading && currentUser != null) {
-        userService.getUserData(currentUser.id);
+      
+      // Refresh user data when screen is mounted
+      if (currentUser != null) {
+        ref.read(userProvider.notifier).refreshUser();
       }
-      return null;
+      
+      // Cleanup when screen is disposed
+      return () {
+        ref.read(loadingProvider.notifier).state = LoadingState.initial;
+      };
     }, []);
+
+    // Memoize expensive computations
+    final isFullyVerified = useMemoized(() {
+      return userState.value?.isEmailVerified ?? false;
+    }, [userState.value?.isEmailVerified]);
 
     return LoadingOverlay(
       isLoading: loadingState == LoadingState.loading && userState.isLoading,
@@ -60,67 +72,72 @@ class ProfileScreen extends HookConsumerWidget {
               );
             }
 
-            return CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: AppSpacing.xxl),
-                        _profileHeader(context, user),
-                        SizedBox(height: AppSpacing.xxl),
-                        _buildSection(
-                          context,
-                          'Personal Details',
-                          _personalDetailsCard(context, user),
-                          delay: 100,
-                        ),
-                        SizedBox(height: AppSpacing.xxl),
-                        _buildSection(
-                          context,
-                          'Account Information',
-                          _accountInfoCard(context, user),
-                          delay: 200,
-                        ),
-                        SizedBox(height: AppSpacing.xxl),
-                        _buildSection(
-                          context,
-                          'Payment Details',
-                          _paymentDetailsCard(context, user),
-                          delay: 300,
-                        ),
-                        SizedBox(height: AppSpacing.xxl),
-                        _buildSection(
-                          context,
-                          'Settings',
-                          _settingsCard(context, colorScheme, textTheme, isDarkMode, themeNotifier),
-                          delay: 400,
-                        ),
-                        SizedBox(height: AppSpacing.xxl),
-                        _buildSection(
-                          context,
-                          'Account Management',
-                          _accountManagementCard(context, ref),
-                          delay: 500,
-                        ),
-                        SizedBox(height: AppSpacing.xxl),
-                        _buildSection(
-                          context,
-                          'Legal',
-                          _legalCard(context),
-                          delay: 500,
-                        ),
-                        SizedBox(height: AppSpacing.xxl),
-                        _footer(context),
-                        SizedBox(height: AppSpacing.xxl),
-                      ],
+            return RefreshIndicator(
+              onRefresh: () async {
+                await ref.read(userProvider.notifier).refreshUser();
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: AppSpacing.xxl),
+                          _profileHeader(context, user, ref),
+                          SizedBox(height: AppSpacing.xxl),
+                          _buildSection(
+                            context,
+                            'Personal Details',
+                            _personalDetailsCard(context, user),
+                            delay: 100,
+                          ),
+                          SizedBox(height: AppSpacing.xxl),
+                          _buildSection(
+                            context,
+                            'Account Information',
+                            _accountInfoCard(context, user),
+                            delay: 200,
+                          ),
+                          SizedBox(height: AppSpacing.xxl),
+                          _buildSection(
+                            context,
+                            'Payment Details',
+                            _paymentDetailsCard(context, user),
+                            delay: 300,
+                          ),
+                          SizedBox(height: AppSpacing.xxl),
+                          _buildSection(
+                            context,
+                            'Settings',
+                            _settingsCard(context, colorScheme, textTheme, isDarkMode, themeNotifier),
+                            delay: 400,
+                          ),
+                          SizedBox(height: AppSpacing.xxl),
+                          _buildSection(
+                            context,
+                            'Account Management',
+                            _accountManagementCard(context, ref),
+                            delay: 500,
+                          ),
+                          SizedBox(height: AppSpacing.xxl),
+                          _buildSection(
+                            context,
+                            'Legal',
+                            _legalCard(context),
+                            delay: 500,
+                          ),
+                          SizedBox(height: AppSpacing.xxl),
+                          _footer(context),
+                          SizedBox(height: AppSpacing.xxl),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -148,7 +165,7 @@ class ProfileScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _profileHeader(BuildContext context, UserState user) {
+  Widget _profileHeader(BuildContext context, UserState user, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final isFullyVerified = user.isEmailVerified ?? false;
@@ -187,10 +204,18 @@ class ProfileScreen extends HookConsumerWidget {
                   right: 0,
                   bottom: 0,
                   child: GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const EditProfileScreen()),
-                    ),
+                    onTap: () async {
+                      // Navigate to edit screen and wait for result
+                      final result = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+                      );
+                      
+                      // If profile was updated, refresh the data
+                      if (result == true && context.mounted) {
+                        await ref.read(userProvider.notifier).refreshUser();
+                      }
+                    },
                     child: Container(
                       padding: EdgeInsets.all(AppSpacing.xs),
                       decoration: BoxDecoration(

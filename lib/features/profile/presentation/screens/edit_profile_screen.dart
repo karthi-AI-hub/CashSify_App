@@ -53,7 +53,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
   }
 
   void _initializeData() {
-    final user = ref.read(userStreamProvider).asData?.value;
+    final user = ref.read(userProvider).asData?.value;
     if (user != null) {
       _nameController.text = user.name ?? '';
       _upiController.text = user.upiId ?? '';
@@ -204,7 +204,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
 
   Future<String?> _uploadProfileImage(XFile image) async {
     final userService = ref.read(userServiceProvider);
-    final userId = ref.read(userStreamProvider).asData?.value?.id;
+    final userId = ref.read(userProvider).asData?.value?.id;
     if (userId == null) return null;
 
     final file = File(image.path);
@@ -229,6 +229,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
     String? uploadedUrl;
 
     try {
+      // Show loading state
+      ref.read(loadingProvider.notifier).state = LoadingState.loading;
+
       if (_pickedImage != null) {
         uploadedUrl = await _uploadProfileImage(_pickedImage!);
         if (uploadedUrl == null) {
@@ -241,6 +244,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
       }
 
       if (_hasChanged) {
+        // Update profile
         await ref.read(userProvider.notifier).updateProfile(
           name: _nameController.text.trim(),
           gender: _selectedGender,
@@ -253,13 +257,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
           },
           profileImageUrl: uploadedUrl ?? _profileImageUrl,
         );
+
+        // Force refresh user data immediately
+        await ref.read(userProvider.notifier).refreshUser();
       }
 
       if (!mounted || _isDisposed) return;
+      
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully!')),
       );
-      context.pop();
+
+      // Pop back to profile screen with result
+      context.pop(true); // Pass true to indicate successful update
     } catch (e) {
       if (!mounted || _isDisposed) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -268,6 +279,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
     } finally {
       if (!_isDisposed) {
         setState(() => _isSaving = false);
+        ref.read(loadingProvider.notifier).state = LoadingState.initial;
       }
     }
   }

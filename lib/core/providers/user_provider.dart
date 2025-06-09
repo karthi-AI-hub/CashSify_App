@@ -2,15 +2,9 @@ import 'dart:async';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../models/user_state.dart';
 import '../services/user_service.dart';
+import '../utils/logger.dart';
 
 final userServiceProvider = Provider<UserService>((ref) => UserService());
-
-final userStreamProvider = StreamProvider<UserState?>((ref) {
-  final userService = ref.watch(userServiceProvider);
-  final userId = userService.supabase.client.auth.currentUser?.id;
-  if (userId == null) return const Stream.empty();
-  return userService.getUserStream(userId);
-});
 
 final userProvider = StateNotifierProvider<UserNotifier, AsyncValue<UserState?>>((ref) {
   final userService = ref.watch(userServiceProvider);
@@ -19,13 +13,20 @@ final userProvider = StateNotifierProvider<UserNotifier, AsyncValue<UserState?>>
 
 class UserNotifier extends StateNotifier<AsyncValue<UserState?>> {
   final UserService _userService;
+
   UserNotifier(this._userService) : super(const AsyncValue.loading()) {
     _initializeUser();
   }
 
   Future<void> _initializeUser() async {
     try {
-      final userState = await _userService.getCurrentUserState();
+      final currentUser = _userService.supabase.client.auth.currentUser;
+      if (currentUser == null) {
+        state = const AsyncValue.data(null);
+        return;
+      }
+
+      final userState = await _userService.getUserData(currentUser.id);
       state = AsyncValue.data(userState);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -33,8 +34,21 @@ class UserNotifier extends StateNotifier<AsyncValue<UserState?>> {
   }
 
   Future<void> refreshUser() async {
-    state = const AsyncValue.loading();
-    await _initializeUser();
+    try {
+      final currentUser = _userService.supabase.client.auth.currentUser;
+      if (currentUser == null) {
+        state = const AsyncValue.data(null);
+        return;
+      }
+
+      final userState = await _userService.getUserData(currentUser.id);
+      state = AsyncValue.data(userState);
+    } catch (e, stack) {
+      // Keep previous state if refresh fails
+      if (state.hasValue) {
+        state = AsyncValue.error(e, stack);
+      }
+    }
   }
 
   Future<void> updateProfile({
@@ -47,26 +61,30 @@ class UserNotifier extends StateNotifier<AsyncValue<UserState?>> {
     String? profileImageUrl,
   }) async {
     try {
-      // Set loading state
-      state = const AsyncValue.loading();
+      final currentUser = _userService.supabase.client.auth.currentUser;
+      if (currentUser == null) throw Exception('No user logged in');
 
-      // Perform the actual update
-      await _userService.updateUserProfile(
-        name: name,
-        phoneNumber: phoneNumber,
-        gender: gender,
-        dob: dob,
-        upiId: upiId,
-        bankAccount: bankAccount,
-        profileImageUrl: profileImageUrl,
-      );
+      final updates = <String, dynamic>{};
+      if (name != null) updates['name'] = name;
+      if (phoneNumber != null) updates['phone_number'] = phoneNumber;
+      if (gender != null) updates['gender'] = gender;
+      if (dob != null) updates['dob'] = dob.toIso8601String();
+      if (upiId != null) updates['upi_id'] = upiId;
+      if (bankAccount != null) updates['bank_account'] = bankAccount;
+      if (profileImageUrl != null) updates['profile_image_url'] = profileImageUrl;
 
-      // Get the latest data
-      final userState = await _userService.getCurrentUserState();
-      state = AsyncValue.data(userState);
+      if (updates.isEmpty) return;
+
+      await _userService.supabase.client
+          .from('users')
+          .update(updates)
+          .eq('id', currentUser.id);
+
+      // Force refresh user data immediately
+      await refreshUser();
     } catch (e) {
-      // Set error state
-      state = AsyncValue.error(e, StackTrace.current);
+      AppLogger.error('Error updating profile: $e');
+      rethrow;
     }
   }
 
