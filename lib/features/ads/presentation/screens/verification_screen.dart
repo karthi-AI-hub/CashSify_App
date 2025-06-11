@@ -457,6 +457,19 @@ class VerificationScreen extends HookConsumerWidget {
 
     ref.read(isVerifyingProvider.notifier).state = true;
     try {
+      if (userInput.trim() != captchaText.trim()) {
+        ref.read(verificationAttemptsProvider.notifier).state++;
+        CustomToast.show(
+          context,
+          message: 'Incorrect CAPTCHA. Please try again.',
+          type: ToastType.error,
+          duration: const Duration(seconds: 3),
+          showCloseButton: true,
+        );
+        ref.read(isVerifyingProvider.notifier).state = false;
+        return;
+      }
+
       final success = await ref.read(earningsProvider.notifier).processAdWatch(userInput);
       if (success) {
         // Reload earnings only

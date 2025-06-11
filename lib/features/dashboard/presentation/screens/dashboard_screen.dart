@@ -33,17 +33,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Future<void> _fetchServerTime() async {
     try {
-      await Future(() => ref.read(loadingProvider.notifier).startLoading());
+      if (!mounted) return;
+      ref.read(loadingProvider.notifier).startLoading();
+      
       final fetched = await SupabaseService().getServerTime();
+      
+      if (!mounted) return;
       setState(() {
         serverTime = fetched;
         deviceTimeAtFetch = DateTime.now();
         isLoading = false;
       });
-      await Future(() => ref.read(loadingProvider.notifier).finishLoading());
+      if (!mounted) return;
+      ref.read(loadingProvider.notifier).finishLoading();
     } catch (e) {
+      if (!mounted) return;
       setState(() { isLoading = false; });
-      await Future(() => ref.read(loadingProvider.notifier).setError());
+      if (!mounted) return;
+      ref.read(loadingProvider.notifier).setError();
     }
   }
 

@@ -448,7 +448,7 @@ class WatchAdsScreen extends HookConsumerWidget {
             context,
             message: 'Ad verified! Coins will be credited after 20 ads.',
             type: ToastType.success,
-            duration: const Duration(seconds: 2),
+            duration: const Duration(seconds: 3),
             showCloseButton: true,
           );
         }

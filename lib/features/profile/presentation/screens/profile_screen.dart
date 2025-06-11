@@ -35,7 +35,9 @@ class ProfileScreen extends HookConsumerWidget {
     final loadingState = ref.watch(loadingProvider);
     final userState = ref.watch(userProvider);
 
-    // Refresh user data when returning to profile screen
+    // Store the loading notifier before useEffect
+    final loadingNotifier = ref.read(loadingProvider.notifier);
+    
     useEffect(() {
       final userService = ref.read(userServiceProvider);
       final currentUser = userService.supabase.client.auth.currentUser;
@@ -45,10 +47,8 @@ class ProfileScreen extends HookConsumerWidget {
         ref.read(userProvider.notifier).refreshUser();
       }
       
-      // Cleanup when screen is disposed
-      return () {
-        ref.read(loadingProvider.notifier).state = LoadingState.initial;
-      };
+      // No cleanup needed as we don't want to modify state after disposal
+      return null;
     }, []);
 
     // Memoize expensive computations

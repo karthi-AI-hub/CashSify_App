@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/services/ad_service.dart';
 import '../../domain/models/ad_earnings_model.dart';
+import 'package:cashsify_app/core/services/supabase_service.dart';
 
 class EarningsState {
   final int adsWatched;
@@ -84,5 +85,7 @@ class EarningsNotifier extends StateNotifier<EarningsState> {
 }
 
 final earningsProvider = StateNotifierProvider<EarningsNotifier, EarningsState>((ref) {
-  throw UnimplementedError('EarningsProvider must be overridden');
+  final supabase = SupabaseService().client;
+  final adService = AdService(supabase);
+  return EarningsNotifier(adService, supabase);
 }); 

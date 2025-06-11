@@ -2,37 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'withdraw_screen.dart';
-
-final userBalanceProvider = StateProvider<int>((ref) => 15300);
-final transactionsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  await Future.delayed(const Duration(seconds: 1));
-  return [
-    {
-      'type': 'ad',
-      'note': 'Daily Task Reward',
-      'amount': 100,
-      'created_at': DateTime.now().subtract(const Duration(hours: 2)),
-    },
-    {
-      'type': 'referral',
-      'note': 'Referral Bonus',
-      'amount': 500,
-      'created_at': DateTime.now().subtract(const Duration(days: 1)),
-    },
-    {
-      'type': 'withdraw',
-      'note': 'Withdrawal',
-      'amount': -15000,
-      'created_at': DateTime.now().subtract(const Duration(days: 2)),
-    },
-    {
-      'type': 'ad',
-      'note': 'Watched Ad',
-      'amount': 50,
-      'created_at': DateTime.now().subtract(const Duration(days: 3)),
-    },
-  ];
-});
+import 'package:cashsify_app/features/wallet/presentation/providers/wallet_providers.dart';
+import 'package:cashsify_app/core/models/transaction_state.dart';
+import 'package:cashsify_app/core/providers/user_provider.dart';
 
 class WalletScreen extends HookConsumerWidget {
   const WalletScreen({super.key});
@@ -40,8 +12,8 @@ class WalletScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
-    final balance = ref.watch(userBalanceProvider);
-    final transactionsAsync = ref.watch(transactionsProvider);
+    final userAsync = ref.watch(userProvider);
+    final transactionsAsync = ref.watch(transactionsStreamProvider);
     final width = MediaQuery.of(context).size.width;
     final isSmall = width < 400;
 
@@ -72,7 +44,11 @@ class WalletScreen extends HookConsumerWidget {
             ),
             const SizedBox(height: 24),
             // Coin Balance Card
-            _BalanceCard(balance: balance),
+            userAsync.when(
+              data: (user) => _BalanceCard(balance: user?.coins ?? 0),
+              loading: () => const _ShimmerCard(),
+              error: (e, st) => Center(child: Text('Error loading balance')),
+            ),
             const SizedBox(height: 18),
             // Withdraw Button
             SizedBox(
@@ -114,7 +90,7 @@ class WalletScreen extends HookConsumerWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: 3,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, i) => _ShimmerCard(),
+                itemBuilder: (context, i) => const _ShimmerCard(),
               ),
               error: (e, st) => Center(child: Text('Error loading transactions')),
               data: (transactions) {
@@ -204,16 +180,16 @@ class _BalanceCard extends StatelessWidget {
 }
 
 class _TransactionCard extends StatelessWidget {
-  final Map<String, dynamic> tx;
+  final TransactionState tx;
   const _TransactionCard({required this.tx});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final amount = tx['amount'] as int;
-    final type = tx['type'] as String;
-    final note = tx['note'] as String;
-    final createdAt = tx['created_at'] as DateTime;
+    final amount = tx.amount;
+    final type = tx.type;
+    final note = tx.note;
+    final createdAt = tx.createdAt;
     IconData icon;
     Color iconColor;
     switch (type) {
@@ -266,16 +242,16 @@ class _TransactionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  note,
+                  note ?? 'N/A',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                     color: colorScheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
-                  _formatDate(createdAt),
+                  '${createdAt.day}/${createdAt.month}/${createdAt.year}',
                   style: TextStyle(
                     color: colorScheme.onSurface.withOpacity(0.6),
                     fontSize: 13,
@@ -284,49 +260,76 @@ class _TransactionCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
           Text(
-            amount > 0 ? '+$amount' : '$amount',
+            '${amount > 0 ? '+' : ''} $amount Coins',
             style: TextStyle(
-              color: amount > 0 ? Colors.green : Colors.redAccent,
               fontWeight: FontWeight.bold,
               fontSize: 16,
+              color: amount > 0 ? Colors.green : Colors.red,
             ),
           ),
         ],
       ),
     );
   }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    if (now.difference(date).inDays == 0) {
-      return 'Today, ${_formatTime(date)}';
-    } else if (now.difference(date).inDays == 1) {
-      return 'Yesterday, ${_formatTime(date)}';
-    } else {
-      return '${date.day}/${date.month}/${date.year}, ${_formatTime(date)}';
-    }
-  }
-
-  String _formatTime(DateTime date) {
-    final hour = date.hour.toString().padLeft(2, '0');
-    final min = date.minute.toString().padLeft(2, '0');
-    return '$hour:$min';
-  }
 }
 
 class _ShimmerCard extends StatelessWidget {
+  const _ShimmerCard();
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      height: 64,
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: colorScheme.surface.withOpacity(0.5),
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colorScheme.onSurface.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 120,
+                  height: 16,
+                  color: colorScheme.onSurface.withOpacity(0.2),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: 80,
+                  height: 12,
+                  color: colorScheme.onSurface.withOpacity(0.1),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 60,
+            height: 16,
+            color: colorScheme.onSurface.withOpacity(0.2),
+          ),
+        ],
+      ),
     );
   }
 } 
