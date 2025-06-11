@@ -25,6 +25,7 @@ class UserState with _$UserState {
     DateTime? lastLogin,
     required DateTime createdAt,
     bool? isEmailVerified,
+    bool? isProfileCompleted,
   }) = _UserState;
 
   factory UserState.fromJson(Map<String, dynamic> json) {
@@ -37,6 +38,7 @@ class UserState with _$UserState {
       'referralCode': json['referral_code'] ?? '',
       'isVerified': json['is_verified'] ?? false,
       'isEmailVerified': json['is_email_verified'] ?? false,
+      'isProfileCompleted': json['is_profile_completed'] ?? true,
       'phoneNumber': json['phone_number'],
       'referralCount': json['referral_count'],
       'referredBy': json['referred_by'],

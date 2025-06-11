@@ -5,6 +5,7 @@ import 'withdraw_screen.dart';
 import 'package:cashsify_app/features/wallet/presentation/providers/wallet_providers.dart';
 import 'package:cashsify_app/core/models/transaction_state.dart';
 import 'package:cashsify_app/core/providers/user_provider.dart';
+import 'package:cashsify_app/core/widgets/feedback/custom_toast.dart';
 
 class WalletScreen extends HookConsumerWidget {
   const WalletScreen({super.key});
@@ -54,9 +55,35 @@ class WalletScreen extends HookConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const WithdrawScreen()),
+                onPressed: userAsync.when(
+                  data: (user) {
+                    final currentBalance = user?.coins ?? 0;
+                    final profileComplete = user?.isProfileCompleted ?? false;
+                    final emailVerified = user?.isEmailVerified ?? false;
+                    final referralCount = user?.referralCount ?? 0;
+                    final allMet = currentBalance >= 15000 &&
+                        profileComplete &&
+                        emailVerified &&
+                        referralCount >= 5;
+
+                    return allMet
+                        ? () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const WithdrawScreen()),
+                            );
+                          }
+                        : () {
+                            CustomToast.show(
+                              context,
+                              message: 'Please complete all requirements to withdraw.',
+                              type: ToastType.warning,
+                              duration: const Duration(seconds: 3),
+                            );
+                          };
+                  },
+                  loading: () => null, // Disable button while loading user data
+                  error: (e, st) => null, // Disable button on error
                 ),
                 icon: const Icon(Icons.account_balance_wallet_outlined),
                 label: const Text('Withdraw'),
@@ -68,8 +95,79 @@ class WalletScreen extends HookConsumerWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  elevation: 2,
+                  shadowColor: colorScheme.primary.withOpacity(0.15),
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+            // Withdrawal Requirements
+            userAsync.when(
+              data: (user) {
+                final currentBalance = user?.coins ?? 0;
+                final profileComplete = user?.isProfileCompleted ?? false;
+                final emailVerified = user?.isEmailVerified ?? false;
+                final referralCount = user?.referralCount ?? 0;
+
+                final requirements = [
+                  ('Minimum 15,000 coins', currentBalance >= 15000),
+                  ('Profile 100% complete', profileComplete),
+                  ('Email verified', emailVerified),
+                  ('At least 5 referrals', referralCount >= 5),
+                ];
+                final metCount = requirements.where((r) => r.$2).length;
+
+                return Card(
+                  elevation: 0,
+                  color: colorScheme.surfaceVariant.withOpacity(0.7),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Withdrawal Requirements',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '$metCount/${requirements.length}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: metCount == requirements.length
+                                    ? Colors.green
+                                    : colorScheme.error,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        ...requirements.map((r) => _RequirementRow(r.$1, r.$2)),
+                        const SizedBox(height: 6),
+                        LinearProgressIndicator(
+                          value: metCount / requirements.length,
+                          backgroundColor: colorScheme.surface,
+                          color: metCount == requirements.length
+                              ? Colors.green
+                              : colorScheme.primary,
+                          minHeight: 6,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (e, st) => const SizedBox.shrink(),
             ),
             const SizedBox(height: 32),
             // Transaction History
@@ -274,6 +372,38 @@ class _TransactionCard extends StatelessWidget {
   }
 }
 
+class _RequirementRow extends StatelessWidget {
+  final String label;
+  final bool met;
+  const _RequirementRow(this.label, this.met);
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(
+            met ? Icons.check_circle_rounded : Icons.cancel_rounded,
+            color: met ? Colors.green : colorScheme.error,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              color: met ? Colors.green : colorScheme.error,
+              fontWeight: met ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ShimmerCard extends StatelessWidget {
   const _ShimmerCard();
 
@@ -332,4 +462,4 @@ class _ShimmerCard extends StatelessWidget {
       ),
     );
   }
-} 
+}
