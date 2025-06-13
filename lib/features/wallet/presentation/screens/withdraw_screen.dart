@@ -3,6 +3,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:cashsify_app/core/providers/loading_provider.dart';
 import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
+import 'package:cashsify_app/core/providers/user_provider.dart';
+import 'package:cashsify_app/features/wallet/presentation/providers/withdrawal_provider.dart';
+import 'package:cashsify_app/core/widgets/feedback/custom_toast.dart';
+import 'package:cashsify_app/core/models/user_state.dart';
 // import 'package:lottie/lottie.dart'; // Uncomment if you have a Lottie asset
 
 final userBalanceProvider = StateProvider<int>((ref) => 15300);
@@ -44,7 +48,7 @@ class WithdrawScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
-    final balance = ref.watch(userBalanceProvider);
+    final userAsync = ref.watch(userProvider);
     final tabController = useTabController(initialLength: 2);
     final loadingState = ref.watch(loadingProvider);
 
@@ -67,7 +71,7 @@ class WithdrawScreen extends HookConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Withdraw',
+                      'Redeem Rewards',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
@@ -99,7 +103,7 @@ class WithdrawScreen extends HookConsumerWidget {
                     unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                     tabs: const [
                       Tab(text: 'Redeem Rewards'),
-                      Tab(text: 'Withdraw History'),
+                      Tab(text: 'Transaction History'),
                     ],
                     splashFactory: NoSplash.splashFactory,
                     overlayColor: MaterialStateProperty.all(Colors.transparent),
@@ -111,8 +115,12 @@ class WithdrawScreen extends HookConsumerWidget {
                 child: TabBarView(
                   controller: tabController,
                   children: [
-                    _WithdrawCoinsTab(balance: balance),
-                    _WithdrawHistoryTab(),
+                    userAsync.when(
+                      data: (user) => _WithdrawCoinsTab(balance: user?.coins ?? 0),
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (e, st) => Center(child: Text('Error: $e')),
+                    ),
+                    const _WithdrawHistoryTab(),
                   ],
                 ),
               ),
@@ -140,6 +148,7 @@ class _WithdrawCoinsTab extends HookConsumerWidget {
     final method = useState(WithdrawMethod.upi);
     final isSubmitting = useState(false);
     final coinsError = useState<String?>(null);
+    final withdrawalAsync = ref.watch(withdrawalProvider);
 
     int coins = int.tryParse(coinsController.text) ?? 0;
     bool coinsValid = coins >= 15000 && coins <= balance;
@@ -152,16 +161,40 @@ class _WithdrawCoinsTab extends HookConsumerWidget {
     void processWithdrawal() async {
       if (!canSubmit) return;
       isSubmitting.value = true;
-      await Future.delayed(const Duration(seconds: 2));
-      isSubmitting.value = false;
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Withdrawal request submitted!'),
-            backgroundColor: colorScheme.surface,
-            behavior: SnackBarBehavior.floating,
-          ),
+
+      try {
+        final withdrawalNotifier = ref.read(withdrawalProvider.notifier);
+        await withdrawalNotifier.requestWithdrawal(
+          amount: coins,
+          method: method.value == WithdrawMethod.upi ? 'upi' : 'bank',
+          upiId: method.value == WithdrawMethod.upi ? upiController.text : null,
+          bankDetails: method.value == WithdrawMethod.bank
+              ? {
+                  'name': bankNameController.text,
+                  'account_no': bankAccountController.text,
+                  'ifsc': bankIfscController.text.toUpperCase(),
+                }
+              : null,
         );
+
+        if (context.mounted) {
+          CustomToast.show(
+            context,
+            message: 'Withdrawal request submitted successfully!',
+            type: ToastType.success,
+          );
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          CustomToast.show(
+            context,
+            message: 'Error submitting withdrawal request: $e',
+            type: ToastType.error,
+          );
+        }
+      } finally {
+        isSubmitting.value = false;
       }
     }
 
@@ -354,10 +387,12 @@ class _WithdrawCoinsTab extends HookConsumerWidget {
 }
 
 class _WithdrawHistoryTab extends HookConsumerWidget {
+  const _WithdrawHistoryTab();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
-    final withdrawalsAsync = ref.watch(withdrawalsProvider);
+    final withdrawalsAsync = ref.watch(withdrawalsStreamProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: withdrawalsAsync.when(
@@ -366,14 +401,13 @@ class _WithdrawHistoryTab extends HookConsumerWidget {
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, i) => _ShimmerCard(),
         ),
-        error: (e, st) => Center(child: Text('Error loading history')),
+        error: (e, st) => Center(child: Text('Error loading history: $e')),
         data: (withdrawals) {
           if (withdrawals.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Lottie.asset('assets/empty.json', height: 120),
                   Icon(Icons.hourglass_empty_rounded, size: 64, color: colorScheme.primary.withOpacity(0.3)),
                   const SizedBox(height: 16),
                   Text(
@@ -470,11 +504,20 @@ class _WithdrawHistoryCard extends StatelessWidget {
         chipIcon = Icons.cancel_rounded;
         chipText = 'Rejected';
     }
-    final method = wd['method'];
-    final methodText = method == 'UPI' ? wd['upi'] : 'A/C ${wd['bank']}';
-    final amount = wd['amount'];
-    final requested = wd['requested_at'] as DateTime;
-    final processed = wd['processed_at'] as DateTime?;
+
+    final method = wd['method'] as String;
+    String methodText;
+    if (method == 'upi') {
+      methodText = wd['upi_id'] as String;
+    } else {
+      final bankDetails = wd['bank_details'] as Map<String, dynamic>;
+      methodText = 'A/C ${bankDetails['account_no']}';
+    }
+
+    final amount = wd['amount'] as int;
+    final requested = DateTime.parse(wd['requested_at'] as String);
+    final processed = wd['processed_at'] != null ? DateTime.parse(wd['processed_at'] as String) : null;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
