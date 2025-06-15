@@ -42,19 +42,19 @@ class FAQScreen extends StatelessWidget {
             ],
           ),
           FAQSection(
-            title: 'Withdrawals',
+            title: 'Redeem Coins',
             questions: [
               FAQItem(
-                question: 'How do I withdraw my earnings?',
-                answer: 'Go to the Withdraw screen, enter your UPI ID and minimum threshold amount, and submit the request.',
+                question: 'How do I redeem my coins?',
+                answer: 'Go to the Wallet screen > Redeem Coins, select method and minimum threshold coins, and submit the request.',
               ),
               FAQItem(
-                question: 'What is the minimum withdrawal amount?',
-                answer: 'The minimum withdrawal amount is ₹20. You must have a verified UPI ID to withdraw.',
+                question: 'What is the minimum redeem coins?',
+                answer: 'The minimum redeem coins is 15000.',
               ),
               FAQItem(
-                question: 'How long does it take to process a withdrawal?',
-                answer: 'Withdrawals are processed within 24-72 business hours after request, excluding holidays.',
+                question: 'How long does it take to process a redeem?',
+                answer: 'Redeem is processed within 24-72 business hours after request, excluding holidays.',
               ),
             ],
           ),

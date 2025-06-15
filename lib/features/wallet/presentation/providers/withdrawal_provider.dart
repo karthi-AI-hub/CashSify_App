@@ -19,7 +19,7 @@ class WithdrawalNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>?>
 
   WithdrawalNotifier(this._withdrawalService) : super(const AsyncValue.data(null));
 
-  Future<void> requestWithdrawal({
+  Future<Map<String, dynamic>?> requestWithdrawal({
     required int amount,
     required String method,
     String? upiId,
@@ -39,11 +39,29 @@ class WithdrawalNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>?>
       );
 
       state = AsyncValue.data(response);
+      return response;
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 final withdrawalProvider = StateNotifierProvider<WithdrawalNotifier, AsyncValue<Map<String, dynamic>?>>((ref) {
   final withdrawalService = ref.watch(withdrawalServiceProvider);

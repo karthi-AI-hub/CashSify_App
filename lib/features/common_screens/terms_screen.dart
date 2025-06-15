@@ -40,7 +40,7 @@ class TermsScreen extends StatelessWidget {
             ),
             _sectionTitle('5. Rewards & Coins', textTheme),
             _sectionText(
-              'Users earn coins by watching ads and completing CAPTCHA verification. Coins have no real monetary value unless converted through our withdrawal process. We reserve the right to modify or limit rewards at any time.',
+              'Users earn coins by watching ads and completing CAPTCHA verification. Coins have no real monetary value unless converted through our redeemtion process. We reserve the right to modify or limit rewards at any time.',
               textTheme,
             ),
             _sectionTitle('6. Advertisements', textTheme),

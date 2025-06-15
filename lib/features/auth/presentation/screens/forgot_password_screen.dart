@@ -101,12 +101,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           children: [
             // Logo or App Name
             Center(
-              child: Text(
-                'CashSify',
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
+              child: Image.asset(
+                'assets/images/logo.jpg',
+                height: 100, // Adjust height as needed
               ),
             ),
             const SizedBox(height: 32),

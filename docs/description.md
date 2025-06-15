@@ -289,17 +289,21 @@ Central log for all coin changes.
 
 Supports UPI or Bank transfer.
 
-| Column         | Type      | Description                       |
-| -------------- | --------- | --------------------------------- |
-| `id`           | uuid      | Primary Key                       |
-| `user_id`      | uuid      | FK to `users.id`                  |
-| `method`       | text      | `upi` or `bank`                   |
-| `upi_id`       | text      | Required if method = `upi`        |
-| `bank_details` | jsonb     | Required if method = `bank`       |
-| `amount`       | int       | Coins withdrawn                   |
-| `status`       | text      | `pending`, `approved`, `rejected` |
-| `requested_at` | timestamp | When user requested               |
-| `processed_at` | timestamp | When admin approved (nullable)    |
+| Column               | Type      | Description                                     |
+| -------------------- | --------- | ----------------------------------------------- |
+| `id`                 | uuid      | PK – Default: `gen_random_uuid()`               |
+| `user_id`            | uuid      | FK to `users.id` – Not nullable                 |
+| `amount`             | int       | Coins withdrawn – Must be greater than 0        |
+| `upi_id`             | text      | Required if method = `upi`                      |
+| `bank_account`       | jsonb     | Required if method = `bank`                     |
+| `method`             | text      | `upi` or `bank` – Not nullable                  |
+| `status`             | text      | `pending`, `approved`, `rejected`, `processing`, `failed` – Default: `pending` |
+| `requested_at`       | timestamptz | When user requested – Not nullable, Default: `now()` |
+| `processed_at`       | timestamptz | When payment was processed                      |
+| `approved_at`        | timestamptz | When admin approved (nullable)                  |
+| `rejected_at`        | timestamptz | When admin rejected (nullable)                  |
+| `note`               | text      | Admin note or rejection reason                  |
+| `transaction_id`     | uuid      | FK to `transactions.id` – Optional              |
 
 ---
 
@@ -349,10 +353,17 @@ Supports UPI or Bank transfer.
 * ✅ `SELECT/UPDATE` only where `auth.uid() = id`.
 * 🔐 Admins via `role = 'service_role'` can access all.
 
-#### `ads_watched`, `earnings`, `transactions`, `withdrawals`
+#### `ads_watched`, `earnings`, `transactions`
 
 * ✅ Users can only `SELECT/INSERT` on their own `user_id`.
 * ❌ No direct `UPDATE/DELETE`; only done via RPC.
+
+#### `withdrawals`
+
+* ✅ Users can view their own withdrawal records (`auth.uid() = user_id`).
+* ✅ Users can request withdrawals (`auth.uid() = user_id`).
+* ✅ Admins (via `service_role`) can update withdrawal status.
+* ❌ No direct `UPDATE/DELETE` by users.
 
 ---
 

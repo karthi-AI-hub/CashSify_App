@@ -314,3 +314,54 @@ for insert
 with check (auth.uid() = user_id);
 create index ads_watched_user_id_idx on public.ads_watched(user_id);
 create index ads_watched_user_time_idx on public.ads_watched(user_id, watched_at);
+
+create table withdrawals (
+  id uuid primary key default gen_random_uuid(),
+
+  user_id uuid references users(id) on delete cascade,
+
+  amount int4 not null check (amount > 0), -- in coins or paise
+  upi_id text,          -- optional if UPI
+  bank_account jsonb,   -- optional if bank transfer
+
+  method text not null check (method in ('upi', 'bank')),
+  status text not null default 'pending' check (
+    status in ('pending', 'approved', 'rejected', 'processing', 'failed')
+  ),
+
+  requested_at timestamptz not null default now(),
+  processed_at timestamptz,
+  approved_at timestamptz,
+  rejected_at timestamptz,
+
+  note text,            -- admin note or rejection reason
+  transaction_id uuid references transactions(id) on delete set null
+);
+
+-- Enable RLS
+alter table withdrawals enable row level security;
+
+-- ✅ Allow users to view their own withdrawal records
+create policy "Users can view their withdrawals"
+on withdrawals
+for select
+using (auth.uid() = user_id);
+
+-- ✅ Allow users to request withdrawal
+create policy "Users can request withdrawal"
+on withdrawals
+for insert
+with check (auth.uid() = user_id);
+
+-- ⚠️ FIX: Admins should be controlled via service_role outside RLS.
+-- service_role bypasses RLS, so this isn't needed unless you're allowing client-side admin roles.
+-- If you really need it:
+create policy "Admins can update withdrawal status"
+on withdrawals
+for update
+using (auth.role() = 'service_role')
+with check (true);
+
+create index idx_withdrawals_user_id on withdrawals(user_id);
+create index idx_withdrawals_status on withdrawals(status);
+create index idx_withdrawals_requested_at on withdrawals(requested_at);

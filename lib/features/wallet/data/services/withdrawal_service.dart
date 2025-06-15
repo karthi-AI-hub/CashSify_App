@@ -39,7 +39,7 @@ class WithdrawalService {
         'user_id': userId,
         'method': method,
         'upi_id': upiId,
-        'bank_details': bankDetails,
+        'bank_account': bankDetails,
         'amount': amount,
         'status': 'pending',
       }).select().single();

@@ -7,6 +7,7 @@ import 'package:cashsify_app/core/providers/user_provider.dart';
 import 'package:cashsify_app/features/wallet/presentation/providers/withdrawal_provider.dart';
 import 'package:cashsify_app/core/widgets/feedback/custom_toast.dart';
 import 'package:cashsify_app/core/models/user_state.dart';
+import 'package:cashsify_app/core/utils/pdf_utils.dart';
 // import 'package:lottie/lottie.dart'; // Uncomment if you have a Lottie asset
 
 final userBalanceProvider = StateProvider<int>((ref) => 15300);
@@ -71,7 +72,7 @@ class WithdrawScreen extends HookConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Redeem Rewards',
+                      'Redeem Coins',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
@@ -102,7 +103,7 @@ class WithdrawScreen extends HookConsumerWidget {
                     labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                     tabs: const [
-                      Tab(text: 'Redeem Rewards'),
+                      Tab(text: 'Redeem Coins'),
                       Tab(text: 'Transaction History'),
                     ],
                     splashFactory: NoSplash.splashFactory,
@@ -141,47 +142,181 @@ class _WithdrawCoinsTab extends HookConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final formKey = useMemoized(() => GlobalKey<FormState>(), []);
     final coinsController = useTextEditingController();
-    final upiController = useTextEditingController();
-    final bankNameController = useTextEditingController();
-    final bankAccountController = useTextEditingController();
-    final bankIfscController = useTextEditingController();
     final method = useState(WithdrawMethod.upi);
     final isSubmitting = useState(false);
     final coinsError = useState<String?>(null);
     final withdrawalAsync = ref.watch(withdrawalProvider);
+    final user = ref.watch(userProvider).value; // Get the user data
 
     int coins = int.tryParse(coinsController.text) ?? 0;
     bool coinsValid = coins >= 15000 && coins <= balance;
-    bool upiValid = upiController.text.isNotEmpty && RegExp(r'^[\w.-]+@[\w.-]+$').hasMatch(upiController.text);
-    bool bankValid = bankNameController.text.isNotEmpty &&
-        bankAccountController.text.length >= 8 &&
-        RegExp(r'^[A-Z]{4}0[A-Z0-9]{6}$').hasMatch(bankIfscController.text.toUpperCase());
-    bool canSubmit = coinsValid && ((method.value == WithdrawMethod.upi && upiValid) || (method.value == WithdrawMethod.bank && bankValid)) && !isSubmitting.value;
+    
+    // Check if UPI/Bank details exist in UserState
+    bool upiDetailsExist = user?.upiId != null && user!.upiId!.isNotEmpty;
+    bool bankDetailsExist = user?.bankAccount != null && 
+                            (user!.bankAccount!['account_no'] as String? ?? '').isNotEmpty &&
+                            (user.bankAccount!['ifsc'] as String? ?? '').isNotEmpty;
+
+    bool canSubmit = coinsValid && 
+                     ((method.value == WithdrawMethod.upi && upiDetailsExist) || 
+                      (method.value == WithdrawMethod.bank && bankDetailsExist)) && 
+                     !isSubmitting.value;
 
     void processWithdrawal() async {
-      if (!canSubmit) return;
+      if (!canSubmit) {
+        if (method.value == WithdrawMethod.upi && !upiDetailsExist) {
+          CustomToast.show(context, message: 'Please add your UPI ID in Profile.', type: ToastType.error);
+        } else if (method.value == WithdrawMethod.bank && !bankDetailsExist) {
+          CustomToast.show(context, message: 'Please add your Bank Account details in Profile.', type: ToastType.error);
+        }
+        return;
+      }
       isSubmitting.value = true;
 
+      // Show confirmation dialog
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext dialogContext) {
+          return AlertDialog(
+            backgroundColor: colorScheme.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Column(
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  color: colorScheme.primary,
+                  size: 48,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Confirm Redemption',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'You are about to redeem ',
+                  style: TextStyle(color: colorScheme.onSurface.withOpacity(0.8), fontSize: 16),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  '$coins coins',
+                  style: TextStyle(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Text(
+                  'Via:',
+                  style: TextStyle(color: colorScheme.onSurface.withOpacity(0.8), fontSize: 16),
+                ),
+                const SizedBox(height: 5),
+                if (method.value == WithdrawMethod.upi && upiDetailsExist)
+                  _buildConfirmationDetailRow(
+                    icon: Icons.account_balance_wallet_rounded,
+                    label: 'UPI ID',
+                    value: user!.upiId!,
+                    colorScheme: colorScheme,
+                  ),
+                if (method.value == WithdrawMethod.bank && bankDetailsExist) ...[
+                  _buildConfirmationDetailRow(
+                    icon: Icons.person_outline,
+                    label: 'Account Holder',
+                    value: user!.bankAccount!['name'],
+                    colorScheme: colorScheme,
+                  ),
+                  _buildConfirmationDetailRow(
+                    icon: Icons.account_balance,
+                    label: 'Account No',
+                    value: user.bankAccount!['account_no'],
+                    colorScheme: colorScheme,
+                  ),
+                  _buildConfirmationDetailRow(
+                    icon: Icons.code,
+                    label: 'IFSC Code',
+                    value: user.bankAccount!['ifsc'],
+                    colorScheme: colorScheme,
+                  ),
+                ],
+                const SizedBox(height: 20),
+                Text(
+                  'Are you sure you want to proceed?',
+                  style: TextStyle(color: colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            actionsAlignment: MainAxisAlignment.spaceAround,
+            actions: <Widget>[
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: colorScheme.error,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Cancel'),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(false);
+                },
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Confirm'),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(true);
+                },
+              ),
+            ],
+          );
+        },
+      ) ?? false; // Default to false if dialog is dismissed
+
+      if (!confirmed) {
+        isSubmitting.value = false;
+        return;
+      }
+      
       try {
         final withdrawalNotifier = ref.read(withdrawalProvider.notifier);
-        await withdrawalNotifier.requestWithdrawal(
+        final response = await withdrawalNotifier.requestWithdrawal(
           amount: coins,
           method: method.value == WithdrawMethod.upi ? 'upi' : 'bank',
-          upiId: method.value == WithdrawMethod.upi ? upiController.text : null,
-          bankDetails: method.value == WithdrawMethod.bank
-              ? {
-                  'name': bankNameController.text,
-                  'account_no': bankAccountController.text,
-                  'ifsc': bankIfscController.text.toUpperCase(),
-                }
-              : null,
+          upiId: method.value == WithdrawMethod.upi ? user?.upiId : null,
+          bankDetails: method.value == WithdrawMethod.bank ? user?.bankAccount : null,
         );
 
         if (context.mounted) {
           CustomToast.show(
             context,
             message: 'Withdrawal request submitted successfully!',
+            duration: const Duration(seconds: 3),
+            showCloseButton: true,
             type: ToastType.success,
+          );
+          // Generate PDF summary
+          await PdfUtils.generateWithdrawalPdf(
+            amount: coins,
+            method: method.value == WithdrawMethod.upi ? 'upi' : 'bank',
+            upiId: method.value == WithdrawMethod.upi ? user?.upiId : null,
+            bankDetails: method.value == WithdrawMethod.bank ? user?.bankAccount : null,
+            status: 'pending', // Newly submitted withdrawal will be pending
+            requestedAt: DateTime.now(),
+            withdrawalId: response?['id'], // Pass the actual ID from Supabase
           );
           Navigator.pop(context);
         }
@@ -254,18 +389,6 @@ class _WithdrawCoinsTab extends HookConsumerWidget {
                         }
                       },
                     ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        '${int.tryParse(coinsController.text) ?? 0} coins = ₹${((int.tryParse(coinsController.text) ?? 0) / 1000).toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 18),
                     // Method Selection
                     Row(
@@ -285,65 +408,38 @@ class _WithdrawCoinsTab extends HookConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 18),
-                    // Conditional Fields
+                    // Display Conditional Fields
                     if (method.value == WithdrawMethod.upi)
-                      TextFormField(
-                        controller: upiController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          labelText: 'Enter UPI ID',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          prefixIcon: const Icon(Icons.account_balance_wallet_rounded),
-                        ),
-                        validator: (val) {
-                          if (val == null || val.isEmpty) return 'Enter your UPI ID';
-                          if (!RegExp(r'^[\w.-]+@[\w.-]+$').hasMatch(val)) return 'Invalid UPI ID';
-                          return null;
-                        },
+                      _buildPaymentDetail(
+                        context,
+                        Icons.account_balance_wallet_rounded,
+                        'UPI ID',
+                        user?.upiId ?? 'Not set in Profile',
+                        upiDetailsExist,
                       )
                     else ...[
-                      TextFormField(
-                        controller: bankNameController,
-                        decoration: InputDecoration(
-                          labelText: 'Account Holder Name',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          prefixIcon: const Icon(Icons.person_outline),
-                        ),
-                        validator: (val) => val == null || val.isEmpty ? 'Enter account holder name' : null,
+                      _buildPaymentDetail(
+                        context,
+                        Icons.person_outline,
+                        'Account Holder Name',
+                        user?.bankAccount?['name'] ?? 'Not set in Profile',
+                        bankDetailsExist,
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        controller: bankAccountController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Account Number',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          prefixIcon: const Icon(Icons.numbers),
-                        ),
-                        validator: (val) => val == null || val.length < 8 ? 'Enter valid account number' : null,
+                      _buildPaymentDetail(
+                        context,
+                        Icons.numbers,
+                        'Account Number',
+                        user?.bankAccount?['account_no'] ?? 'Not set in Profile',
+                        bankDetailsExist,
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        controller: bankIfscController,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: InputDecoration(
-                          labelText: 'IFSC Code',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          prefixIcon: const Icon(Icons.code),
-                        ),
-                        validator: (val) {
-                          if (val == null || val.isEmpty) return 'Enter IFSC code';
-                          if (!RegExp(r'^[A-Z]{4}0[A-Z0-9]{6}$').hasMatch(val.toUpperCase())) return 'Invalid IFSC code';
-                          return null;
-                        },
+                      _buildPaymentDetail(
+                        context,
+                        Icons.code,
+                        'IFSC Code',
+                        user?.bankAccount?['ifsc'] ?? 'Not set in Profile',
+                        bankDetailsExist,
                       ),
                     ],
                     const SizedBox(height: 24),
@@ -381,6 +477,78 @@ class _WithdrawCoinsTab extends HookConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentDetail(BuildContext context, IconData icon, String label, String value, bool isSet) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: colorScheme.outline.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: colorScheme.onSurface.withOpacity(0.7)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: isSet ? colorScheme.onSurface : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!isSet)
+            Icon(Icons.warning_rounded, color: Colors.orange, size: 20),
+        ],
+      ),
+    );
+  }
+
+  // New helper widget for confirmation dialog details
+  Widget _buildConfirmationDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required ColorScheme colorScheme,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, color: colorScheme.onSurface.withOpacity(0.7), size: 16),
+          const SizedBox(width: 10),
+          Text(
+            '$label: ',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: colorScheme.onSurface),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -510,8 +678,12 @@ class _WithdrawHistoryCard extends StatelessWidget {
     if (method == 'upi') {
       methodText = wd['upi_id'] as String;
     } else {
-      final bankDetails = wd['bank_details'] as Map<String, dynamic>;
-      methodText = 'A/C ${bankDetails['account_no']}';
+      final bankDetails = wd['bank_account'];
+      if (bankDetails is Map<String, dynamic>) {
+        methodText = 'A/C ${bankDetails['account_no']}';
+      } else {
+        methodText = 'Bank details not available'; // Handle null or incorrect type
+      }
     }
 
     final amount = wd['amount'] as int;
