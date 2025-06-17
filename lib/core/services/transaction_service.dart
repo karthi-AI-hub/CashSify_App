@@ -17,7 +17,46 @@ class TransactionService {
     }
   }
 
-  Stream<List<TransactionState>> getTransactionsStream(String userId) {
+  Future<List<TransactionState>> getTransactions(
+    String userId, {
+    int? limit,
+    List<String>? types,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final response = await _supabase.client.rpc(
+        'get_transactions',
+        params: {
+          'p_user_id': userId,
+          'p_limit': limit,
+          'p_types': types,
+          'p_start_date': startDate?.toIso8601String(),
+          'p_end_date': endDate?.toIso8601String(),
+        },
+      );
+
+      if (response.error != null) {
+        throw response.error!;
+      }
+
+      return (response.data as List)
+          .map((json) => TransactionState.fromJson(json))
+          .toList();
+    } catch (e) {
+      AppLogger.error('Error fetching transactions: $e');
+      return [];
+    }
+  }
+
+  Stream<List<TransactionState>> getTransactionsStream(
+    String userId, {
+    int? limit,
+    List<String>? types,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    // For streams, we'll use the Supabase realtime API
     return _supabase.client
         .from('transactions')
         .stream(primaryKey: ['id'])
@@ -25,18 +64,4 @@ class TransactionService {
         .order('created_at', ascending: false)
         .map((data) => data.map((json) => TransactionState.fromJson(json)).toList());
   }
-
-  Future<List<TransactionState>> getTransactions(String userId) async {
-    try {
-      final response = await _supabase.client
-          .from('transactions')
-          .select()
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
-      return response.map((json) => TransactionState.fromJson(json)).toList();
-    } catch (e) {
-      AppLogger.error('Error fetching transactions: $e');
-      return [];
-    }
-  }
-} 
+}

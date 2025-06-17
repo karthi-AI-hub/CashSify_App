@@ -17,7 +17,7 @@ class PdfUtils {
   }) async {
     final pdf = pw.Document();
 
-    final ByteData bytes = await rootBundle.load('assets/images/logo.jpg');
+    final ByteData bytes = await rootBundle.load('assets/logo/logo.jpg');
     final Uint8List list = bytes.buffer.asUint8List();
     final pw.MemoryImage logoImage = pw.MemoryImage(list);
 
@@ -38,15 +38,15 @@ class PdfUtils {
                       pw.Image(logoImage, width: 70, height: 70),
                       pw.SizedBox(height: 5),
                       pw.Text(
-                        'CashSify App',
+                        'CashSify',
                         style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
                       ),
                       pw.Text(
-                        '123 Reward Lane, Digital City, 12345',
+                        'Earn Cash Simply!',
                         style: pw.TextStyle(fontSize: 10),
                       ),
                       pw.Text(
-                        'contact@cashsify.com | +1 234 567 890',
+                        'cashsify@gmail.com | +91 80722 23275',
                         style: pw.TextStyle(fontSize: 10),
                       ),
                     ],

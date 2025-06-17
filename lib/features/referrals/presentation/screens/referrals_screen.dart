@@ -630,7 +630,7 @@ class ReferralsScreen extends HookConsumerWidget {
                   ),
                 );
               },
-              text: '📄 View Referral History',
+              text: 'View Referral History',
               isFullWidth: true,
               backgroundColor: colorScheme.surfaceVariant,
               textColor: colorScheme.onSurfaceVariant,

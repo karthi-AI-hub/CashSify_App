@@ -17,6 +17,7 @@ import 'package:cashsify_app/features/wallet/presentation/screens/wallet_screen.
 import 'package:cashsify_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:cashsify_app/features/referrals/presentation/screens/referrals_screen.dart';
 import 'package:cashsify_app/features/wallet/presentation/screens/withdraw_screen.dart';
+import 'package:cashsify_app/features/wallet/presentation/screens/transaction_history_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -29,32 +30,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isOnboardingRoute = state.matchedLocation == '/';
       final isLoginCallbackRoute = state.matchedLocation == '/login-callback';
 
-      // If not authenticated and trying to access protected route
-      if (!isAuthenticated && !isAuthRoute && !isOnboardingRoute && !isLoginCallbackRoute) {
+      // If the user is authenticated
+      if (isAuthenticated) {
+        // If they are trying to access auth routes or onboarding, redirect to dashboard
+        if (isAuthRoute || isOnboardingRoute) {
+          return '/dashboard';
+        }
+        // Otherwise, they are authenticated and on a valid protected route, so no redirect
+        return null;
+      } else {
+        // If the user is NOT authenticated
+        // If they are on the onboarding route, allow them to stay there
+        if (isOnboardingRoute) {
+          return null;
+        }
+        // If they are on an auth route or login callback, allow them to stay there
+        if (isAuthRoute || isLoginCallbackRoute) {
+          return null;
+        }
+        // If they are not authenticated and trying to access any other route, redirect to login
         return '/auth/login';
       }
-
-      // If authenticated and trying to access auth routes or onboarding
-      if (isAuthenticated && (isAuthRoute || isOnboardingRoute)) {
-        return '/dashboard';
-      }
-
-      // If not authenticated and on auth route, stay there
-      if (!isAuthenticated && isAuthRoute) {
-        return null;
-      }
-
-      // If not authenticated and not on auth route, go to login
-      if (!isAuthenticated && !isAuthRoute) {
-        return '/auth/login';
-      }
-
-      // If authenticated and on protected route, stay there
-      if (isAuthenticated && !isAuthRoute && !isOnboardingRoute) {
-        return null;
-      }
-
-      return null;
     },
     errorBuilder: (context, state) => ErrorScreen(
       error: NetworkError(message: 'Navigation error: ${state.error?.message ?? "Unknown error"}'),
@@ -129,6 +125,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/withdraw',
         name: 'withdraw',
         builder: (context, state) => const WithdrawScreen(),
+      ),
+      GoRoute(
+        path: '/transaction-history',
+        name: 'transaction-history',
+        builder: (context, state) => const TransactionHistoryScreen(),
       ),
     ],
   );

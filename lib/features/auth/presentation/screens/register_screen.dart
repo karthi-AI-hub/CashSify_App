@@ -114,7 +114,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             // Logo or App Name
             Center(
               child: Image.asset(
-                'assets/images/logo.jpg',
+                'assets/logo/logo.jpg',
                 height: 100, // Adjust height as needed
               ),
             ),

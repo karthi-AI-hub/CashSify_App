@@ -6,6 +6,9 @@ import 'package:cashsify_app/features/wallet/presentation/providers/wallet_provi
 import 'package:cashsify_app/core/models/transaction_state.dart';
 import 'package:cashsify_app/core/providers/user_provider.dart';
 import 'package:cashsify_app/core/widgets/feedback/custom_toast.dart';
+import 'package:go_router/go_router.dart';
+import 'package:cashsify_app/core/widgets/form/custom_button.dart';
+import 'package:cashsify_app/features/wallet/presentation/widgets/transaction_card.dart';
 
 class WalletScreen extends HookConsumerWidget {
   const WalletScreen({super.key});
@@ -215,10 +218,30 @@ class WalletScreen extends HookConsumerWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, i) {
                     final tx = transactions[i];
-                    return _TransactionCard(tx: tx);
+                    return TransactionCard(tx: tx);
                   },
                 );
               },
+            ),
+            const SizedBox(height: 16),
+            transactionsAsync.when(
+              data: (transactions) {
+                if (transactions.isNotEmpty) {
+                  return CustomButton(
+                    onPressed: () {
+                      context.go('/transaction-history');
+                    },
+                    text: 'View Full Transaction History',
+                    isFullWidth: true,
+                    backgroundColor: colorScheme.surfaceVariant,
+                    textColor: colorScheme.onSurfaceVariant,
+                    icon: Icon(Icons.history, color: colorScheme.onSurfaceVariant),
+                  );
+                }
+                return const SizedBox.shrink(); // Hide button if no transactions
+              },
+              loading: () => const SizedBox.shrink(), // Hide button while loading
+              error: (e, st) => const SizedBox.shrink(), // Hide button on error
             ),
             const SizedBox(height: 32),
           ],
@@ -271,101 +294,6 @@ class _BalanceCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-}
-
-class _TransactionCard extends StatelessWidget {
-  final TransactionState tx;
-  const _TransactionCard({required this.tx});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final amount = tx.amount;
-    final type = tx.type;
-    final note = tx.note;
-    final createdAt = tx.createdAt;
-    IconData icon;
-    Color iconColor;
-    switch (type) {
-      case 'ad':
-        icon = Icons.play_circle_outline;
-        iconColor = Colors.blueAccent;
-        break;
-      case 'referral':
-        icon = Icons.card_giftcard;
-        iconColor = Colors.purple;
-        break;
-      case 'withdraw':
-        icon = Icons.account_balance_wallet_outlined;
-        iconColor = Colors.redAccent;
-        break;
-      default:
-        icon = Icons.monetization_on_rounded;
-        iconColor = colorScheme.primary;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  note ?? 'N/A',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${createdAt.day}/${createdAt.month}/${createdAt.year}',
-                  style: TextStyle(
-                    color: colorScheme.onSurface.withOpacity(0.6),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '${amount > 0 ? '+' : ''} $amount Coins',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: amount > 0 ? Colors.green : Colors.red,
-            ),
-          ),
         ],
       ),
     );

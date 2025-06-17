@@ -16,5 +16,5 @@ final transactionsStreamProvider = StreamProvider<List<TransactionState>>((ref) 
   final userId = transactionService.supabase.client.auth.currentUser?.id;
   if (userId == null) return const Stream.empty();
   
-  return transactionService.getTransactionsStream(userId);
+  return transactionService.getTransactionsStream(userId, limit: 10);
 }); 
