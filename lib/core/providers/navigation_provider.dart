@@ -119,6 +119,14 @@ class NavigationNotifier extends StateNotifier<NavigationState> {
       showBonus: false,
     );
   }
+
+  void setReferralHistoryScreen() {
+    state = state.copyWith(
+      title: 'Referral History',
+      showNotifications: false,
+      showBonus: false,
+    );
+  }
 }
 
 // Navigation provider

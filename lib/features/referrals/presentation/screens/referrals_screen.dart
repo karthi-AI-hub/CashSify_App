@@ -12,6 +12,7 @@ import '../../../../core/providers/navigation_provider.dart';
 import 'referral_history_screen.dart';
 import '../../../../core/providers/loading_provider.dart';
 import '../../../../core/widgets/layout/loading_overlay.dart';
+import '../providers/referral_providers.dart';
 
 class ReferralsScreen extends HookConsumerWidget {
   const ReferralsScreen({super.key});
@@ -21,6 +22,10 @@ class ReferralsScreen extends HookConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final loadingState = ref.watch(loadingProvider);
+    
+    // Get real data from providers
+    final referralStats = ref.watch(referralStatsProvider);
+    final referralCode = ref.watch(referralCodeProvider);
     
     // Set up the animation controller
     final controller = useAnimationController(
@@ -35,21 +40,8 @@ class ReferralsScreen extends HookConsumerWidget {
       ),
     );
 
-    // Mock data for referred users
-    final referredUsers = [
-      {
-        'name': 'John Doe',
-        'date': '2024-03-15',
-        'status': [true, true, false],
-        'coins': 1000,
-      },
-      {
-        'name': 'Jane Smith',
-        'date': '2024-03-14',
-        'status': [true, true, true],
-        'coins': 1500,
-      },
-    ];
+    // Replace mock data with real data
+    final referredUsers = ref.watch(referralHistoryProvider).value ?? [];
 
     // Set the screen title and start animation
     useEffect(() {
@@ -72,17 +64,17 @@ class ReferralsScreen extends HookConsumerWidget {
           return SingleChildScrollView(
             padding: EdgeInsets.all(padding),
             child: _AnimatedFadeIn(
-              delay: 0, // or any delay you want
+              delay: 0,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildReferralCodeSection(context, isSmallScreen, horizontalPadding),
+                  _buildReferralCodeSection(context, ref, isSmallScreen, horizontalPadding),
                   SizedBox(height: padding),
                   _buildHowItWorksSection(context, isSmallScreen),
                   SizedBox(height: padding),
                   _buildTipsSection(context, isSmallScreen),
                   SizedBox(height: padding),
-                  _buildStatsSection(context, isSmallScreen),
+                  _buildStatsSection(context, ref, isSmallScreen),
                   SizedBox(height: padding),
                   _buildBottomCTAs(context, isSmallScreen),
                   SizedBox(height: AppSpacing.lg),
@@ -97,11 +89,13 @@ class ReferralsScreen extends HookConsumerWidget {
 
   Widget _buildReferralCodeSection(
     BuildContext context,
+    WidgetRef ref,
     bool isSmallScreen,
     double horizontalPadding,
   ) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final referralCode = ref.watch(referralCodeProvider);
 
     return CustomCard(
       child: Container(
@@ -212,13 +206,22 @@ class ReferralsScreen extends HookConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'CASH123',
-                    style: textTheme.headlineMedium?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                      fontSize: isSmallScreen ? 24 : 32,
+                  referralCode.when(
+                    loading: () => const CircularProgressIndicator(),
+                    error: (_, __) => Text(
+                      'Error loading code',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.error,
+                      ),
+                    ),
+                    data: (code) => Text(
+                      code ?? 'No code available',
+                      style: textTheme.headlineMedium?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                        fontSize: isSmallScreen ? 24 : 32,
+                      ),
                     ),
                   ),
                 ],
@@ -551,9 +554,14 @@ class ReferralsScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildStatsSection(BuildContext context, bool isSmallScreen) {
+  Widget _buildStatsSection(
+    BuildContext context,
+    WidgetRef ref,
+    bool isSmallScreen,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final stats = ref.watch(referralStatsProvider);
 
     return CustomCard(
       child: Container(
@@ -586,12 +594,21 @@ class ReferralsScreen extends HookConsumerWidget {
                       ),
                     ),
                     SizedBox(height: AppSpacing.xs),
-                    Text(
-                      '2',
-                      style: textTheme.headlineMedium?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: isSmallScreen ? 24 : 32,
+                    stats.when(
+                      loading: () => const CircularProgressIndicator(),
+                      error: (_, __) => Text(
+                        'Error',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: colorScheme.error,
+                        ),
+                      ),
+                      data: (data) => Text(
+                        '${data?['total_referrals'] ?? 0}',
+                        style: textTheme.headlineMedium?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: isSmallScreen ? 24 : 32,
+                        ),
                       ),
                     ),
                   ],
@@ -608,12 +625,21 @@ class ReferralsScreen extends HookConsumerWidget {
                       ),
                     ),
                     SizedBox(height: AppSpacing.xs),
-                    Text(
-                      '3000 coins',
-                      style: textTheme.headlineMedium?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: isSmallScreen ? 24 : 32,
+                    stats.when(
+                      loading: () => const CircularProgressIndicator(),
+                      error: (_, __) => Text(
+                        'Error',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: colorScheme.error,
+                        ),
+                      ),
+                      data: (data) => Text(
+                        '${data?['total_earned'] ?? 0} coins',
+                        style: textTheme.headlineMedium?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: isSmallScreen ? 24 : 32,
+                        ),
                       ),
                     ),
                   ],
