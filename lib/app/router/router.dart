@@ -4,7 +4,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:cashsify_app/core/error/app_error.dart';
 import 'package:cashsify_app/core/providers/auth_provider.dart';
 import 'package:cashsify_app/features/onboarding/view/onboarding_screen.dart';
-import 'package:cashsify_app/features/auth/presentation/screens/auth_screen.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/forgot_password_screen.dart';
@@ -18,37 +17,38 @@ import 'package:cashsify_app/features/profile/presentation/screens/profile_scree
 import 'package:cashsify_app/features/referrals/presentation/screens/referrals_screen.dart';
 import 'package:cashsify_app/features/wallet/presentation/screens/withdraw_screen.dart';
 import 'package:cashsify_app/features/wallet/presentation/screens/transaction_history_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
   return GoRouter(
     initialLocation: '/',
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
       final isOnboardingRoute = state.matchedLocation == '/';
       final isLoginCallbackRoute = state.matchedLocation == '/login-callback';
 
-      // If the user is authenticated
+      // Check onboarding_complete flag
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+
       if (isAuthenticated) {
-        // If they are trying to access auth routes or onboarding, redirect to dashboard
         if (isAuthRoute || isOnboardingRoute) {
           return '/dashboard';
         }
-        // Otherwise, they are authenticated and on a valid protected route, so no redirect
         return null;
       } else {
-        // If the user is NOT authenticated
-        // If they are on the onboarding route, allow them to stay there
-        if (isOnboardingRoute) {
+        // If onboarding is not complete, allow onboarding route
+        if (!onboardingComplete && isOnboardingRoute) {
           return null;
         }
-        // If they are on an auth route or login callback, allow them to stay there
+        // If on an auth route or login callback, allow
         if (isAuthRoute || isLoginCallbackRoute) {
           return null;
         }
-        // If they are not authenticated and trying to access any other route, redirect to login
+        // If onboarding is complete, always redirect to login
         return '/auth/login';
       }
     },
@@ -60,11 +60,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/',
         builder: (context, state) => const OnboardingScreen(),
-      ),
-      GoRoute(
-        path: '/auth',
-        name: 'auth',
-        builder: (context, state) => const AuthScreen(),
       ),
       GoRoute(
         path: '/auth/login',

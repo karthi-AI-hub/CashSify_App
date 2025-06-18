@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cashsify_app/core/services/supabase_service.dart';
 import 'package:cashsify_app/core/utils/logger.dart';
+import 'dart:convert';
 
 class ReferralService {
   final _supabase = SupabaseService();
@@ -8,16 +9,24 @@ class ReferralService {
 
   Future<Map<String, dynamic>> getReferralStats(String userId) async {
     try {
-      final response = await _supabase.client.rpc(
+      AppLogger.info('Fetching referral stats for user: $userId');
+      final result = await _supabase.client.rpc(
         'get_referral_stats',
         params: {'p_user_id': userId},
       );
-
-      if (response.error != null) {
-        throw response.error!;
+      if (result == null) {
+        return {'total_referrals': 0, 'total_earned': 0};
       }
-
-      return response.data as Map<String, dynamic>;
+      if (result is Map) {
+        return Map<String, dynamic>.from(result);
+      }
+      if (result is String) {
+        final decoded = jsonDecode(result);
+        if (decoded is Map) {
+          return Map<String, dynamic>.from(decoded);
+        }
+      }
+      return {'total_referrals': 0, 'total_earned': 0};
     } catch (e) {
       AppLogger.error('Error fetching referral stats: $e');
       return {
@@ -29,16 +38,17 @@ class ReferralService {
 
   Future<List<Map<String, dynamic>>> getReferralHistory(String userId) async {
     try {
+      AppLogger.info('Fetching referral history for user: $userId');
+      
+      // Use the correct foreign key relationship for the join
       final response = await _supabase.client
           .from('referral_progress')
           .select('''
             referred_id,
-            phase_1_done,
-            phase_2_done,
-            phase_3_done,
+            phase,
             created_at,
             updated_at,
-            users!referred_id (
+            referred_user:users!referral_progress_referred_id_fkey(
               name,
               email,
               profile_image_url
@@ -47,29 +57,59 @@ class ReferralService {
           .eq('referrer_id', userId)
           .order('created_at', ascending: false);
 
-      if (response == null) {
+      AppLogger.info('Raw Supabase response: $response');
+
+      if (response == null || response is! List) {
+        AppLogger.warning('Invalid response format from Supabase');
         return [];
       }
 
       return (response as List).map((item) {
-        final user = item['users'] as Map<String, dynamic>;
-        return {
-          'name': user['name'] ?? 'Anonymous User',
-          'date': item['created_at'],
+        AppLogger.info('Processing item: $item');
+        
+        final userRaw = item['referred_user'];
+        AppLogger.info('Raw user data: $userRaw');
+        
+        Map<String, dynamic> user = {};
+        if (userRaw != null) {
+          if (userRaw is Map) {
+            user = Map<String, dynamic>.from(userRaw);
+            AppLogger.info('Parsed user map: $user');
+          } else if (userRaw is String) {
+            try {
+              user = Map<String, dynamic>.from(jsonDecode(userRaw));
+              AppLogger.info('Parsed user from JSON string: $user');
+            } catch (e) {
+              AppLogger.error('Error parsing user data: $e');
+            }
+          }
+        }
+
+        final int phase = item['phase'] ?? 0;
+        final String userName = user['name']?.toString().trim() ?? '';
+        AppLogger.info('Extracted user name: $userName');
+        
+        final result = {
+          'name': userName.isNotEmpty ? userName : 'Anonymous User',
+          'date': item['created_at'] ?? DateTime.now().toIso8601String(),
           'status': [
-            item['phase_1_done'] ?? false,
-            item['phase_2_done'] ?? false,
-            item['phase_3_done'] ?? false,
+            phase >= 1, // Signup
+            phase >= 2, // First ad watch
+            phase >= 3, // First withdrawal
           ],
           'coins': _calculateReferralCoins(
-            item['phase_1_done'] ?? false,
-            item['phase_2_done'] ?? false,
-            item['phase_3_done'] ?? false,
+            phase >= 1,
+            phase >= 2,
+            phase >= 3,
           ),
         };
+        
+        AppLogger.info('Final mapped result: $result');
+        return result;
       }).toList();
-    } catch (e) {
+    } catch (e, stackTrace) {
       AppLogger.error('Error fetching referral history: $e');
+      AppLogger.error('Stack trace: $stackTrace');
       return [];
     }
   }
@@ -78,7 +118,7 @@ class ReferralService {
     int coins = 0;
     if (phase1) coins += 500; // Signup bonus
     if (phase2) coins += 500; // First ad watch bonus
-    if (phase3) coins += 500; // First withdrawal bonus
+    if (phase3) coins += 1000; // First withdrawal bonus
     return coins;
   }
 

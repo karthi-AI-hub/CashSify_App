@@ -65,7 +65,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         referredCode: _referralCodeController.text.trim().isEmpty
             ? null
             : _referralCodeController.text.trim(),
-      );
+    );
 
       // Success: show message and redirect
       if (mounted) {
@@ -77,6 +77,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         );
         _clearFieldsAndErrors();
+        
+        await ref.read(authProvider.notifier).signOut();
+
         context.go('/auth/login');
       }
     } catch (error) {
@@ -94,7 +97,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   void _navigateToLogin() {
     _clearFieldsAndErrors();
-    Navigator.of(context).pop();
+    context.go('/auth/login');
   }
 
   @override
@@ -262,10 +265,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   if (!code.startsWith('REF')) {
                     return 'Referral code must start with REF';
                   }
-                  if (code.length != 9) {
+                  if (code.length != 10) {
                     return 'Referral code must be 9 characters';
                   }
-                  if (!RegExp(r'^REF[A-Z0-9]{6}$').hasMatch(code)) {
+                  if (!RegExp(r'^REF[A-Z0-9]{7}$').hasMatch(code)) {
                     return 'Invalid referral code format';
                   }
                 }

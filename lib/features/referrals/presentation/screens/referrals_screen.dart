@@ -26,6 +26,7 @@ class ReferralsScreen extends HookConsumerWidget {
     // Get real data from providers
     final referralStats = ref.watch(referralStatsProvider);
     final referralCode = ref.watch(referralCodeProvider);
+    final referralHistory = ref.watch(referralHistoryProvider);
     
     // Set up the animation controller
     final controller = useAnimationController(
@@ -41,7 +42,7 @@ class ReferralsScreen extends HookConsumerWidget {
     );
 
     // Replace mock data with real data
-    final referredUsers = ref.watch(referralHistoryProvider).value ?? [];
+    // Use referralHistory below in the UI
 
     // Set the screen title and start animation
     useEffect(() {
@@ -327,7 +328,7 @@ class ReferralsScreen extends HookConsumerWidget {
                     context,
                     icon: Icons.play_circle_outline,
                     title: 'First Ad Watch',
-                    description: 'Friend watches their first ad',
+                    description: 'Friend completes 1st Day Task ',
                     reward: 500,
                     isSmallScreen: isSmallScreen,
                     delay: 200,
@@ -336,8 +337,8 @@ class ReferralsScreen extends HookConsumerWidget {
                     context,
                     icon: Icons.account_balance_wallet_outlined,
                     title: 'First Withdrawal',
-                    description: 'Friend makes a withdrawal',
-                    reward: 500,
+                    description: 'Friend makes 1st withdrawal',
+                    reward: 1000,
                     isSmallScreen: isSmallScreen,
                     delay: 300,
                   ),
@@ -577,92 +578,84 @@ class ReferralsScreen extends HookConsumerWidget {
           ),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: stats.when(
+          loading: () => const CircularProgressIndicator(),
+          error: (err, stack) => Text('Error loading stats: $err'),
+          data: (data) {
+            if (data == null) {
+              return Text('No stats available');
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Total Friends',
-                      style: textTheme.titleMedium?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                        fontSize: isSmallScreen ? 16 : 18,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total Friends',
+                          style: textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 16 : 18,
+                          ),
+                        ),
+                        SizedBox(height: AppSpacing.xs),
+                        Text(
+                          '${data['total_referrals'] ?? 0}',
+                          style: textTheme.headlineMedium?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 24 : 32,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: AppSpacing.xs),
-                    stats.when(
-                      loading: () => const CircularProgressIndicator(),
-                      error: (_, __) => Text(
-                        'Error',
-                        style: textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.error,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Total Earned',
+                          style: textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 16 : 18,
+                          ),
                         ),
-                      ),
-                      data: (data) => Text(
-                        '${data?['total_referrals'] ?? 0}',
-                        style: textTheme.headlineMedium?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: isSmallScreen ? 24 : 32,
+                        SizedBox(height: AppSpacing.xs),
+                        Text(
+                          '${data['total_earned'] ?? 0} coins',
+                          style: textTheme.headlineMedium?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 24 : 32,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Total Earned',
-                      style: textTheme.titleMedium?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                        fontSize: isSmallScreen ? 16 : 18,
+                SizedBox(height: AppSpacing.lg),
+                CustomButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ReferralHistoryScreen(),
                       ),
-                    ),
-                    SizedBox(height: AppSpacing.xs),
-                    stats.when(
-                      loading: () => const CircularProgressIndicator(),
-                      error: (_, __) => Text(
-                        'Error',
-                        style: textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.error,
-                        ),
-                      ),
-                      data: (data) => Text(
-                        '${data?['total_earned'] ?? 0} coins',
-                        style: textTheme.headlineMedium?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: isSmallScreen ? 24 : 32,
-                        ),
-                      ),
-                    ),
-                  ],
+                    );
+                  },
+                  text: 'View Referral History',
+                  isFullWidth: true,
+                  backgroundColor: colorScheme.surfaceVariant,
+                  textColor: colorScheme.onSurfaceVariant,
+                  icon: Icon(Icons.history, color: colorScheme.onSurfaceVariant),
                 ),
               ],
-            ),
-            SizedBox(height: AppSpacing.lg),
-            CustomButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ReferralHistoryScreen(),
-                  ),
-                );
-              },
-              text: 'View Referral History',
-              isFullWidth: true,
-              backgroundColor: colorScheme.surfaceVariant,
-              textColor: colorScheme.onSurfaceVariant,
-              icon: Icon(Icons.history, color: colorScheme.onSurfaceVariant),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

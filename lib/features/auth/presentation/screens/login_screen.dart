@@ -88,9 +88,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
-        
-        if (!mounted) return;
-        _clearFieldsAndErrors();
       } catch (e) {
         if (!mounted) return;
         String errorMessage;
@@ -108,6 +105,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
           }
         } else if (e is AuthError) {
           errorMessage = e.message;
+        } else if (e is Exception) {
+          errorMessage = e.toString().contains('Invalid login credentials')
+              ? 'Invalid email or password'
+              : 'An unexpected error occurred: ${e.toString()}';
         } else {
           errorMessage = 'An unexpected error occurred';
         }
@@ -123,21 +124,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   }
 
   void _navigateToRegister() {
-    _clearFieldsAndErrors();
-    Navigator.of(context).push(
-      AuthPageTransition(
-        page: const RegisterScreen(),
-      ),
-    );
+    context.go('/auth/register');
   }
 
   void _navigateToForgotPassword() {
-    _clearFieldsAndErrors();
-    Navigator.of(context).push(
-      AuthPageTransition(
-        page: const ForgotPasswordScreen(),
-      ),
-    );
+    context.go('/auth/forgot-password');
   }
 
   @override

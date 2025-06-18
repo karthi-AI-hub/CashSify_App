@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cashsify_app/features/referrals/data/services/referral_service.dart';
 import 'package:cashsify_app/core/providers/user_provider.dart';
 import '../models/referral_history.dart';
+import 'dart:convert';
 
 // Service Provider
 final referralServiceProvider = Provider((ref) => ReferralService());
@@ -12,7 +13,7 @@ final referralStatsProvider = FutureProvider((ref) async {
   if (userId == null) return null;
   
   final service = ref.watch(referralServiceProvider);
-  return service.getReferralStats(userId);
+  return await service.getReferralStats(userId);
 });
 
 // History Provider

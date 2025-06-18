@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cashsify_app/core/utils/logger.dart';
 import 'package:cashsify_app/core/error/app_error.dart';
+import 'dart:math';
 
 /// A service class that handles all Supabase-related operations.
 /// This class is implemented as a singleton to ensure a single instance
@@ -210,10 +211,10 @@ class SupabaseService {
 
   // Generate referral code from phone number
   String generateReferralCode(String phoneNumber) {
-    // Take last 6 digits of phone number and add a random 4-digit suffix
-    final lastSixDigits = phoneNumber.substring(phoneNumber.length - 3);
-    final randomSuffix = (1000 + DateTime.now().millisecondsSinceEpoch % 9000).toString();
-    return 'REF$lastSixDigits$randomSuffix';
+    final lastFourDigits = phoneNumber.substring(phoneNumber.length - 4);
+    final random = Random();
+    final randomThreeDigits = (100 + random.nextInt(900)).toString(); // 100–999
+    return 'REF$lastFourDigits$randomThreeDigits';
   }
 
   // Register user with Supabase Auth
@@ -259,6 +260,7 @@ class SupabaseService {
 
       final referralCode = generateReferralCode(phoneNumber);
 
+      // Call the RPC function to handle user insertion and referral logic
       await _client.rpc(
         'register_user_with_referral',
         params: {

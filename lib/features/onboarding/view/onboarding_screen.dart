@@ -8,6 +8,7 @@ import 'package:cashsify_app/core/widgets/form/custom_button.dart';
 import 'package:cashsify_app/core/utils/performance_utils.dart';
 import 'package:cashsify_app/core/utils/image_utils.dart';
 import '../widgets/onboarding_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends HookConsumerWidget {
   const OnboardingScreen({super.key});
@@ -51,8 +52,11 @@ class OnboardingScreen extends HookConsumerWidget {
           await PerformanceUtils.computeInBackground(
             task: () async {
               await Future.delayed(const Duration(milliseconds: 300));
+              // Set onboarding_complete flag
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('onboarding_complete', true);
               if (context.mounted) {
-                context.go('/auth');
+                context.go('/auth/login');
               }
             },
             taskName: 'Navigation to Auth',

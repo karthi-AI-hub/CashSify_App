@@ -50,7 +50,7 @@ class _AuthCallbackScreenState extends ConsumerState<AuthCallbackScreen> {
               ),
             );
             Future.delayed(const Duration(seconds: 1), () {
-              if (mounted) context.go('/home');
+              if (mounted) context.go('/dashboard');
             });
           }
         }

@@ -19,11 +19,8 @@ class ReferralHistoryScreen extends HookConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final loadingState = ref.watch(loadingProvider);
-    
-    // Get real data from provider
     final referredUsers = ref.watch(referralHistoryProvider).value ?? [];
 
-    // Set the screen title
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(navigationProvider.notifier).setReferralHistoryScreen();
@@ -31,26 +28,42 @@ class ReferralHistoryScreen extends HookConsumerWidget {
       return null;
     }, []);
 
-    return LoadingOverlay(
-      isLoading: loadingState == LoadingState.loading,
-      message: loadingState == LoadingState.loading ? 'Loading referral history...' : null,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isSmallScreen = constraints.maxWidth < 600;
-          final padding = isSmallScreen ? AppSpacing.md : AppSpacing.lg;
+    return Scaffold(
+      backgroundColor: colorScheme.background,
+      body: LoadingOverlay(
+        isLoading: loadingState == LoadingState.loading,
+        message: loadingState == LoadingState.loading ? 'Loading referral history...' : null,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 600;
+            final padding = isSmallScreen ? AppSpacing.md : AppSpacing.lg;
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.all(padding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context, isSmallScreen),
-                SizedBox(height: padding),
-                _buildReferralList(context, ref, referredUsers, isSmallScreen),
-              ],
-            ),
-          );
-        },
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(padding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context, isSmallScreen),
+                  SizedBox(height: padding),
+                  referredUsers.isEmpty
+                      ? _buildEmptyState(context, isSmallScreen)
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: referredUsers.length,
+                          itemBuilder: (context, index) {
+                            final user = referredUsers[index];
+                            return _AnimatedFadeIn(
+                              delay: 100 * index,
+                              child: _buildReferralCard(context, user, isSmallScreen),
+                            );
+                          },
+                        ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -58,75 +71,108 @@ class ReferralHistoryScreen extends HookConsumerWidget {
   Widget _buildHeader(BuildContext context, bool isSmallScreen) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
-    return AppBar(
-      backgroundColor: colorScheme.surface,
-      elevation: 0,
-      leading: IconButton(
-        onPressed: () => Navigator.pop(context),
-        icon: Icon(
-          Icons.arrow_back_ios_new_rounded,
-          color: colorScheme.onSurface,
+    return CustomCard(
+      margin: EdgeInsets.zero,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withOpacity(0.15),
+              colorScheme.surface,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+          vertical: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
+        ),
+        child: Row(
+          children: [
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: EdgeInsets.all(isSmallScreen ? AppSpacing.sm : AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: colorScheme.primary,
+                    size: isSmallScreen ? 20 : 24,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                'Referral History',
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                  fontSize: isSmallScreen ? 20 : 24,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            SizedBox(width: AppSpacing.md * 2), // For symmetry
+          ],
         ),
       ),
-      title: Text(
-        'Referral History',
-        style: textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: colorScheme.onSurface,
-        ),
-      ),
-      centerTitle: true,
     );
   }
 
-  Widget _buildReferralList(
-    BuildContext context,
-    WidgetRef ref,
-    List<ReferralHistory> referredUsers,
-    bool isSmallScreen,
-  ) {
+  Widget _buildEmptyState(BuildContext context, bool isSmallScreen) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
-    if (referredUsers.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(isSmallScreen ? AppSpacing.lg : AppSpacing.xl),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  colorScheme.primary.withOpacity(0.1),
+                  colorScheme.primary.withOpacity(0.2),
+                ],
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
               Icons.people_outline,
-              size: 64,
-              color: colorScheme.primary.withOpacity(0.5),
+              size: isSmallScreen ? 48 : 64,
+              color: colorScheme.primary,
             ),
-            SizedBox(height: AppSpacing.md),
-            Text(
-              'No referrals yet',
-              style: textTheme.titleLarge?.copyWith(
-                color: colorScheme.onSurface,
-              ),
+          ),
+          SizedBox(height: AppSpacing.md),
+          Text(
+            'No referrals yet',
+            style: textTheme.titleLarge?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
             ),
-            SizedBox(height: AppSpacing.sm),
-            Text(
-              'Share your referral code to start earning rewards!',
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
+          ),
+          SizedBox(height: AppSpacing.sm),
+          Text(
+            'Share your referral code to start earning rewards!',
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: referredUsers.length,
-      itemBuilder: (context, index) {
-        final user = referredUsers[index];
-        return _buildReferralCard(context, user, isSmallScreen);
-      },
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
@@ -137,17 +183,23 @@ class ReferralHistoryScreen extends HookConsumerWidget {
   ) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
     return CustomCard(
       margin: EdgeInsets.only(bottom: isSmallScreen ? AppSpacing.md : AppSpacing.lg),
       child: Container(
         padding: EdgeInsets.all(isSmallScreen ? AppSpacing.md : AppSpacing.lg),
         decoration: BoxDecoration(
-          color: colorScheme.surface,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withOpacity(0.08),
+              colorScheme.surface,
+            ],
+          ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: colorScheme.shadow.withOpacity(0.1),
+              color: colorScheme.shadow.withOpacity(0.08),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -156,7 +208,6 @@ class ReferralHistoryScreen extends HookConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User Info Row
             Row(
               children: [
                 Container(
@@ -173,7 +224,7 @@ class ReferralHistoryScreen extends HookConsumerWidget {
                     shape: BoxShape.circle,
                   ),
                   child: Text(
-                    user.name[0],
+                    user.name.isNotEmpty ? user.name[0] : '?',
                     style: textTheme.titleMedium?.copyWith(
                       color: colorScheme.onPrimaryContainer,
                       fontWeight: FontWeight.bold,
@@ -231,8 +282,6 @@ class ReferralHistoryScreen extends HookConsumerWidget {
               ],
             ),
             SizedBox(height: AppSpacing.lg),
-
-            // Progress Tracker
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -272,7 +321,6 @@ class ReferralHistoryScreen extends HookConsumerWidget {
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
     return Column(
       children: [
         Container(
@@ -314,7 +362,6 @@ class ReferralHistoryScreen extends HookConsumerWidget {
 
   Widget _buildPhaseConnector(BuildContext context, bool isCurrentCompleted, bool isNextCompleted) {
     final colorScheme = Theme.of(context).colorScheme;
-    
     return Container(
       width: 40,
       height: 2,
@@ -344,5 +391,66 @@ class ReferralHistoryScreen extends HookConsumerWidget {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return months[month - 1];
+  }
+}
+
+class _AnimatedFadeIn extends StatefulWidget {
+  final Widget child;
+  final int delay;
+  const _AnimatedFadeIn({required this.child, required this.delay});
+
+  @override
+  State<_AnimatedFadeIn> createState() => _AnimatedFadeInState();
+}
+
+class _AnimatedFadeInState extends State<_AnimatedFadeIn> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacityAnimation;
+  late final Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacityAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: widget.child,
+      ),
+    );
   }
 } 
