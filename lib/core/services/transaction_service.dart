@@ -57,10 +57,39 @@ class TransactionService {
     DateTime? endDate,
   }) {
     // For streams, we'll use the Supabase realtime API
-    return _supabase.client
+    var query = _supabase.client
         .from('transactions')
         .stream(primaryKey: ['id'])
-        .eq('user_id', userId)
+        .eq('user_id', userId);
+
+    // Apply type filter if provided
+    if (types != null && types.isNotEmpty) {
+      // For type filtering, we'll need to handle it in the map function
+      return query
+          .order('created_at', ascending: false)
+          .map((data) {
+            var filteredData = data.where((item) => types.contains(item['type'])).toList();
+            return filteredData.map((json) => TransactionState.fromJson(json)).toList();
+          });
+    }
+
+    // Apply date range filter if provided
+    if (startDate != null || endDate != null) {
+      return query
+          .order('created_at', ascending: false)
+          .map((data) {
+            var filteredData = data.where((item) {
+              final createdAt = DateTime.parse(item['created_at']);
+              if (startDate != null && createdAt.isBefore(startDate)) return false;
+              if (endDate != null && createdAt.isAfter(endDate)) return false;
+              return true;
+            }).toList();
+            return filteredData.map((json) => TransactionState.fromJson(json)).toList();
+          });
+    }
+
+    // If no filters are applied, return all transactions
+    return query
         .order('created_at', ascending: false)
         .map((data) => data.map((json) => TransactionState.fromJson(json)).toList());
   }

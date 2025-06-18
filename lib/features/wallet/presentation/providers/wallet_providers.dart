@@ -17,4 +17,20 @@ final transactionsStreamProvider = StreamProvider<List<TransactionState>>((ref) 
   if (userId == null) return const Stream.empty();
   
   return transactionService.getTransactionsStream(userId, limit: 10);
+});
+
+// StreamProvider for filtered transaction history
+final filteredTransactionsStreamProvider = StreamProvider.family<List<TransactionState>, ({
+  String userId,
+  List<String>? types,
+  DateTime? startDate,
+  DateTime? endDate,
+})>((ref, params) {
+  final transactionService = ref.watch(transactionServiceProvider);
+  return transactionService.getTransactionsStream(
+    params.userId,
+    types: params.types,
+    startDate: params.startDate,
+    endDate: params.endDate,
+  );
 }); 

@@ -46,15 +46,15 @@ class TransactionHistoryScreen extends HookConsumerWidget {
         break;
       case 'This year':
         effectiveStartDate = DateTime(DateTime.now().year, 1, 1);
-        effectiveEndDate = DateTime(DateTime.now().year + 1, 1, 0, 23, 59, 59);
+        effectiveEndDate = DateTime(DateTime.now().year, 12, 31, 23, 59, 59);
         break;
       case 'Last year':
         effectiveStartDate = DateTime(DateTime.now().year - 1, 1, 1);
-        effectiveEndDate = DateTime(DateTime.now().year, 1, 0, 23, 59, 59);
+        effectiveEndDate = DateTime(DateTime.now().year - 1, 12, 31, 23, 59, 59);
         break;
       case 'Custom Date':
         effectiveStartDate = customStartDate.value;
-        effectiveEndDate = customEndDate.value?.add(const Duration(days: 1)).subtract(const Duration(seconds: 1)); // End of selected day
+        effectiveEndDate = customEndDate.value?.add(const Duration(days: 1)).subtract(const Duration(seconds: 1));
         break;
       case 'All time':
       default:
@@ -67,6 +67,10 @@ class TransactionHistoryScreen extends HookConsumerWidget {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Transaction History'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
         ),
         body: Center(
           child: Text(
@@ -77,16 +81,14 @@ class TransactionHistoryScreen extends HookConsumerWidget {
       );
     }
 
-    final allTransactionsAsync = ref.watch(StreamProvider.autoDispose<List<TransactionState>>((ref) {
-      return transactionService.getTransactionsStream(
-        userId,
-        types: selectedTypes.value.isEmpty ? null : selectedTypes.value,
-        startDate: effectiveStartDate,
-        endDate: effectiveEndDate,
-      );
-    }));
+    final allTransactionsAsync = ref.watch(filteredTransactionsStreamProvider((
+      userId: userId,
+      types: selectedTypes.value.isEmpty ? null : selectedTypes.value,
+      startDate: effectiveStartDate,
+      endDate: effectiveEndDate,
+    )));
 
-    final List<String> transactionTypes = ['ad', 'withdrawal', 'referral', 'bonus']; // Added 'bonus' type
+    final List<String> transactionTypes = ['all', 'ad', 'withdrawal', 'referral'];
     final List<String> dateRangeOptions = [
       'All time',
       'This month',
@@ -119,12 +121,32 @@ class TransactionHistoryScreen extends HookConsumerWidget {
         title: const Text('Transaction History'),
         backgroundColor: colorScheme.surface,
         elevation: 0.5,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/'); // Fallback to home route
+            }
+          },
+        ),
       ),
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -139,16 +161,26 @@ class TransactionHistoryScreen extends HookConsumerWidget {
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8.0,
+                    runSpacing: 8.0,
                     children: transactionTypes.map((type) {
-                      final isSelected = selectedTypes.value.contains(type);
+                      final isSelected = selectedTypes.value.contains(type) ||
+                          (type == 'all' && selectedTypes.value.isEmpty);
                       return FilterChip(
-                        label: Text(type.replaceFirst(type[0], type[0].toUpperCase())),
+                        label: Text(type.toUpperCase()),
                         selected: isSelected,
                         onSelected: (selected) {
-                          if (selected) {
-                            selectedTypes.value = [...selectedTypes.value, type];
+                          if (type == 'all') {
+                            // Reset to show all
+                            selectedTypes.value = [];
                           } else {
-                            selectedTypes.value = selectedTypes.value.where((t) => t != type).toList();
+                            var updated = [...selectedTypes.value];
+                            updated.remove('all');
+                            if (selected) {
+                              updated.add(type);
+                            } else {
+                              updated.remove(type);
+                            }
+                            selectedTypes.value = updated;
                           }
                         },
                         selectedColor: colorScheme.primary.withOpacity(0.2),
@@ -157,6 +189,7 @@ class TransactionHistoryScreen extends HookConsumerWidget {
                           color: isSelected ? colorScheme.primary : colorScheme.onSurface,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       );
                     }).toList(),
                   ),
@@ -173,22 +206,30 @@ class TransactionHistoryScreen extends HookConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: selectedDateRange.value,
-                          onChanged: (String? newValue) {
-                            selectedDateRange.value = newValue!;
-                            if (newValue != 'Custom Date') {
-                              customStartDate.value = null;
-                              customEndDate.value = null;
-                            }
-                          },
-                          items: dateRangeOptions.map<DropdownMenuItem<String>>((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: colorScheme.outline),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: selectedDateRange.value,
+                            onChanged: (String? newValue) {
+                              selectedDateRange.value = newValue!;
+                              if (newValue != 'Custom Date') {
+                                customStartDate.value = null;
+                                customEndDate.value = null;
+                              }
+                            },
+                            items: dateRangeOptions.map<DropdownMenuItem<String>>((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
+                            underline: const SizedBox(),
+                          ),
                         ),
                       ),
                     ],
@@ -206,6 +247,10 @@ class TransactionHistoryScreen extends HookConsumerWidget {
                                   ? 'Select Start Date'
                                   : 'Start: ${customStartDate.value!.toLocal().toString().split(' ')[0]}',
                             ),
+                            style: TextButton.styleFrom(
+                              backgroundColor: colorScheme.surfaceVariant,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -218,6 +263,10 @@ class TransactionHistoryScreen extends HookConsumerWidget {
                                   ? 'Select End Date'
                                   : 'End: ${customEndDate.value!.toLocal().toString().split(' ')[0]}',
                             ),
+                            style: TextButton.styleFrom(
+                              backgroundColor: colorScheme.surfaceVariant,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
                           ),
                         ),
                       ],
@@ -228,7 +277,7 @@ class TransactionHistoryScreen extends HookConsumerWidget {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0), // Apply horizontal padding here
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: allTransactionsAsync.when(
                   loading: () => ListView.separated(
                     shrinkWrap: true,
@@ -246,7 +295,7 @@ class TransactionHistoryScreen extends HookConsumerWidget {
                           Icon(Icons.hourglass_empty_rounded, color: colorScheme.primary, size: 80),
                           const SizedBox(height: 24),
                           Text(
-                            'No Transactions Found', // Changed text for filter results
+                            'No Transactions Found',
                             style: TextStyle(
                               color: colorScheme.onSurface.withOpacity(0.7),
                               fontSize: 18,
@@ -255,7 +304,7 @@ class TransactionHistoryScreen extends HookConsumerWidget {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Adjust your filters or check back later.', // Changed text for filter results
+                            'Adjust your filters or check back later.',
                             style: TextStyle(
                               color: colorScheme.onSurface.withOpacity(0.6),
                               fontSize: 14,
