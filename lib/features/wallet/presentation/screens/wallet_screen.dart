@@ -39,7 +39,7 @@ class WalletScreen extends HookConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Track your rewards and redemptions',
+              'Track your coins and rewards',
               style: TextStyle(
                 color: colorScheme.onSurface.withOpacity(0.7),
                 fontSize: 15,
@@ -89,7 +89,7 @@ class WalletScreen extends HookConsumerWidget {
                   error: (e, st) => null, // Disable button on error
                 ),
                 icon: const Icon(Icons.account_balance_wallet_outlined),
-                label: const Text('Withdraw'),
+                label: const Text('Redeem COins'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colorScheme.primary,
                   foregroundColor: colorScheme.onPrimary,
@@ -133,7 +133,7 @@ class WalletScreen extends HookConsumerWidget {
                         Row(
                           children: [
                             Text(
-                              'Withdrawal Requirements',
+                              'Redeem Requirements',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,

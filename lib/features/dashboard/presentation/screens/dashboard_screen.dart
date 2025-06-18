@@ -139,7 +139,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   SizedBox(height: AppSpacing.xs),
                   Text(
-                    "Let's earn today!",
+                    "Let's earn coins today!",
                     style: textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                       fontSize: cardFontSize,

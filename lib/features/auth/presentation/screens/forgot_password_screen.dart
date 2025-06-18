@@ -70,17 +70,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   }
 
   void _handleLoginNavigation() {
-    print("Entered in _handleLoginNavigation");
     if (!mounted) return;
     
     // Clear fields and errors before navigation
     _emailController.clear();
     ref.read(errorProvider.notifier).clearError();
     
-    print("Before navigation");
     // Navigate back to login screen
     Navigator.of(context).pop();
-    print("After navigation");
   }
 
   @override

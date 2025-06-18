@@ -20,11 +20,11 @@ class FAQScreen extends StatelessWidget {
             questions: [
               FAQItem(
                 question: 'What is CashSify?',
-                answer: 'CashSify is a platform where users can complete tasks and earn rewards.',
+                answer: 'CashSify is a platform where users can complete tasks and earn virtual coins as rewards.',
               ),
               FAQItem(
                 question: 'Is CashSify free to use?',
-                answer: 'Yes, CashSify is completely free to use. You just need a mobile number to sign up and start earning.',
+                answer: 'Yes, CashSify is completely free to use. You just need a mobile number to sign up and start earning virtual coins.',
               ),
             ],
           ),
@@ -33,11 +33,24 @@ class FAQScreen extends StatelessWidget {
             questions: [
               FAQItem(
                 question: 'How can I earn rewards?',
-                answer: 'You can earn rewards by completing tasks and watching content.',
+                answer: 'You can earn virtual coins by completing tasks and watching content. These coins have no real monetary value unless converted through our withdrawal process.',
               ),
               FAQItem(
                 question: 'Is there a daily earning limit?',
-                answer: 'Yes, to maintain platform stability and prevent abuse, there is a daily earning limit which may vary based on user tier.',
+                answer: 'Yes, to maintain platform stability and prevent abuse, there is a daily limit on the number of virtual coins you can earn, which may vary based on user tier.',
+              ),
+            ],
+          ),
+          FAQSection(
+            title: 'Withdraw Coins',
+            questions: [
+              FAQItem(
+                question: 'How do I withdraw my coins?',
+                answer: 'Go to the Wallet screen > Redeem Coins, select method and minimum threshold coins, and submit the request. Note that coins are virtual rewards and have no real monetary value unless converted through our withdrawal process.',
+              ),
+              FAQItem(
+                question: 'What is the minimum withdraw coins?',
+                answer: 'The minimum withdraw coins is 15000. These are virtual rewards that can be converted through our withdrawal process.',
               ),
             ],
           ),

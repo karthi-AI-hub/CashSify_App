@@ -211,7 +211,7 @@ class SupabaseService {
   // Generate referral code from phone number
   String generateReferralCode(String phoneNumber) {
     // Take last 6 digits of phone number and add a random 4-digit suffix
-    final lastSixDigits = phoneNumber.substring(phoneNumber.length - 6);
+    final lastSixDigits = phoneNumber.substring(phoneNumber.length - 3);
     final randomSuffix = (1000 + DateTime.now().millisecondsSinceEpoch % 9000).toString();
     return 'REF$lastSixDigits$randomSuffix';
   }

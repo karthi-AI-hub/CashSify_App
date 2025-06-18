@@ -74,6 +74,31 @@ class WithdrawalService {
         'transaction_id': transactionId, // Link to the newly created transaction
       }).select().single();
 
+      // Step 6: Check if this is the user's first withdrawal and update referral progress (Phase-3)
+      final withdrawals = await _supabase.client
+          .from('withdrawals')
+          .select('id')
+          .eq('user_id', userId);
+
+      if (withdrawals != null && withdrawals.length == 1) {
+        // Get the referrer_id from referral_progress
+        final referralProgress = await _supabase.client
+            .from('referral_progress')
+            .select('referrer_id')
+            .eq('referred_id', userId)
+            .maybeSingle();
+
+        if (referralProgress != null) {
+          final referrerId = referralProgress['referrer_id'] as String;
+          // Mark Phase-3 as done
+          await _supabase.client.rpc('update_referral_phase', params: {
+            'p_referrer_id': referrerId,
+            'p_referred_id': userId,
+            'p_phase': 3,
+          });
+        }
+      }
+
       AppLogger.info('Withdrawal request created successfully: ${withdrawalResponse['id']} with transaction ID: $transactionId');
       return withdrawalResponse;
     } catch (e) {
