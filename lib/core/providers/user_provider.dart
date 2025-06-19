@@ -80,6 +80,9 @@ class UserNotifier extends StateNotifier<AsyncValue<UserState?>> {
           .update(updates)
           .eq('id', currentUser.id);
 
+      // Check and update profile completed status
+      await _userService.checkAndUpdateProfileCompleted();
+
       // Force refresh user data immediately
       await refreshUser();
     } catch (e) {

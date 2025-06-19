@@ -43,6 +43,48 @@ class UserService {
     }
   }
 
+  // Check and update profile completed status
+  Future<void> checkAndUpdateProfileCompleted() async {
+    final user = _supabase.client.auth.currentUser;
+    if (user == null) return;
+
+    final response = await _supabase.client
+        .from('users')
+        .select()
+        .eq('id', user.id)
+        .single();
+
+    final name = response['name'];
+    final email = response['email'];
+    final phone = response['phone_number'];
+    final gender = response['gender'];
+    final dob = response['dob'];
+    final upiId = response['upi_id'];
+    final bankAccount = response['bank_account'];
+
+    final hasPayment = (upiId != null && upiId.toString().isNotEmpty) ||
+                      (bankAccount != null && bankAccount.toString().isNotEmpty);
+
+    final requiredFields = [name, email, phone, gender, dob];
+    final isComplete = requiredFields.every((field) => field != null && field.toString().isNotEmpty) && hasPayment;
+
+    await _supabase.client
+        .from('users')
+        .update({'is_profile_completed': isComplete})
+        .eq('id', user.id);
+  }
+
+  // Check and update email verification status
+  Future<void> checkAndUpdateEmailVerified() async {
+    final user = _supabase.client.auth.currentUser;
+    if (user == null) return;
+    final isVerified = user.emailConfirmedAt != null;
+    await _supabase.client
+        .from('users')
+        .update({'is_verified': isVerified})
+        .eq('id', user.id);
+  }
+
   // Update user profile
   Future<void> updateUserProfile({
     String? name,
@@ -80,6 +122,11 @@ class UserService {
           .from('users')
           .update(data)
           .eq('id', user.id);
+
+      // Check and update profile completed status
+      await checkAndUpdateProfileCompleted();
+      // Check and update email verified status
+      await checkAndUpdateEmailVerified();
 
       AppLogger.info('User profile updated successfully');
     } catch (e) {
