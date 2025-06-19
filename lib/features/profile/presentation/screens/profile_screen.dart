@@ -22,6 +22,7 @@ import 'package:cashsify_app/core/models/user_state.dart';
 import 'package:flutter/rendering.dart';
 import 'package:cashsify_app/core/widgets/optimized_image.dart';
 import 'dart:async';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 // Add this provider to fetch the referrer's name by ID
 final referrerNameProvider = FutureProvider.family<String?, String?>((ref, referrerId) async {
@@ -691,7 +692,7 @@ class ProfileScreen extends HookConsumerWidget {
               ),
               SizedBox(width: AppSpacing.xs),
               Text(
-                'App Version: 2.0',
+                'App Version: ${AppConfig.appVersion}',
                 style: textTheme.bodyMedium?.copyWith(
                   color: colorScheme.primary,
                   fontWeight: FontWeight.w500,
@@ -703,7 +704,7 @@ class ProfileScreen extends HookConsumerWidget {
           InkWell(
             onTap: () async {
               const email = 'cashsify@gmail.com';
-              const phone = '+91 98765 43210'; // This would come from your user data
+              const phone = '+91 98765 43210';
               try {
                 final result = await launchUrlString(
                   'mailto:$email?subject=CashSify Support Request&body=Hello CashSify Support Team,%0A%0AI am writing regarding:%0A%0A%0A%0AUser Details:%0APhone: $phone%0A%0ABest regards,%0A[Your Name]',

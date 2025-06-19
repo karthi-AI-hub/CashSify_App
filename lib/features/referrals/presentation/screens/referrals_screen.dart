@@ -181,9 +181,13 @@ class ReferralsScreen extends HookConsumerWidget {
                           data: (c) => c,
                           orElse: () => null,
                         );
+                        final playStoreBase = 'https://play.google.com/store/apps/details?id=com.cashsify.android';
+                        final referralLink = code != null
+                          ? '$playStoreBase&ref=$code' // Use &ref= for Play Store deep link
+                          : playStoreBase;
                         final message = code != null
-                          ? '🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Use my referral code: $code to get a bonus when you sign up. Let’s earn together! 🚀'
-                          : '🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Download now and let’s both win! 🚀';
+                          ? '🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Use my referral code: $code to get a bonus when you sign up. Download the app here: $referralLink\n\n(Your code will be auto-filled if you use this link!) 🚀'
+                          : '🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Download now: $referralLink and let’s both win! 🚀';
                         await Share.share(message);
                       },
                     ),

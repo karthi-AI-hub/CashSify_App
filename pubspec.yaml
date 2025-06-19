@@ -56,6 +56,8 @@ dependencies:
   open_filex: ^4.7.0
   font_awesome_flutter: ^10.7.0
   share_plus: ^7.2.1
+  connectivity_plus: ^5.0.2
+  flutter_animate: ^4.5.2
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +76,7 @@ dev_dependencies:
     sdk: flutter
   freezed: ^3.0.6
   json_serializable: ^6.7.1
+  flutter_native_splash: ^2.3.10
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -92,6 +95,8 @@ flutter:
     - assets/animations/earnmoney.json
     - assets/animations/referral.json
     - assets/animations/withdraw.json
+    - assets/animations/no_internet.json
+    - assets/animations/maintanance.json
     - .env
     - assets/logo/logo.jpg
 
@@ -120,3 +125,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_native_splash:
+  color: "#F5F6FA"           # Your splash background color (match your app theme)
+  image: assets/logo/logo.jpg # Your logo
+  android: true
+  ios: true

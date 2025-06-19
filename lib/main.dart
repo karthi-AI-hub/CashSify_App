@@ -12,6 +12,9 @@ import 'package:cashsify_app/theme/theme_provider.dart';
 import 'package:cashsify_app/theme/app_theme.dart';
 import 'package:cashsify_app/features/ads/presentation/providers/earnings_provider.dart';
 import 'package:cashsify_app/features/ads/data/services/ad_service.dart';
+import 'package:cashsify_app/core/providers/network_provider.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:cashsify_app/features/common_screens/no_internet_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,7 +65,8 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeProvider = ref.watch(themeProviderProvider);
     final router = ref.watch(routerProvider);
-    
+    final networkStatus = ref.watch(networkStatusProvider);
+
     return MaterialApp.router(
       title: AppConfig.appName,
       theme: AppTheme.lightTheme,
@@ -72,6 +76,11 @@ class MyApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       showPerformanceOverlay: false,
       builder: (context, child) {
+        if (networkStatus.value == ConnectivityResult.none) {
+          return NoInternetScreen(
+            onRetry: () => ref.refresh(networkStatusProvider),
+          );
+        }
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
           child: child!,

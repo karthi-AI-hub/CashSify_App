@@ -18,12 +18,13 @@ import 'package:cashsify_app/features/referrals/presentation/screens/referrals_s
 import 'package:cashsify_app/features/wallet/presentation/screens/withdraw_screen.dart';
 import 'package:cashsify_app/features/wallet/presentation/screens/transaction_history_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cashsify_app/features/splash/splash_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/splash',
     redirect: (context, state) async {
       final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
@@ -57,6 +58,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       onRetry: () => context.go('/'),
     ),
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: '/',
         builder: (context, state) => const OnboardingScreen(),
