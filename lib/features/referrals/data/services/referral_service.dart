@@ -66,10 +66,8 @@ class ReferralService {
 
       return (response as List).map((item) {
         AppLogger.info('Processing item: $item');
-        
         final userRaw = item['referred_user'];
         AppLogger.info('Raw user data: $userRaw');
-        
         Map<String, dynamic> user = {};
         if (userRaw != null) {
           if (userRaw is Map) {
@@ -84,13 +82,15 @@ class ReferralService {
             }
           }
         }
-
         final int phase = item['phase'] ?? 0;
         final String userName = user['name']?.toString().trim() ?? '';
-        AppLogger.info('Extracted user name: $userName');
-        
+        final String userEmail = user['email']?.toString().trim() ?? '';
+        final String userProfileImageUrl = user['profile_image_url']?.toString().trim() ?? '';
+        AppLogger.info('Extracted user name: $userName, email: $userEmail, profile: $userProfileImageUrl');
         final result = {
-          'name': userName.isNotEmpty ? userName : 'Anonymous User',
+        'name': userName.isNotEmpty ? userName : 'User',
+          'email': userEmail,
+          'profile_image_url': userProfileImageUrl,
           'date': item['created_at'] ?? DateTime.now().toIso8601String(),
           'status': [
             phase >= 1, // Signup
@@ -103,7 +103,6 @@ class ReferralService {
             phase >= 3,
           ),
         };
-        
         AppLogger.info('Final mapped result: $result');
         return result;
       }).toList();

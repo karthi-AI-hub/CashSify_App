@@ -2,12 +2,16 @@ import 'package:cashsify_app/core/utils/logger.dart';
 
 class ReferralHistory {
   final String name;
+  final String email;
+  final String profileImageUrl;
   final String date;
   final List<bool> status;
   final int coins;
 
   ReferralHistory({
     required this.name,
+    required this.email,
+    required this.profileImageUrl,
     required this.date,
     required this.status,
     required this.coins,
@@ -21,6 +25,20 @@ class ReferralHistory {
     if (map['name'] != null) {
       userName = map['name'].toString().trim();
       AppLogger.info('Parsed user name: $userName');
+    }
+    
+    // Ensure email is properly handled
+    String userEmail = '';
+    if (map['email'] != null) {
+      userEmail = map['email'].toString().trim();
+      AppLogger.info('Parsed user email: $userEmail');
+    }
+    
+    // Ensure profile image URL is properly handled
+    String userProfileImageUrl = '';
+    if (map['profile_image_url'] != null) {
+      userProfileImageUrl = map['profile_image_url'].toString().trim();
+      AppLogger.info('Parsed user profile image: $userProfileImageUrl');
     }
     
     // Ensure date is properly formatted
@@ -60,6 +78,8 @@ class ReferralHistory {
 
     final result = ReferralHistory(
       name: userName.isNotEmpty ? userName : 'Anonymous User',
+      email: userEmail,
+      profileImageUrl: userProfileImageUrl,
       date: userDate,
       status: userStatus,
       coins: userCoins,
@@ -72,6 +92,8 @@ class ReferralHistory {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
+      'email': email,
+      'profile_image_url': profileImageUrl,
       'date': date,
       'status': status,
       'coins': coins,

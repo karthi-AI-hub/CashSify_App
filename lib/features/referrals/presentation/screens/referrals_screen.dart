@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../theme/app_spacing.dart';
 import '../../../../theme/app_text_styles.dart';
@@ -175,8 +176,15 @@ class ReferralsScreen extends HookConsumerWidget {
                     _buildActionButton(
                       context,
                       icon: Icons.share,
-                      onPressed: () {
-                        // TODO: Implement share functionality
+                      onPressed: () async {
+                        final code = ref.read(referralCodeProvider).maybeWhen(
+                          data: (c) => c,
+                          orElse: () => null,
+                        );
+                        final message = code != null
+                          ? '🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Use my referral code: $code to get a bonus when you sign up. Let’s earn together! 🚀'
+                          : '🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Download now and let’s both win! 🚀';
+                        await Share.share(message);
                       },
                     ),
                   ],

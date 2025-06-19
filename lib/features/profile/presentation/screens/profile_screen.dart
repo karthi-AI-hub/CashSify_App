@@ -23,6 +23,18 @@ import 'package:flutter/rendering.dart';
 import 'package:cashsify_app/core/widgets/optimized_image.dart';
 import 'dart:async';
 
+// Add this provider to fetch the referrer's name by ID
+final referrerNameProvider = FutureProvider.family<String?, String?>((ref, referrerId) async {
+  if (referrerId == null) return null;
+  final supabase = SupabaseService().client;
+  final response = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', referrerId)
+      .maybeSingle();
+  return response?['name'] as String?;
+});
+
 class ProfileScreen extends HookConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -304,11 +316,30 @@ class ProfileScreen extends HookConsumerWidget {
             user.dob != null ? _formatDate(user.dob) : 'Not set',
           ),
           if (user.referredBy != null)
-            _infoRow(
-              context,
-              Icons.group,
-              'Referred By',
-              user.referredBy!,
+            Consumer(
+              builder: (context, ref, _) {
+                final referrerNameAsync = ref.watch(referrerNameProvider(user.referredBy));
+                return referrerNameAsync.when(
+                  data: (name) => _infoRow(
+                    context,
+                    Icons.group,
+                    'Referred By',
+                    name ?? user.referredBy!, // fallback to ID if name not found
+                  ),
+                  loading: () => _infoRow(
+                    context,
+                    Icons.group,
+                    'Referred By',
+                    'Loading...',
+                  ),
+                  error: (e, _) => _infoRow(
+                    context,
+                    Icons.group,
+                    'Referred By',
+                    'Unknown',
+                  ),
+                );
+              },
             ),
           _infoRow(
             context,

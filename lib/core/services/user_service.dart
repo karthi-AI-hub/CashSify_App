@@ -235,16 +235,15 @@ class UserService {
       final fileName = 'profile_$userId.$fileExt';
       final filePath = 'profile-images/$fileName';
 
-      // Upload file to storage
-      await _supabase.client.storage
-          .from('users')
-          .upload(filePath, file);
+      // Upload file to storage    
+      await supabase.client.storage
+        .from('users')
+        .upload(filePath, file, fileOptions: FileOptions(upsert: true));
 
       // Get public URL with correct format
       final imageUrl = _supabase.client.storage
           .from('users')
-          .getPublicUrl(filePath)
-          .replaceAll('/object/public/', '/storage/v1/object/public/');
+          .getPublicUrl(filePath);
 
       // Update user profile with new image URL
       await _supabase.client
@@ -262,4 +261,4 @@ class UserService {
       rethrow;
     }
   }
-} 
+}

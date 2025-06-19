@@ -122,33 +122,29 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
   }
 
   String? _validateBankAccount(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your bank account number';
-    }
-    if (value.length < 9 || value.length > 18) {
-      return 'Please enter a valid bank account number';
+    if (value != null && value.isNotEmpty) {
+      if (value.length < 6) {
+        return 'Invalid Bank account number';
+      }
     }
     return null;
   }
 
   String? _validateIFSC(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your IFSC code';
-    }
-    final ifscRegex = RegExp(r'^[A-Z]{4}0[A-Z0-9]{6}$');
-    if (!ifscRegex.hasMatch(value)) {
-      return 'Please enter a valid IFSC code';
+    if (value != null && value.isNotEmpty) {
+      if (value.length < 6) {
+        return 'Invalid Bank code';
+      }
     }
     return null;
   }
 
   String? _validateUPI(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your UPI ID';
-    }
-    final upiRegex = RegExp(r'^[\w.-]+@[\w.-]+$');
-    if (!upiRegex.hasMatch(value)) {
-      return 'Please enter a valid UPI ID';
+    if (value != null && value.isNotEmpty) {
+      final upiRegex = RegExp(r'^[\w.-]+@[\w.-]+$');
+      if (!upiRegex.hasMatch(value)) {
+        return 'Please enter a valid UPI ID';
+      }
     }
     return null;
   }
@@ -249,12 +245,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
           name: _nameController.text.trim(),
           gender: _selectedGender,
           dob: _selectedDate,
-          upiId: _upiController.text.trim(),
-          bankAccount: {
-            'account_no': _bankAccountController.text.trim(),
-            'ifsc': _ifscController.text.trim(),
-            'name': _accountHolderController.text.trim(),
-          },
+          upiId: _upiController.text.trim().isEmpty ? null : _upiController.text.trim(),
+          bankAccount: (_bankAccountController.text.trim().isEmpty &&
+                        _ifscController.text.trim().isEmpty &&
+                        _accountHolderController.text.trim().isEmpty)
+              ? null
+              : {
+                  'account_no': _bankAccountController.text.trim().isEmpty ? null : _bankAccountController.text.trim(),
+                  'ifsc': _ifscController.text.trim().isEmpty ? null : _ifscController.text.trim(),
+                  'name': _accountHolderController.text.trim().isEmpty ? null : _accountHolderController.text.trim(),
+                },
           profileImageUrl: uploadedUrl ?? _profileImageUrl,
         );
 
@@ -270,7 +270,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
       );
 
       // Pop back to profile screen with result
-      context.pop(true); // Pass true to indicate successful update
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted || _isDisposed) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -332,12 +332,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                             child: CircleAvatar(
                               radius: 48,
                               backgroundColor: colorScheme.primary,
-                              backgroundImage: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                                  ? NetworkImage(_profileImageUrl!)
-                                  : null,
-                              child: (_profileImageUrl == null || _profileImageUrl!.isEmpty)
+                              backgroundImage: _pickedImage != null
+                                  ? FileImage(File(_pickedImage!.path)) as ImageProvider<Object>
+                                  : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                                      ? NetworkImage(_profileImageUrl!) as ImageProvider<Object>
+                                      : null),
+                              child: (_pickedImage == null && (_profileImageUrl == null || _profileImageUrl!.isEmpty))
                                   ? Text(
-                                      (_nameController.text.isNotEmpty ?? false) ? _nameController.text[0].toUpperCase() : 'U',
+                                      (_nameController.text.isNotEmpty) ? _nameController.text[0].toUpperCase() : 'U',
                                       style: textTheme.headlineLarge?.copyWith(
                                         color: colorScheme.onPrimary,
                                         fontWeight: FontWeight.bold,
@@ -430,6 +432,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                         enabled: false,
                         filled: true,
                         fillColor: colorScheme.surfaceVariant.withOpacity(0.5),
+                        validator: (value) {
+                          if ((_email ?? '').isEmpty) {
+                            return 'Email is required';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: AppSpacing.md),
                       // Phone (read-only)
@@ -444,6 +452,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                         hint: 'Primary identity - cannot be changed',
                         filled: true,
                         fillColor: colorScheme.surfaceVariant.withOpacity(0.5),
+                        validator: (value) {
+                          if ((_phoneNumber ?? '').isEmpty) {
+                            return 'Mobile number is required';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: AppSpacing.md),
                       DropdownButtonFormField<String>(
@@ -534,7 +548,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                           color: colorScheme.primary,
                         ),
                         keyboardType: TextInputType.number,
-                        error: _bankAccountController.text.isEmpty ? 'Bank account is required' : _validateBankAccount(_bankAccountController.text),
+                        error: _validateBankAccount(_bankAccountController.text),
                         onChanged: (_) => _onFieldChanged(),
                         validator: _validateBankAccount,
                       ),
@@ -547,7 +561,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                           color: colorScheme.primary,
                         ),
                         onChanged: (_) => _onFieldChanged(),
-                        validator: (value) => value?.isEmpty ?? true ? 'Account holder name is required' : null,
+                        validator: (value) => null,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       CustomTextField(
@@ -566,7 +580,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                           }),
                           FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
                         ],
-                        error: _ifscController.text.isEmpty ? 'IFSC code is required' : _validateIFSC(_ifscController.text),
+                        error: _validateIFSC(_ifscController.text),
                         onChanged: (_) => _onFieldChanged(),
                         validator: _validateIFSC,
                       ),
@@ -578,7 +592,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
                           Icons.payment,
                           color: colorScheme.primary,
                         ),
-                        error: _upiController.text.isEmpty ? 'UPI ID is required' : _validateUPI(_upiController.text),
+                        error: _validateUPI(_upiController.text),
                         onChanged: (_) => _onFieldChanged(),
                         validator: _validateUPI,
                       ),
