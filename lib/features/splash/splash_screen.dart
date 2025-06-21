@@ -11,6 +11,8 @@ import 'package:go_router/go_router.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -24,6 +26,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   late final AnimationController _controller;
   bool _canNavigate = false;
   bool _dataReady = false;
+  bool _timerDone = false;
 
   @override
   void initState() {
@@ -34,9 +37,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     )..repeat();
     // Ensure splash stays for at least 3 seconds
     Future.delayed(const Duration(seconds: 3), () {
-      _canNavigate = true;
+      _timerDone = true;
       _tryNavigate();
     });
+    // Optionally, prefetch referral code for onboarding/register
+    _prefetchReferralCode();
   }
 
   @override
@@ -46,11 +51,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   }
 
   void _tryNavigate() {
-    if (_canNavigate && _dataReady && !_navigated && mounted) {
+    print('_tryNavigate called: _timerDone=$_timerDone, _dataReady=$_dataReady, _navigated=$_navigated, mounted=$mounted');
+    if (_timerDone && _dataReady && !_navigated && mounted) {
       _navigated = true;
       final user = SupabaseService().client.auth.currentUser;
+      print('User: $user');
       if (user != null) {
-        // Update is_verified and last_login
+        print('Navigating to /dashboard');
+        // Update is_verified and last_login (is_verified will only be true if user has actually verified email)
         final userService = UserService();
         userService.checkAndUpdateEmailVerified();
         SupabaseService().client.from('users').update({
@@ -58,9 +66,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
         }).eq('id', user.id);
         context.go('/dashboard');
       } else {
+        print('Navigating to /');
         context.go('/'); // Onboarding
       }
     }
+  }
+
+  Future<void> _prefetchReferralCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final refCode = prefs.getString('pending_referral_code');
+    // Optionally, you could pass this to a provider if needed
   }
 
   @override
@@ -70,9 +85,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     final appConfig = ref.watch(appConfigProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Network check
-    if (networkStatus.value == ConnectivityResult.none) {
+    // Network check (skip on web)
+    if (!kIsWeb && networkStatus.value == ConnectivityResult.none) {
       return NoInternetScreen(onRetry: () => setState(() {}));
+    }
+
+    // App config error handling
+    if (appConfig.hasError) {
+      return Scaffold(
+        body: Center(child: Text('Error loading app config: \\${appConfig.error}')),
+      );
     }
 
     // Maintenance check
@@ -84,7 +106,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     }
 
     // If all good, show splash and proceed
-    if (networkStatus.hasValue && appConfig.hasValue && !_dataReady) {
+    if (((kIsWeb || networkStatus.hasValue) && appConfig.hasValue) && !_dataReady) {
       _dataReady = true;
       Future.microtask(_tryNavigate);
     }
@@ -93,15 +115,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDark
-                ? [colorScheme.background, colorScheme.surfaceVariant]
-                : [colorScheme.primary.withOpacity(0.08), colorScheme.background],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+        color: colorScheme.background,
         child: SafeArea(
           child: Center(
             child: Padding(
@@ -109,7 +123,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Rotating logo
+                  // Rotating logo (left to right, Y-axis 0 to pi)
                   AnimatedBuilder(
                     animation: _controller,
                     builder: (context, child) {
@@ -117,15 +131,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                         alignment: Alignment.center,
                         transform: Matrix4.identity()
                           ..setEntry(3, 2, 0.001)
-                          ..rotateY(_controller.value * 2 * 3.1415926535),
+                          ..rotateY(_controller.value * 3.1415926535),
                         child: child,
                       );
                     },
-                    child: Image.asset(
-                      'assets/logo/logo.jpg',
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.contain,
+                    child: Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.shadow.withOpacity(0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: colorScheme.primary.withOpacity(0.08),
+                          width: 2,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Image.asset(
+                          'assets/logo/logo.jpg',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
                   ).animate().fadeIn(duration: 600.ms),
                   const SizedBox(height: AppSpacing.xl),
@@ -146,6 +180,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                         ),
                     textAlign: TextAlign.center,
                   ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
+                  const SizedBox(height: AppSpacing.xl),
+                  const Spacer(),
+                  Text(
+                    'Powered By CashSify',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 1.2,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             ),

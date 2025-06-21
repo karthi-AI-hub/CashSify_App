@@ -14,6 +14,7 @@ import 'package:cashsify_app/features/auth/presentation/widgets/animated_form_fi
 import 'package:cashsify_app/features/auth/presentation/widgets/animated_button.dart';
 import 'package:cashsify_app/features/auth/presentation/widgets/auth_page_transition.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:cashsify_app/core/providers/user_provider.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -25,6 +26,23 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  bool _isEmailReadOnly = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Try to get email from user state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userState = ref.read(userProvider);
+      final user = userState.value;
+      if (user != null && user.email.isNotEmpty) {
+        _emailController.text = user.email;
+        setState(() {
+          _isEmailReadOnly = true;
+        });
+      }
+    });
+  }
 
   void _clearFieldsAndErrors() {
     _emailController.clear();
@@ -124,6 +142,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               prefixIcon: const Icon(Icons.email_outlined),
               index: 0,
               totalFields: 1,
+              readOnly: _isEmailReadOnly,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter your email';

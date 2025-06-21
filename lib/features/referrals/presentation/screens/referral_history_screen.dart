@@ -40,28 +40,33 @@ class ReferralHistoryScreen extends HookConsumerWidget {
             final isSmallScreen = constraints.maxWidth < 600;
             final padding = isSmallScreen ? AppSpacing.md : AppSpacing.lg;
 
-            return SingleChildScrollView(
-              padding: EdgeInsets.all(padding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(context, isSmallScreen),
-                  SizedBox(height: padding),
-                  referredUsers.isEmpty
-                      ? _buildEmptyState(context, isSmallScreen)
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: referredUsers.length,
-                          itemBuilder: (context, index) {
-                            final user = referredUsers[index];
-                            return _AnimatedFadeIn(
-                              delay: 100 * index,
-                              child: _buildReferralCard(context, user, isSmallScreen),
-                            );
-                          },
-                        ),
-                ],
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.refresh(referralHistoryProvider);
+              },
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(padding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(context, isSmallScreen),
+                    SizedBox(height: padding),
+                    referredUsers.isEmpty
+                        ? _buildEmptyState(context, isSmallScreen)
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: referredUsers.length,
+                            itemBuilder: (context, index) {
+                              final user = referredUsers[index];
+                              return _AnimatedFadeIn(
+                                delay: 100 * index,
+                                child: _buildReferralCard(context, user, isSmallScreen),
+                              );
+                            },
+                          ),
+                  ],
+                ),
               ),
             );
           },

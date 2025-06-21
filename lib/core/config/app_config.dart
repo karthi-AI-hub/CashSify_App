@@ -16,6 +16,9 @@ class AppConfig {
   static const String appName = 'CashSify';
   static const String appVersion = '2.0';
   
+  // Play Store URL
+  static const String playStoreUrl = 'https://play.google.com/store/apps/details?id=com.cashsify.android';
+  
   // API Endpoints
   static String get apiBaseUrl => dotenv.env['API_BASE_URL'] ?? '';
   

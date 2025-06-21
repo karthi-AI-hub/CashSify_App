@@ -10,6 +10,7 @@ import 'package:cashsify_app/features/auth/presentation/widgets/auth_layout.dart
 import 'package:cashsify_app/features/auth/presentation/widgets/animated_form_field.dart';
 import 'package:cashsify_app/features/auth/presentation/widgets/animated_button.dart';
 import 'package:cashsify_app/features/auth/presentation/widgets/auth_page_transition.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -28,6 +29,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _referralCodeController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReferralCode();
+  }
+
+  Future<void> _loadReferralCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final refCode = prefs.getString('pending_referral_code');
+    if (refCode != null && refCode.isNotEmpty) {
+      _referralCodeController.text = refCode;
+    }
+  }
 
   @override
   void dispose() {
@@ -65,7 +80,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         referredCode: _referralCodeController.text.trim().isEmpty
             ? null
             : _referralCodeController.text.trim(),
-    );
+      );
 
       // Success: show message and redirect
       if (mounted) {
@@ -77,9 +92,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         );
         _clearFieldsAndErrors();
-        
+        // Clear referral code after use
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('pending_referral_code');
         await ref.read(authProvider.notifier).signOut();
-
         context.go('/auth/login');
       }
     } catch (error) {

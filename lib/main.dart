@@ -32,6 +32,20 @@ void main() async {
   // Initialize SharedPreferences
   final prefs = await SharedPreferences.getInstance();
   
+  // // Listen for referral code in initial link
+  // try {
+  //   final initialLink = await getInitialLink();
+  //   if (initialLink != null) {
+  //     final uri = Uri.parse(initialLink);
+  //     final refCode = uri.queryParameters['ref'];
+  //     if (refCode != null && refCode.isNotEmpty) {
+  //       await prefs.setString('pending_referral_code', refCode);
+  //     }
+  //   }
+  // } catch (e) {
+  //   // Ignore errors
+  // }
+  
   // Initialize Supabase
   await SupabaseService().initialize(
     supabaseUrl: AppConfig.supabaseUrl,

@@ -23,6 +23,10 @@ import 'package:flutter/rendering.dart';
 import 'package:cashsify_app/core/widgets/optimized_image.dart';
 import 'dart:async';
 import 'package:cashsify_app/core/config/app_config.dart';
+import 'change_password_screen.dart';
+import 'forgot_password_screen.dart';
+import 'delete_account_screen.dart';
+import 'about_us_screen.dart';
 
 // Add this provider to fetch the referrer's name by ID
 final referrerNameProvider = FutureProvider.family<String?, String?>((ref, referrerId) async {
@@ -348,13 +352,6 @@ class ProfileScreen extends HookConsumerWidget {
             'Member Since',
             _formatDate(user.createdAt),
           ),
-          _infoRow(
-            context,
-            Icons.access_time,
-            'Last Login',
-            _formatDate(user.lastLogin),
-            showDivider: false,
-          ),
         ],
       ),
     );
@@ -382,12 +379,6 @@ class ProfileScreen extends HookConsumerWidget {
             Icons.people,
             'Referral Count',
             user.referralCount?.toString() ?? '0',
-          ),
-          _infoRow(
-            context,
-            Icons.verified_user,
-            'Is Verified',
-            user.isVerified ? 'Yes' : 'No',
           ),
         ],
       ),
@@ -453,7 +444,17 @@ class ProfileScreen extends HookConsumerWidget {
             ),
           ),
           Divider(height: 1),
-          _settingsTile(context, colorScheme, textTheme, Icons.lock, 'Change Password', onTap: () {}),
+          _settingsTile(
+            context,
+            colorScheme,
+            textTheme,
+            Icons.lock,
+            'Change Password',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+            ),
+          ),
           Divider(height: 1),
           _settingsTile(
             context,
@@ -512,7 +513,10 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.delete_forever,
             'Delete Account',
-            onTap: () {},
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DeleteAccountScreen()),
+            ),
             textColor: colorScheme.error,
             iconColor: colorScheme.error,
           ),
@@ -523,7 +527,10 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.lock_reset,
             'Forgot Password',
-            onTap: () {},
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+            ),
           ),
           Divider(height: 1),
           _settingsTile(
@@ -625,7 +632,17 @@ class ProfileScreen extends HookConsumerWidget {
             ),
           ),
           Divider(height: 1),
-          _settingsTile(context, colorScheme, textTheme, Icons.info, 'About Us', onTap: () {}),
+          _settingsTile(
+            context,
+            colorScheme,
+            textTheme,
+            Icons.info,
+            'About Us',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AboutUsScreen()),
+            ),
+          ),
         ],
       ),
     );

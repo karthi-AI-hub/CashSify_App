@@ -561,43 +561,48 @@ class _WithdrawHistoryTab extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final withdrawalsAsync = ref.watch(withdrawalsStreamProvider);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: withdrawalsAsync.when(
-        loading: () => ListView.separated(
-          itemCount: 3,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, i) => _ShimmerCard(),
-        ),
-        error: (e, st) => Center(child: Text('Error loading history: $e')),
-        data: (withdrawals) {
-          if (withdrawals.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.hourglass_empty_rounded, size: 64, color: colorScheme.primary.withOpacity(0.3)),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No Withdrawals Yet',
-                    style: TextStyle(
-                      color: colorScheme.onSurface.withOpacity(0.7),
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-          return ListView.separated(
-            itemCount: withdrawals.length,
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.refresh(withdrawalsStreamProvider);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: withdrawalsAsync.when(
+          loading: () => ListView.separated(
+            itemCount: 3,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, i) {
-              final wd = withdrawals[i];
-              return _WithdrawHistoryCard(wd: wd);
-            },
-          );
-        },
+            itemBuilder: (context, i) => _ShimmerCard(),
+          ),
+          error: (e, st) => Center(child: Text('Error loading history: $e')),
+          data: (withdrawals) {
+            if (withdrawals.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.hourglass_empty_rounded, size: 64, color: colorScheme.primary.withOpacity(0.3)),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No Withdrawals Yet',
+                      style: TextStyle(
+                        color: colorScheme.onSurface.withOpacity(0.7),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return ListView.separated(
+              itemCount: withdrawals.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, i) {
+                final wd = withdrawals[i];
+                return _WithdrawHistoryCard(wd: wd);
+              },
+            );
+          },
+        ),
       ),
     );
   }

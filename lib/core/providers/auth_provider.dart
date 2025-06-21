@@ -122,7 +122,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
     required String password,
     required String name,
     required String phoneNumber,
-    String? referredCode,
+    String? referredCode, // This is passed from RegisterScreen
   }) async {
     if (!mounted) return;
     state = state.copyWith(isLoading: true, error: null);

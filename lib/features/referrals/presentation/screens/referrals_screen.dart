@@ -14,6 +14,7 @@ import 'referral_history_screen.dart';
 import '../../../../core/providers/loading_provider.dart';
 import '../../../../core/widgets/layout/loading_overlay.dart';
 import '../providers/referral_providers.dart';
+import '../../../../core/config/app_config.dart';
 
 class ReferralsScreen extends HookConsumerWidget {
   const ReferralsScreen({super.key});
@@ -63,24 +64,31 @@ class ReferralsScreen extends HookConsumerWidget {
           final padding = isSmallScreen ? AppSpacing.md : AppSpacing.lg;
           final horizontalPadding = isSmallScreen ? AppSpacing.sm : AppSpacing.lg;
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.all(padding),
-            child: _AnimatedFadeIn(
-              delay: 0,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildReferralCodeSection(context, ref, isSmallScreen, horizontalPadding),
-                  SizedBox(height: padding),
-                  _buildHowItWorksSection(context, isSmallScreen),
-                  SizedBox(height: padding),
-                  _buildTipsSection(context, isSmallScreen),
-                  SizedBox(height: padding),
-                  _buildStatsSection(context, ref, isSmallScreen),
-                  SizedBox(height: padding),
-                  _buildBottomCTAs(context, isSmallScreen),
-                  SizedBox(height: AppSpacing.lg),
-                ],
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.refresh(referralStatsProvider);
+              ref.refresh(referralCodeProvider);
+              ref.refresh(referralHistoryProvider);
+            },
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(padding),
+              child: _AnimatedFadeIn(
+                delay: 0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildReferralCodeSection(context, ref, isSmallScreen, horizontalPadding),
+                    SizedBox(height: padding),
+                    _buildHowItWorksSection(context, isSmallScreen),
+                    SizedBox(height: padding),
+                    _buildTipsSection(context, isSmallScreen),
+                    SizedBox(height: padding),
+                    _buildStatsSection(context, ref, isSmallScreen),
+                    SizedBox(height: padding),
+                    _buildBottomCTAs(context, isSmallScreen),
+                    SizedBox(height: AppSpacing.lg),
+                  ],
+                ),
               ),
             ),
           );
@@ -154,21 +162,37 @@ class ReferralsScreen extends HookConsumerWidget {
                       context,
                       icon: Icons.copy,
                       onPressed: () async {
-                        await Clipboard.setData(const ClipboardData(text: 'CASH123'));
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  Icon(Icons.check_circle, color: colorScheme.surface),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  const Text('Referral code copied!'),
-                                ],
+                        final code = ref.read(referralCodeProvider).maybeWhen(
+                          data: (c) => c,
+                          orElse: () => null,
+                        );
+                        if (code != null && code.isNotEmpty && code != 'No code available') {
+                          await Clipboard.setData(ClipboardData(text: code));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    Icon(Icons.check_circle, color: colorScheme.surface),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    const Text('Referral code copied!'),
+                                  ],
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: colorScheme.primary,
                               ),
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: colorScheme.primary,
-                            ),
-                          );
+                            );
+                          }
+                        } else {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('No referral code to copy!'),
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: colorScheme.error,
+                              ),
+                            );
+                          }
                         }
                       },
                     ),
@@ -176,20 +200,7 @@ class ReferralsScreen extends HookConsumerWidget {
                     _buildActionButton(
                       context,
                       icon: Icons.share,
-                      onPressed: () async {
-                        final code = ref.read(referralCodeProvider).maybeWhen(
-                          data: (c) => c,
-                          orElse: () => null,
-                        );
-                        final playStoreBase = 'https://play.google.com/store/apps/details?id=com.cashsify.android';
-                        final referralLink = code != null
-                          ? '$playStoreBase&ref=$code' // Use &ref= for Play Store deep link
-                          : playStoreBase;
-                        final message = code != null
-                          ? '🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Use my referral code: $code to get a bonus when you sign up. Download the app here: $referralLink\n\n(Your code will be auto-filled if you use this link!) 🚀'
-                          : '🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Download now: $referralLink and let’s both win! 🚀';
-                        await Share.share(message);
-                      },
+                      onPressed: () => _shareReferral(context, ref),
                     ),
                   ],
                 ),
@@ -251,9 +262,7 @@ class ReferralsScreen extends HookConsumerWidget {
             ),
             SizedBox(height: AppSpacing.lg),
             CustomButton(
-              onPressed: () {
-                // TODO: Implement invite friends
-              },
+              onPressed: () => _shareReferral(context, ref),
               text: '🎁 Invite Friends Now',
               isFullWidth: true,
               icon: Icon(Icons.person_add, color: colorScheme.onPrimary),
@@ -716,6 +725,21 @@ class ReferralsScreen extends HookConsumerWidget {
         ),
       ),
     );
+  }
+
+  void _shareReferral(BuildContext context, WidgetRef ref) async {
+    final code = ref.read(referralCodeProvider).maybeWhen(
+      data: (c) => c,
+      orElse: () => null,
+    );
+    final playStoreBase = AppConfig.playStoreUrl;
+    final referralLink = code != null && code.isNotEmpty && code != 'No code available'
+      ? '$playStoreBase&ref=$code'
+      : playStoreBase;
+    final message = code != null && code.isNotEmpty && code != 'No code available'
+      ? "🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Use my referral code: $code to get a bonus when you sign up. Download the app here: $referralLink\n\n(Your code will be auto-filled if you use this link!) 🚀"
+      : "🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Download now: $referralLink and let's both win! 🚀";
+    await Share.share(message);
   }
 }
 

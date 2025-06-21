@@ -3,6 +3,8 @@ import 'package:cashsify_app/core/models/user_state.dart';
 import 'package:cashsify_app/core/services/supabase_service.dart';
 import 'package:cashsify_app/core/utils/logger.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class UserService {
   final _supabase = SupabaseService();
@@ -78,10 +80,10 @@ class UserService {
   Future<void> checkAndUpdateEmailVerified() async {
     final user = _supabase.client.auth.currentUser;
     if (user == null) return;
-    final isVerified = user.emailConfirmedAt != null;
+    final isEmailVerified = user.emailConfirmedAt != null;
     await _supabase.client
         .from('users')
-        .update({'is_verified': isVerified})
+        .update({'is_email_verified': isEmailVerified})
         .eq('id', user.id);
   }
 
@@ -215,9 +217,11 @@ class UserService {
           .from('users')
           .update({
             'email': email,
-            'is_email_verified': true,
           })
           .eq('id', user.id);
+
+      // Optionally, trigger a check for verification status
+      await checkAndUpdateEmailVerified();
 
       AppLogger.info('Email updated successfully');
     } catch (e) {
@@ -228,24 +232,33 @@ class UserService {
 
   // Delete user account
   Future<void> deleteAccount() async {
-    try {
-      final user = _supabase.client.auth.currentUser;
-      if (user == null) throw Exception('No user logged in');
+    final user = _supabase.client.auth.currentUser;
+    final session = _supabase.client.auth.currentSession;
+    if (user == null || session == null) throw Exception('No user logged in');
 
-      // Delete user data from users table
-      await _supabase.client
-          .from('users')
-          .delete()
-          .eq('id', user.id);
+    // 1. Delete user data from your tables
+    // await _supabase.client.from('users').delete().eq('id', user.id);
 
-      // Delete the user account
-      await _supabase.client.auth.admin.deleteUser(user.id);
+    // 2. Call the Edge Function to delete from Auth
+    final url = 'https://huohftwbbqvhhqsabmzb.functions.supabase.co/delete-user';
+    final accessToken = session.accessToken;
 
-      AppLogger.info('User account deleted successfully');
-    } catch (e) {
-      AppLogger.error('Error deleting account: $e');
-      rethrow;
+    print("Access Token : $accessToken");
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'user_id': user.id}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete user: ${response.body}');
     }
+
+    AppLogger.info('User account deleted successfully');
   }
 
   // Sign out

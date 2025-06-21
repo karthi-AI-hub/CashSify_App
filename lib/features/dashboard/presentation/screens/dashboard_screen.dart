@@ -90,7 +90,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       message: loadingState == LoadingState.loading ? 'Loading dashboard...' : null,
       child: isLoading
           ? const SizedBox.shrink()
-          : _buildDashboardContent(context, userState, earningsState),
+          : RefreshIndicator(
+              onRefresh: () async {
+                await ref.read(userProvider.notifier).refreshUser();
+                await ref.read(earningsProvider.notifier).loadEarnings();
+              },
+              child: _buildDashboardContent(context, userState, earningsState),
+            ),
     );
   }
 
@@ -171,7 +177,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         label: 'Available in Wallet',
                         color: colorScheme.primary,
                         textColor: colorScheme.onPrimary,
-                        icon: Icons.monetization_on,
+                        icon: Icons.stars,
                         animate: true,
                         isSmall: true,
                       ),
@@ -186,7 +192,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         label: 'Since midnight',
                         color: colorScheme.surface,
                         textColor: colorScheme.onSurface,
-                        icon: Icons.monetization_on_outlined,
+                        icon: Icons.stars,
                         animate: true,
                         isSmall: true,
                       ),
@@ -206,7 +212,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           label: 'Lifetime earnings',
                           color: colorScheme.primary,
                           textColor: colorScheme.onPrimary,
-                          icon: Icons.monetization_on,
+                          icon: Icons.stars,
                           animate: true,
                           isSmall: isSmallScreen,
                         ),
@@ -223,7 +229,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           label: 'Since midnight',
                           color: colorScheme.surface,
                           textColor: colorScheme.onSurface,
-                          icon: Icons.monetization_on_outlined,
+                          icon: Icons.stars,
                           animate: true,
                           isSmall: isSmallScreen,
                         ),

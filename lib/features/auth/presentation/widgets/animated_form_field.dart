@@ -13,6 +13,7 @@ class AnimatedFormField extends StatelessWidget {
   final int index;
   final int totalFields;
   final bool hasError;
+  final bool readOnly;
 
   const AnimatedFormField({
     super.key,
@@ -27,6 +28,7 @@ class AnimatedFormField extends StatelessWidget {
     required this.index,
     required this.totalFields,
     this.hasError = false,
+    this.readOnly = false,
   });
 
   @override
@@ -50,6 +52,7 @@ class AnimatedFormField extends StatelessWidget {
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        readOnly: readOnly,
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,

@@ -22,229 +22,243 @@ class WalletScreen extends HookConsumerWidget {
     final isSmall = width < 400;
 
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 32),
-            // Header
-            Text(
-              'My Wallet',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 28,
-                color: colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Track your coins and rewards',
-              style: TextStyle(
-                color: colorScheme.onSurface.withOpacity(0.7),
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Coin Balance Card
-            userAsync.when(
-              data: (user) => _BalanceCard(balance: user?.coins ?? 0),
-              loading: () => const _ShimmerCard(),
-              error: (e, st) => Center(child: Text('Error loading balance')),
-            ),
-            const SizedBox(height: 18),
-            // Withdraw Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: userAsync.when(
-                  data: (user) {
-                    final currentBalance = user?.coins ?? 0;
-                    final profileComplete = user?.isProfileCompleted ?? false;
-                    final emailVerified = user?.isEmailVerified ?? false;
-                    final referralCount = user?.referralCount ?? 0;
-                    final allMet = currentBalance >= 15000 &&
-                        profileComplete &&
-                        emailVerified &&
-                        referralCount >= 5;
-
-                    return allMet
-                        ? () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const WithdrawScreen()),
-                            );
-                          }
-                        : () {
-                            CustomToast.show(
-                              context,
-                              message: 'Please complete all requirements to withdraw.',
-                              type: ToastType.warning,
-                              duration: const Duration(seconds: 3),
-                            );
-                          };
-                  },
-                  loading: () => null, // Disable button while loading user data
-                  error: (e, st) => null, // Disable button on error
-                ),
-                icon: const Icon(Icons.account_balance_wallet_outlined),
-                label: const Text('Redeem COins'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  elevation: 2,
-                  shadowColor: colorScheme.primary.withOpacity(0.15),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Withdrawal Requirements
-            userAsync.when(
-              data: (user) {
-                final currentBalance = user?.coins ?? 0;
-                final profileComplete = user?.isProfileCompleted ?? false;
-                final emailVerified = user?.isEmailVerified ?? false;
-                final referralCount = user?.referralCount ?? 0;
-
-                final requirements = [
-                  ('Minimum 15,000 coins', currentBalance >= 15000),
-                  ('Profile 100% complete', profileComplete),
-                  ('Email verified', emailVerified),
-                  ('At least 5 referrals', referralCount >= 5),
-                ];
-                final metCount = requirements.where((r) => r.$2).length;
-
-                return Card(
-                  elevation: 0,
-                  color: colorScheme.surfaceVariant.withOpacity(0.7),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Redeem Requirements',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: colorScheme.primary,
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              '$metCount/${requirements.length}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: metCount == requirements.length
-                                    ? Colors.green
-                                    : colorScheme.error,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        ...requirements.map((r) => _RequirementRow(r.$1, r.$2)),
-                        const SizedBox(height: 6),
-                        LinearProgressIndicator(
-                          value: metCount / requirements.length,
-                          backgroundColor: colorScheme.surface,
-                          color: metCount == requirements.length
-                              ? Colors.green
-                              : colorScheme.primary,
-                          minHeight: 6,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (e, st) => const SizedBox.shrink(),
-            ),
-            const SizedBox(height: 32),
-            // Transaction History
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8, left: 4),
-              child: Text(
-                'Transactions',
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(userProvider.notifier).refreshUser();
+          ref.refresh(transactionsStreamProvider);
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 32),
+              // Header
+              Text(
+                'My Wallet',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: colorScheme.onSurface,
+                  fontSize: 28,
+                  color: colorScheme.primary,
                 ),
               ),
-            ),
-            transactionsAsync.when(
-              loading: () => ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: 3,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, i) => const _ShimmerCard(),
+              const SizedBox(height: 6),
+              Text(
+                'Track your coins and rewards',
+                style: TextStyle(
+                  color: colorScheme.onSurface.withOpacity(0.7),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
-              error: (e, st) => Center(child: Text('Error loading transactions')),
-              data: (transactions) {
-                if (transactions.isEmpty) {
-                  return Column(
-                    children: [
-                      const SizedBox(height: 32),
-                      Icon(Icons.hourglass_empty_rounded, color: colorScheme.primary, size: 64),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No Transactions Yet',
-                        style: TextStyle(
-                          color: colorScheme.onSurface.withOpacity(0.7),
-                          fontSize: 16,
-                        ),
+              const SizedBox(height: 24),
+              // Coin Balance Card
+              userAsync.when(
+                data: (user) => _BalanceCard(balance: user?.coins ?? 0),
+                loading: () => const _ShimmerCard(),
+                error: (e, st) => Center(child: Text('Error loading balance')),
+              ),
+              const SizedBox(height: 18),
+              // Withdraw Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: userAsync.when(
+                    data: (user) {
+                      final currentBalance = user?.coins ?? 0;
+                      final profileComplete = user?.isProfileCompleted ?? false;
+                      final emailVerified = user?.isEmailVerified ?? false;
+                      final referralCount = user?.referralCount ?? 0;
+                      final allMet = currentBalance >= 15000 &&
+                          profileComplete &&
+                          emailVerified &&
+                          referralCount >= 5;
+
+                      return allMet
+                          ? () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const WithdrawScreen()),
+                              );
+                            }
+                          : () {
+                              final colorScheme = Theme.of(context).colorScheme;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Icon(Icons.check_circle, color: colorScheme.surface),
+                                      const SizedBox(width: 8),
+                                      const Text('Please complete all requirements to withdraw.'),
+                                    ],
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                  backgroundColor: colorScheme.primary,
+                                ),
+                              );
+                            };
+                    },
+                    loading: () => null, // Disable button while loading user data
+                    error: (e, st) => null, // Disable button on error
+                  ),
+                  icon: const Icon(Icons.account_balance_wallet_outlined),
+                  label: const Text('Redeem Coins'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    elevation: 2,
+                    shadowColor: colorScheme.primary.withOpacity(0.15),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Withdrawal Requirements
+              userAsync.when(
+                data: (user) {
+                  final currentBalance = user?.coins ?? 0;
+                  final profileComplete = user?.isProfileCompleted ?? false;
+                  final emailVerified = user?.isEmailVerified ?? false;
+                  final referralCount = user?.referralCount ?? 0;
+
+                  final requirements = [
+                    ('Minimum 15,000 coins', currentBalance >= 15000),
+                    ('Profile 100% complete', profileComplete),
+                    ('Email verified', emailVerified),
+                    ('At least 5 referrals', referralCount >= 5),
+                  ];
+                  final metCount = requirements.where((r) => r.$2).length;
+
+                  return Card(
+                    elevation: 0,
+                    color: colorScheme.surfaceVariant.withOpacity(0.7),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Redeem Requirements',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '$metCount/${requirements.length}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: metCount == requirements.length
+                                      ? Colors.green
+                                      : colorScheme.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          ...requirements.map((r) => _RequirementRow(r.$1, r.$2)),
+                          const SizedBox(height: 6),
+                          LinearProgressIndicator(
+                            value: metCount / requirements.length,
+                            backgroundColor: colorScheme.surface,
+                            color: metCount == requirements.length
+                                ? Colors.green
+                                : colorScheme.primary,
+                            minHeight: 6,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   );
-                }
-                return ListView.separated(
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (e, st) => const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 32),
+              // Transaction History
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8, left: 4),
+                child: Text(
+                  'Transactions',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              transactionsAsync.when(
+                loading: () => ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: transactions.length,
+                  itemCount: 3,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, i) {
-                    final tx = transactions[i];
-                    return TransactionCard(tx: tx);
-                  },
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            transactionsAsync.when(
-              data: (transactions) {
-                if (transactions.isNotEmpty) {
-                  return CustomButton(
-                    onPressed: () {
-                      context.go('/transaction-history');
+                  itemBuilder: (context, i) => const _ShimmerCard(),
+                ),
+                error: (e, st) => Center(child: Text('Error loading transactions')),
+                data: (transactions) {
+                  if (transactions.isEmpty) {
+                    return Column(
+                      children: [
+                        const SizedBox(height: 32),
+                        Icon(Icons.hourglass_empty_rounded, color: colorScheme.primary, size: 64),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No Transactions Yet',
+                          style: TextStyle(
+                            color: colorScheme.onSurface.withOpacity(0.7),
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: transactions.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) {
+                      final tx = transactions[i];
+                      return TransactionCard(tx: tx);
                     },
-                    text: 'View Full Transaction History',
-                    isFullWidth: true,
-                    backgroundColor: colorScheme.surfaceVariant,
-                    textColor: colorScheme.onSurfaceVariant,
-                    icon: Icon(Icons.history, color: colorScheme.onSurfaceVariant),
                   );
-                }
-                return const SizedBox.shrink(); // Hide button if no transactions
-              },
-              loading: () => const SizedBox.shrink(), // Hide button while loading
-              error: (e, st) => const SizedBox.shrink(), // Hide button on error
-            ),
-            const SizedBox(height: 32),
-          ],
+                },
+              ),
+              const SizedBox(height: 16),
+              transactionsAsync.when(
+                data: (transactions) {
+                  if (transactions.isNotEmpty) {
+                    return CustomButton(
+                      onPressed: () {
+                        context.go('/transaction-history');
+                      },
+                      text: 'View Full Transaction History',
+                      isFullWidth: true,
+                      backgroundColor: colorScheme.surfaceVariant,
+                      textColor: colorScheme.onSurfaceVariant,
+                      icon: Icon(Icons.history, color: colorScheme.onSurfaceVariant),
+                    );
+                  }
+                  return const SizedBox.shrink(); // Hide button if no transactions
+                },
+                loading: () => const SizedBox.shrink(), // Hide button while loading
+                error: (e, st) => const SizedBox.shrink(), // Hide button on error
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );

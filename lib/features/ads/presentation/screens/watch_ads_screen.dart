@@ -14,10 +14,11 @@ import 'package:cashsify_app/core/widgets/feedback/shimmer_loading.dart';
 import 'package:cashsify_app/core/widgets/feedback/custom_tooltip.dart';
 import 'package:cashsify_app/core/providers/loading_provider.dart';
 import 'package:cashsify_app/core/providers/earnings_provider.dart';
+import 'package:confetti/confetti.dart';
 
 // State providers for managing UI states
 final isAdPlayingProvider = StateProvider<bool>((ref) => false);
-final timerSecondsProvider = StateProvider<int>((ref) => 2);
+final timerSecondsProvider = StateProvider<int>((ref) => 5);
 final isLoadingProvider = StateProvider<bool>((ref) => false);
 
 class WatchAdsScreen extends HookConsumerWidget {
@@ -30,11 +31,12 @@ class WatchAdsScreen extends HookConsumerWidget {
     final isAdPlaying = ref.watch(isAdPlayingProvider);
     final timerSeconds = ref.watch(timerSecondsProvider);
     final earningsState = ref.watch(earningsProvider);
-    final progress = earningsState.when(
+    final adsWatchedToday = earningsState.when(
       data: (earnings) => earnings?.adsWatchedToday ?? 0,
       loading: () => 0,
       error: (_, __) => 0,
-    ) / 20;
+    );
+    final progress = adsWatchedToday / 20;
     final isLimit = earningsState.when(
       data: (earnings) => earnings?.hasReachedDailyLimit ?? false,
       loading: () => false,
@@ -46,114 +48,190 @@ class WatchAdsScreen extends HookConsumerWidget {
     // For pulse animation
     final pulseController = useAnimationController(
       duration: const Duration(milliseconds: 900),
-      initialValue: 0.0,
-      lowerBound: 0.0,
-      upperBound: 1.0,
     )..repeat(reverse: true);
 
-    return LoadingOverlay(
-      isLoading: loadingState == LoadingState.loading,
-      message: loadingState == LoadingState.loading ? 'Loading ads...' : null,
-      child: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isSmallScreen = constraints.maxWidth < 360;
-            return SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isSmallScreen ? 16 : 20,
-                  vertical: isSmallScreen ? 16 : 24,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _AnimatedFadeIn(
-                      delay: 0,
-                      child: _buildHeader(context, colorScheme, textTheme, progress),
-                    ),
-                    SizedBox(height: isSmallScreen ? 24 : 32),
-                    _AnimatedFadeIn(
-                      delay: 100,
-                      child: isLoading
-                          ? const _ShimmerLoadingCard()
-                          : _buildTimerCard(
+    // Confetti controller for celebration
+    final confettiController = useMemoized(() => ConfettiController());
+    useEffect(() {
+      if (isLimit) {
+        confettiController.play();
+      }
+      return confettiController.dispose;
+    }, [isLimit]);
+
+    return Stack(
+      children: [
+        LoadingOverlay(
+          isLoading: loadingState == LoadingState.loading,
+          message: loadingState == LoadingState.loading ? 'Loading ads...' : null,
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isSmallScreen = constraints.maxWidth < 360;
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    await ref.read(earningsProvider.notifier).loadEarnings();
+                  },
+                  color: colorScheme.primary,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isSmallScreen ? 16 : 20,
+                        vertical: isSmallScreen ? 16 : 24,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          _AnimatedFadeIn(
+                            delay: 0,
+                            child: _buildHeader(
                               context,
                               colorScheme,
                               textTheme,
-                              isAdPlaying,
-                              timerSeconds,
-                              ref,
-                              pulseController,
+                              progress,
                               isLimit,
-                              earningsState.when(
-                                data: (earnings) => earnings?.adsWatchedToday ?? 0,
-                                loading: () => 0,
-                                error: (_, __) => 0,
-                              ),
                             ),
-                    ),
-                    SizedBox(height: isSmallScreen ? 24 : 32),
-                    _AnimatedFadeIn(
-                      delay: 200,
-                      child: _buildProgressCard(
-                        context,
-                        colorScheme,
-                        textTheme,
-                        earningsState.when(
-                          data: (earnings) => earnings?.adsWatchedToday ?? 0,
-                          loading: () => 0,
-                          error: (_, __) => 0,
-                        ),
-                        20,
-                        progress,
-                        isLimit,
+                          ),
+                          SizedBox(height: isSmallScreen ? 24 : 32),
+                          _AnimatedFadeIn(
+                            delay: 100,
+                            child: isLoading
+                                ? const _ShimmerLoadingCard()
+                                : _buildTimerCard(
+                                    context,
+                                    colorScheme,
+                                    textTheme,
+                                    isAdPlaying,
+                                    timerSeconds,
+                                    ref,
+                                    pulseController,
+                                    isLimit,
+                                    adsWatchedToday,
+                                  ),
+                          ),
+                          SizedBox(height: isSmallScreen ? 24 : 32),
+                          _AnimatedFadeIn(
+                            delay: 200,
+                            child: _buildProgressCard(
+                              context,
+                              colorScheme,
+                              textTheme,
+                              adsWatchedToday,
+                              20,
+                              progress,
+                              isLimit,
+                            ),
+                          ),
+                          SizedBox(height: isSmallScreen ? 16 : 24),
+                          _AnimatedFadeIn(
+                            delay: 300,
+                            child: _buildInfoSection(context, colorScheme, textTheme),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            );
-          },
+                  ),
+                );
+              },
+            ),
+          ),
         ),
-      ),
+        // Confetti effect when daily limit is reached
+        if (isLimit)
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [
+                Colors.green,
+                Colors.blue,
+                Colors.pink,
+                Colors.orange,
+                Colors.purple,
+              ],
+              gravity: 0.1,
+              emissionFrequency: 0.05,
+            ),
+          ),
+      ],
     );
   }
 
-  Widget _buildHeader(BuildContext context, ColorScheme colorScheme, TextTheme textTheme, double progress) {
+  Widget _buildHeader(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    double progress,
+    bool isLimit,
+  ) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [colorScheme.primary, colorScheme.primary.withOpacity(0.85), colorScheme.secondary.withOpacity(0.7)],
+          colors: [
+            colorScheme.primary,
+            colorScheme.primary.withOpacity(0.9),
+            colorScheme.secondary.withOpacity(0.8)
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.primary.withOpacity(0.10),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+            color: colorScheme.primary.withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(Icons.emoji_events, color: colorScheme.onPrimary, size: 38),
-          const SizedBox(height: 10),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 500),
+            child: isLimit
+                ? Icon(
+                    Icons.celebration_rounded,
+                    color: colorScheme.onPrimary,
+                    size: 42,
+                    key: const ValueKey('celebration'),
+                  )
+                : Icon(
+                    Icons.emoji_events_rounded,
+                    color: colorScheme.onPrimary,
+                    size: 42,
+                    key: const ValueKey('trophy'),
+                  ),
+          ),
+          const SizedBox(height: 16),
           Text(
-            progress < 1.0
-                ? 'Watch ads, verify and get coins!'
-                : "🎉 You've completed today's task!",
-            style: textTheme.bodyLarge?.copyWith(
-              color: colorScheme.onPrimary.withOpacity(0.92),
-              fontWeight: FontWeight.w500,
-              fontSize: 15,
+            isLimit
+                ? "🎉 Congratulations! Daily goal achieved!"
+                : progress > 0.5
+                    ? 'Keep going! You\'re almost there!'
+                    : 'Watch ads, verify and earn coins!',
+            style: textTheme.titleMedium?.copyWith(
+              color: colorScheme.onPrimary.withOpacity(0.95),
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
             ),
             textAlign: TextAlign.center,
           ),
+          if (!isLimit) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Complete ${(20 - (progress * 20).toInt())} more ads to earn bonus',
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onPrimary.withOpacity(0.8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -170,150 +248,185 @@ class WatchAdsScreen extends HookConsumerWidget {
     bool isLimit,
     int adsWatchedToday,
   ) {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      margin: EdgeInsets.zero,
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.surface.withOpacity(0.85),
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.primary.withOpacity(0.07),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+    return CustomCard(
+      elevation: 6,
+      borderRadius: 24,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              switchInCurve: Curves.easeInOut,
+              switchOutCurve: Curves.easeInOut,
+              transitionBuilder: (child, animation) => ScaleTransition(
+                scale: animation,
+                child: child,
+              ),
+              child: isAdPlaying
+                  ? _buildAnimatedTimer(colorScheme, textTheme, timerSeconds, pulseController)
+                  : Icon(
+                      Icons.play_circle_fill_rounded,
+                      color: isLimit ? colorScheme.onSurfaceVariant : colorScheme.primary,
+                      size: 80,
+                      key: const ValueKey('play'),
+                    ),
+            ),
+            const SizedBox(height: 24),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              child: isAdPlaying
+                  ? Text(
+                      'Preparing your ad...',
+                      style: textTheme.titleMedium?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      key: const ValueKey('wait'),
+                    )
+                  : isLimit
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: colorScheme.error.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: colorScheme.error.withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.timer_off_rounded,
+                                color: colorScheme.error,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Daily limit reached',
+                                style: textTheme.titleMedium?.copyWith(
+                                  color: colorScheme.error,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Text(
+                          'Ready to watch?',
+                          style: textTheme.titleMedium?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          key: const ValueKey('tap'),
+                        ),
+            ),
+            const SizedBox(height: 28),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              child: isAdPlaying
+                  ? const SizedBox(height: 56)
+                  : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isLimit
+                              ? colorScheme.surfaceVariant
+                              : colorScheme.primary,
+                          foregroundColor: isLimit
+                              ? colorScheme.onSurfaceVariant
+                              : colorScheme.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: isLimit ? 0 : 4,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shadowColor: colorScheme.primary.withOpacity(0.3),
+                        ),
+                        onPressed: isLimit || isAdPlaying
+                            ? null
+                            : () => _handleTimerStart(context, ref),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              isLimit
+                                  ? Icons.timer_off_rounded
+                                  : Icons.play_arrow_rounded,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              isLimit ? 'Come Back Tomorrow' : 'Watch Now',
+                              style: textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
             ),
           ],
-          backgroundBlendMode: BlendMode.overlay,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 400),
-                child: isAdPlaying
-                    ? _buildAnimatedTimer(colorScheme, textTheme, timerSeconds, pulseController)
-                    : Icon(
-                        Icons.play_circle_fill_rounded,
-                        color: colorScheme.primary,
-                        size: 72,
-                        key: const ValueKey('play'),
-                      ),
-              ),
-              const SizedBox(height: 18),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 400),
-                child: isAdPlaying
-                    ? Text(
-                        'Please wait... ',
-                        style: textTheme.titleMedium?.copyWith(
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        key: const ValueKey('wait'),
-                      )
-                    : isLimit
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: colorScheme.error.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              'Daily limit reached',
-                              style: textTheme.titleMedium?.copyWith(
-                                color: colorScheme.error,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                          )
-                        : Text(
-                            'Tap below to start',
-                            style: textTheme.titleMedium?.copyWith(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            key: const ValueKey('tap'),
-                          ),
-              ),
-              const SizedBox(height: 24),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 400),
-                child: isAdPlaying
-                    ? const SizedBox(height: 56)
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              icon: Icon(
-                                Icons.play_arrow_rounded,
-                                color: colorScheme.onPrimary,
-                              ),
-                              label: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                child: Text(
-                                  isLimit ? 'Come Back Tomorrow' : 'Watch Now',
-                                  style: textTheme.titleLarge?.copyWith(
-                                    color: colorScheme.onPrimary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 17,
-                                  ),
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isLimit ? colorScheme.surfaceVariant : colorScheme.primary,
-                                foregroundColor: colorScheme.onPrimary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                elevation: isLimit ? 0 : 6,
-                                padding: EdgeInsets.zero,
-                              ),
-                              onPressed: isLimit || isAdPlaying
-                                  ? null
-                                  : () => _handleTimerStart(context, ref),
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 
-  Widget _buildAnimatedTimer(ColorScheme colorScheme, TextTheme textTheme, int timerSeconds, AnimationController pulseController) {
+  Widget _buildAnimatedTimer(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    int timerSeconds,
+    AnimationController pulseController,
+  ) {
     return AnimatedBuilder(
       animation: pulseController,
       builder: (context, child) {
-        final scale = 1.0 + 0.08 * pulseController.value;
+        final scale = 1.0 + 0.05 * pulseController.value;
         return Transform.scale(
           scale: scale,
           child: SizedBox(
-            width: 80,
-            height: 80,
+            width: 100,
+            height: 100,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 CircularProgressIndicator(
                   value: (5 - timerSeconds) / 5,
-                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                      colorScheme.primary),
                   backgroundColor: colorScheme.surfaceVariant,
-                  strokeWidth: 7,
+                  strokeWidth: 8,
+                  strokeCap: StrokeCap.round,
                 ),
-                Text(
-                  '$timerSeconds',
-                  style: textTheme.displayMedium?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.primary.withOpacity(0.1),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$timerSeconds',
+                      style: textTheme.displayMedium?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 36,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -333,80 +446,237 @@ class WatchAdsScreen extends HookConsumerWidget {
     double progress,
     bool isLimit,
   ) {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      margin: const EdgeInsets.only(top: 12),
+    return CustomCard(
+      elevation: 4,
+      borderRadius: 24,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  isLimit ? Icons.celebration : Icons.trending_up,
+                  isLimit ? Icons.verified_rounded : Icons.trending_up_rounded,
                   color: isLimit ? colorScheme.primary : colorScheme.secondary,
-                  size: 30,
+                  size: 28,
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  isLimit ? 'All Done!' : 'Daily Progress',
-                  style: textTheme.titleMedium?.copyWith(
+                  isLimit ? 'Mission Complete!' : 'Daily Progress',
+                  style: textTheme.titleLarge?.copyWith(
                     color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 24),
             TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: progress),
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.easeOut,
+              duration: const Duration(milliseconds: 1000),
+              curve: Curves.easeOutBack,
               builder: (context, value, child) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: value,
-                        minHeight: 12,
-                        backgroundColor: colorScheme.surfaceVariant,
-                        valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-                      ),
+                    Stack(
+                      children: [
+                        Container(
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceVariant,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.easeOut,
+                            height: 12,
+                            width: MediaQuery.of(context).size.width * value,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  colorScheme.primary,
+                                  colorScheme.secondary,
+                                ],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 18),
-                    Text(
-                      '$adsWatchedToday / $maxDailyAds ads completed',
-                      style: textTheme.headlineSmall?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                    if (isLimit)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(
-                          "You've completed today's task. Great job! 🎉",
-                          style: textTheme.bodyLarge?.copyWith(
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Progress',
+                          style: textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w600,
-                            fontSize: 15,
                           ),
-                          textAlign: TextAlign.center,
+                        ),
+                        Text(
+                          '${(value * 100).toStringAsFixed(0)}%',
+                          style: textTheme.bodyLarge?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Ads watched today',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          '$adsWatchedToday/$maxDailyAds',
+                          style: textTheme.bodyLarge?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (isLimit) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: colorScheme.primary.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle_rounded,
+                              color: colorScheme.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "You've completed today's ads. Come back tomorrow for more!",
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                    ],
                   ],
                 );
               },
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+  ) {
+    return CustomCard(
+      elevation: 2,
+      borderRadius: 16,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: colorScheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'How it works',
+                  style: textTheme.titleSmall?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildInfoItem(
+              context,
+              '1. Watch the ad',
+              Icons.play_circle_outline_rounded,
+              colorScheme,
+            ),
+            _buildInfoItem(
+              context,
+              '2. Complete the verification',
+              Icons.verified_outlined,
+              colorScheme,
+            ),
+            _buildInfoItem(
+              context,
+              '3. Earn coins after 20 ads',
+              Icons.stars,
+              colorScheme,
+            ),
+            _buildInfoItem(
+              context,
+              'Daily tasks reset at midnight',
+              Icons.schedule,
+              colorScheme,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(
+    BuildContext context,
+    String text,
+    IconData icon,
+    ColorScheme colorScheme,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            color: colorScheme.primary,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -418,47 +688,85 @@ class WatchAdsScreen extends HookConsumerWidget {
       loading: () => false,
       error: (_, __) => false,
     )) {
-      CustomToast.show(
-        context,
-        message: 'Daily limit reached. Come back tomorrow!',
-        type: ToastType.warning,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                Icons.timer_off_rounded,
+                color: Theme.of(context).colorScheme.onPrimary,
+              ),
+              const SizedBox(width: 8),
+              const Text('Daily limit reached. Come back tomorrow!'),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
       return;
     }
 
     ref.read(isAdPlayingProvider.notifier).state = true;
-    ref.read(timerSecondsProvider.notifier).state = 2;
+    ref.read(timerSecondsProvider.notifier).state = 5;
 
+    // Countdown animation
     for (int i = 5; i > 0; i--) {
       await Future.delayed(const Duration(seconds: 1));
       ref.read(timerSecondsProvider.notifier).state = i - 1;
     }
 
     if (context.mounted) {
-      Navigator.push(
+      final result = await Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => const VerificationScreen(),
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const VerificationScreen(),
+          transitionsBuilder:
+              (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 300),
         ),
-      ).then((verified) async {
-        if (verified == true) {
-          // After successful verification, reload earnings from Supabase
-          await ref.read(earningsProvider.notifier).loadEarnings();
-          CustomToast.show(
-            context,
-            message: 'Ad verified! Coins will be credited after 20 ads.',
-            type: ToastType.success,
-            duration: const Duration(seconds: 3),
-            showCloseButton: true,
+      );
+
+      if (result == true) {
+        // After successful verification
+        await ref.read(earningsProvider.notifier).loadEarnings();
+        
+        // Show success feedback
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Ad verified successfully!'),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           );
         }
-        ref.read(isAdPlayingProvider.notifier).state = false;
-        ref.read(timerSecondsProvider.notifier).state = 5;
-      });
-    } else {
-      ref.read(isAdPlayingProvider.notifier).state = false;
-      ref.read(timerSecondsProvider.notifier).state = 5;
+      }
     }
+
+    ref.read(isAdPlayingProvider.notifier).state = false;
+    ref.read(timerSecondsProvider.notifier).state = 5;
   }
 }
 
@@ -467,19 +775,18 @@ class _ShimmerLoadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return CustomCard(
       elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      margin: EdgeInsets.zero,
+      borderRadius: 24,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ShimmerLoading(
-              width: 90,
-              height: 90,
-              borderRadius: 45,
+              width: 100,
+              height: 100,
+              borderRadius: 50,
             ),
             const SizedBox(height: 24),
             ShimmerLoading(
@@ -509,33 +816,59 @@ class _AnimatedFadeIn extends StatefulWidget {
   State<_AnimatedFadeIn> createState() => _AnimatedFadeInState();
 }
 
-class _AnimatedFadeInState extends State<_AnimatedFadeIn> with SingleTickerProviderStateMixin {
-  double _opacity = 0;
+class _AnimatedFadeInState extends State<_AnimatedFadeIn>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+  late Animation<double> _translateY;
 
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _opacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0, 1, curve: Curves.easeOut),
+      ),
+    );
+
+    _translateY = Tween<double>(begin: 20, end: 0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0, 1, curve: Curves.easeOutBack),
+      ),
+    );
+
     Future.delayed(Duration(milliseconds: widget.delay), () {
-      if (mounted) {
-        setState(() {
-          _opacity = 1;
-        });
-      }
+      if (mounted) _controller.forward();
     });
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: _opacity,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOut,
-      child: AnimatedSlide(
-        offset: _opacity == 1 ? Offset.zero : const Offset(0, 0.1),
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOut,
-        child: widget.child,
-      ),
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacity.value,
+          child: Transform.translate(
+            offset: Offset(0, _translateY.value),
+            child: child,
+          ),
+        );
+      },
+      child: widget.child,
     );
   }
 }

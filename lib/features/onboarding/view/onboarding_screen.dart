@@ -18,6 +18,7 @@ class OnboardingScreen extends HookConsumerWidget {
     final pageController = usePageController();
     final currentPage = useState(0);
     final isProcessing = useState(false);
+    final referralCode = useState<String?>(null);
 
     final pages = [
       OnboardingPage(
@@ -40,6 +41,13 @@ class OnboardingScreen extends HookConsumerWidget {
     // Preload animations
     useEffect(() {
       // Lottie animations are loaded automatically by the Lottie widget
+      return null;
+    }, []);
+
+    useEffect(() {
+      SharedPreferences.getInstance().then((prefs) {
+        referralCode.value = prefs.getString('pending_referral_code');
+      });
       return null;
     }, []);
 
@@ -77,6 +85,17 @@ class OnboardingScreen extends HookConsumerWidget {
         body: SafeArea(
           child: Column(
             children: [
+              if (referralCode.value != null && referralCode.value!.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  color: Colors.green.withOpacity(0.1),
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    'Referral code detected: ${referralCode.value}',
+                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               Expanded(
                 child: PageView.builder(
                   controller: pageController,
