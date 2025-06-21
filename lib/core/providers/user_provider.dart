@@ -20,30 +20,46 @@ class UserNotifier extends StateNotifier<AsyncValue<UserState?>> {
 
   Future<void> _initializeUser() async {
     try {
+      AppLogger.info('Initializing user provider...');
       final currentUser = _userService.supabase.client.auth.currentUser;
+      AppLogger.info('Current auth user: ${currentUser?.id}');
+      
       if (currentUser == null) {
+        AppLogger.info('No current user found, setting state to null');
         state = const AsyncValue.data(null);
         return;
       }
 
+      AppLogger.info('Fetching user data for: ${currentUser.id}');
       final userState = await _userService.getUserData(currentUser.id);
+      AppLogger.info('User state fetched successfully: ${userState.name}');
       state = AsyncValue.data(userState);
     } catch (e, stack) {
+      AppLogger.error('Error initializing user: $e');
+      AppLogger.error('Stack trace: $stack');
       state = AsyncValue.error(e, stack);
     }
   }
 
   Future<void> refreshUser() async {
     try {
+      AppLogger.info('Refreshing user data...');
       final currentUser = _userService.supabase.client.auth.currentUser;
+      AppLogger.info('Current auth user during refresh: ${currentUser?.id}');
+      
       if (currentUser == null) {
+        AppLogger.info('No current user found during refresh, setting state to null');
         state = const AsyncValue.data(null);
         return;
       }
 
+      AppLogger.info('Fetching fresh user data for: ${currentUser.id}');
       final userState = await _userService.getUserData(currentUser.id);
+      AppLogger.info('User state refreshed successfully: ${userState.name}');
       state = AsyncValue.data(userState);
     } catch (e, stack) {
+      AppLogger.error('Error refreshing user: $e');
+      AppLogger.error('Stack trace: $stack');
       // Keep previous state if refresh fails
       if (state.hasValue) {
         state = AsyncValue.error(e, stack);

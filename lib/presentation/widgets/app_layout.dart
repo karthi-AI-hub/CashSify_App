@@ -15,6 +15,7 @@ class AppLayout extends HookConsumerWidget {
     final state = ref.watch(navigationProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Widget getCurrentScreen() {
       switch (state.currentIndex) {
@@ -29,98 +30,62 @@ class AppLayout extends HookConsumerWidget {
       extendBody: true,
       backgroundColor: colorScheme.background,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: Container(
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withOpacity(0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+        preferredSize: const Size.fromHeight(68),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(24),
+            bottomRight: Radius.circular(24),
           ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      state.title,
-                      style: textTheme.titleLarge?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (state.showNotifications)
-                    IconButton(
-                      icon: Icon(
-                        Icons.notifications_outlined,
-                        color: colorScheme.primary,
-                      ),
-                      onPressed: () {
-                        // TODO: Implement notifications
-                      },
-                    ),
-                  if (state.showBonus)
-                    Container(
-                      margin: EdgeInsets.only(left: AppSpacing.md),
-                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.star,
-                            color: colorScheme.onPrimary,
-                            size: AppSpacing.iconSm,
-                          ),
-                          SizedBox(width: AppSpacing.xs),
-                          Text(
-                            'Bonus',
-                            style: textTheme.labelMedium?.copyWith(
-                              color: colorScheme.onPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
+          child: AppBar(
+            backgroundColor: colorScheme.primary,
+            elevation: 0,
+            title: Text(
+              state.title,
+              style: textTheme.titleLarge?.copyWith(
+                color: colorScheme.onPrimary,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.2,
               ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
+            centerTitle: false,
+            automaticallyImplyLeading: false,
+            toolbarHeight: 68,
+            titleSpacing: 24,
           ),
         ),
       ),
       body: SafeArea(
-        child: getCurrentScreen(),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: getCurrentScreen(),
+        ),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: colorScheme.surface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
           boxShadow: [
             BoxShadow(
-              color: colorScheme.shadow.withOpacity(0.04),
-              blurRadius: 8,
+              color: colorScheme.shadow.withOpacity(isDark ? 0.10 : 0.06),
+              blurRadius: 10,
               offset: const Offset(0, -2),
             ),
           ],
         ),
         child: NavigationBar(
           backgroundColor: colorScheme.surface,
-          indicatorColor: colorScheme.primaryContainer,
+          indicatorColor: colorScheme.primaryContainer.withOpacity(isDark ? 0.22 : 0.7),
           selectedIndex: state.currentIndex,
           onDestinationSelected: (index) {
             ref.read(navigationProvider.notifier).setIndex(index);
           },
+          height: 68,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.people_outline),
@@ -148,7 +113,6 @@ class AppLayout extends HookConsumerWidget {
               label: 'Profile',
             ),
           ],
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         ),
       ),
     );

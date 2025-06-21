@@ -6,6 +6,8 @@ part 'transaction_state.g.dart';
 
 @freezed
 class TransactionState with _$TransactionState {
+  const TransactionState._(); // <-- Add this line
+
   const factory TransactionState({
     required String id,
     @JsonKey(name: 'user_id') required String userId,
@@ -15,5 +17,6 @@ class TransactionState with _$TransactionState {
     @JsonKey(name: 'created_at') required DateTime createdAt,
   }) = _TransactionState;
 
-  factory TransactionState.fromJson(Map<String, dynamic> json) => _$TransactionStateFromJson(json);
-} 
+  factory TransactionState.fromJson(Map<String, dynamic> json) =>
+      _$TransactionStateFromJson(json);
+}

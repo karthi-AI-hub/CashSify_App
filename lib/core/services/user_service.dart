@@ -32,13 +32,39 @@ class UserService {
   // Get user data by ID
   Future<UserState> getUserData(String userId) async {
     try {
+      AppLogger.info('Fetching user data for ID: $userId');
+      
       final response = await _supabase.client
           .from('users')
           .select()
           .eq('id', userId)
           .single();
 
-      return UserState.fromJson(response);
+      AppLogger.info('Raw database response: $response');
+      
+      // Log each field to debug mapping issues
+      AppLogger.info('User ID: ${response['id']}');
+      AppLogger.info('User Email: ${response['email']}');
+      AppLogger.info('User Name: ${response['name']}');
+      AppLogger.info('Phone Number: ${response['phone_number']}');
+      AppLogger.info('Gender: ${response['gender']}');
+      AppLogger.info('DOB: ${response['dob']}');
+      AppLogger.info('Coins: ${response['coins']}');
+      AppLogger.info('Referral Code: ${response['referral_code']}');
+      AppLogger.info('Referral Count: ${response['referral_count']}');
+      AppLogger.info('Referred By: ${response['referred_by']}');
+      AppLogger.info('UPI ID: ${response['upi_id']}');
+      AppLogger.info('Bank Account: ${response['bank_account']}');
+      AppLogger.info('Profile Image URL: ${response['profile_image_url']}');
+      AppLogger.info('Last Login: ${response['last_login']}');
+      AppLogger.info('Created At: ${response['created_at']}');
+      AppLogger.info('Is Email Verified: ${response['is_email_verified']}');
+      AppLogger.info('Is Profile Completed: ${response['is_profile_completed']}');
+
+      final userState = UserState.fromJson(response);
+      AppLogger.info('Parsed UserState: $userState');
+      
+      return userState;
     } catch (e) {
       AppLogger.error('Error fetching user data: $e');
       return UserState.fromUser(_supabase.client.auth.currentUser!);
@@ -319,6 +345,58 @@ class UserService {
     } catch (e) {
       AppLogger.error('Error uploading profile image: $e');
       rethrow;
+    }
+  }
+
+  // Debug method to test database connection and data retrieval
+  Future<void> debugUserData() async {
+    try {
+      AppLogger.info('=== DEBUG: Testing User Data Retrieval ===');
+      
+      final currentUser = _supabase.client.auth.currentUser;
+      AppLogger.info('Current auth user: ${currentUser?.id}');
+      AppLogger.info('Current auth user email: ${currentUser?.email}');
+      
+      if (currentUser == null) {
+        AppLogger.error('No authenticated user found');
+        return;
+      }
+
+      // Test direct database query
+      AppLogger.info('Testing direct database query...');
+      final response = await _supabase.client
+          .from('users')
+          .select('*')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+      if (response == null) {
+        AppLogger.error('No user data found in database for ID: ${currentUser.id}');
+        return;
+      }
+
+      AppLogger.info('Database response keys: ${response.keys.toList()}');
+      AppLogger.info('Full database response: $response');
+
+      // Test UserState parsing
+      try {
+        final userState = UserState.fromJson(response);
+        AppLogger.info('Successfully parsed UserState:');
+        AppLogger.info('  - ID: ${userState.id}');
+        AppLogger.info('  - Email: ${userState.email}');
+        AppLogger.info('  - Name: ${userState.name}');
+        AppLogger.info('  - Phone: ${userState.phoneNumber}');
+        AppLogger.info('  - Coins: ${userState.coins}');
+        AppLogger.info('  - Referral Code: ${userState.referralCode}');
+        AppLogger.info('  - Is Email Verified: ${userState.isEmailVerified}');
+        AppLogger.info('  - Is Profile Completed: ${userState.isProfileCompleted}');
+      } catch (parseError) {
+        AppLogger.error('Error parsing UserState: $parseError');
+      }
+
+      AppLogger.info('=== END DEBUG ===');
+    } catch (e) {
+      AppLogger.error('Debug error: $e');
     }
   }
 }

@@ -114,7 +114,7 @@ class NavigationNotifier extends StateNotifier<NavigationState> {
 
   void setReferralsScreen() {
     state = state.copyWith(
-      title: 'Earn by Referring',
+      title: 'Refer And Earn',
       showNotifications: false,
       showBonus: false,
     );
