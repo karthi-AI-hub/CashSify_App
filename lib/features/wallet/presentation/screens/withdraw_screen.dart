@@ -8,6 +8,7 @@ import 'package:cashsify_app/features/wallet/presentation/providers/withdrawal_p
 import 'package:cashsify_app/core/widgets/feedback/custom_toast.dart';
 import 'package:cashsify_app/core/models/user_state.dart';
 import 'package:cashsify_app/core/utils/pdf_utils.dart';
+import 'package:go_router/go_router.dart';
 // import 'package:lottie/lottie.dart'; // Uncomment if you have a Lottie asset
 
 final userBalanceProvider = StateProvider<int>((ref) => 15300);
@@ -53,79 +54,85 @@ class WithdrawScreen extends HookConsumerWidget {
     final tabController = useTabController(initialLength: 2);
     final loadingState = ref.watch(loadingProvider);
 
-    return LoadingOverlay(
-      isLoading: loadingState == LoadingState.loading,
-      message: loadingState == LoadingState.loading ? 'Processing withdrawal...' : null,
-      child: Scaffold(
-        backgroundColor: colorScheme.background,
-        body: SafeArea(
-          child: Column(
-            children: [
-              // Custom AppBar with Back Button and Title
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Redeem Coins',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                        color: colorScheme.primary,
+    return WillPopScope(
+      onWillPop: () async {
+        context.go('/wallet');
+        return false; // Prevent default back behavior
+      },
+      child: LoadingOverlay(
+        isLoading: loadingState == LoadingState.loading,
+        message: loadingState == LoadingState.loading ? 'Processing withdrawal...' : null,
+        child: Scaffold(
+          backgroundColor: colorScheme.background,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Custom AppBar with Back Button and Title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                        onPressed: () => context.go('/wallet'),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              // Improved TabBar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: colorScheme.surface,
-                    borderRadius: BorderRadius.circular(22),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Redeem Coins',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: TabBar(
-                    controller: tabController,
-                    indicator: BoxDecoration(
-                      color: colorScheme.primary,
+                ),
+                // Improved TabBar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(22),
                     ),
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    labelColor: colorScheme.onPrimary,
-                    unselectedLabelColor: colorScheme.primary,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-                    tabs: const [
-                      Tab(text: 'Redeem Coins'),
-                      Tab(text: 'Transaction History'),
-                    ],
-                    splashFactory: NoSplash.splashFactory,
-                    overlayColor: MaterialStateProperty.all(Colors.transparent),
+                    child: TabBar(
+                      controller: tabController,
+                      indicator: BoxDecoration(
+                        color: colorScheme.primary,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      labelColor: colorScheme.onPrimary,
+                      unselectedLabelColor: colorScheme.primary,
+                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                      tabs: const [
+                        Tab(text: 'Redeem Coins'),
+                        Tab(text: 'Transaction History'),
+                      ],
+                      splashFactory: NoSplash.splashFactory,
+                      overlayColor: MaterialStateProperty.all(Colors.transparent),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              Expanded(
-                child: TabBarView(
-                  controller: tabController,
-                  children: [
-                    userAsync.when(
-                      data: (user) => _WithdrawCoinsTab(balance: user?.coins ?? 0),
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (e, st) => Center(child: Text('Error: $e')),
-                    ),
-                    const _WithdrawHistoryTab(),
-                  ],
+                const SizedBox(height: 18),
+                Expanded(
+                  child: TabBarView(
+                    controller: tabController,
+                    children: [
+                      userAsync.when(
+                        data: (user) => _WithdrawCoinsTab(balance: user?.coins ?? 0),
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (e, st) => Center(child: Text('Error: $e')),
+                      ),
+                      const _WithdrawHistoryTab(),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -318,7 +325,7 @@ class _WithdrawCoinsTab extends HookConsumerWidget {
             requestedAt: DateTime.now(),
             withdrawalId: response?['id'], // Pass the actual ID from Supabase
           );
-          Navigator.pop(context);
+          context.pop();
         }
       } catch (e) {
         if (context.mounted) {

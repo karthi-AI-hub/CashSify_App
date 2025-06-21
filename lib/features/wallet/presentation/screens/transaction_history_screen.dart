@@ -7,6 +7,7 @@ import 'package:cashsify_app/features/wallet/presentation/providers/wallet_provi
 import 'package:cashsify_app/features/wallet/presentation/widgets/transaction_card.dart';
 import 'package:cashsify_app/core/models/transaction_state.dart';
 import 'package:cashsify_app/core/services/transaction_service.dart';
+import 'package:cashsify_app/core/widgets/layout/custom_app_bar.dart';
 
 class TransactionHistoryScreen extends HookConsumerWidget {
   const TransactionHistoryScreen({super.key});
@@ -65,11 +66,12 @@ class TransactionHistoryScreen extends HookConsumerWidget {
 
     if (userId == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Transaction History'),
+        appBar: CustomAppBar(
+          title: 'Transaction History',
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => context.pop(),
+            color: Theme.of(context).colorScheme.onPrimary,
           ),
         ),
         body: Center(
@@ -116,217 +118,216 @@ class TransactionHistoryScreen extends HookConsumerWidget {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Transaction History'),
-        backgroundColor: colorScheme.surface,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/'); // Fallback to home route
-            }
-          },
+    return WillPopScope(
+      onWillPop: () async {
+        context.go('/wallet');
+        return false; // Prevent default back behavior
+      },
+      child: Scaffold(
+        appBar: CustomAppBar(
+          title: 'Transaction History',
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/wallet'),
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                boxShadow: [
-                  BoxShadow(
-                    color: colorScheme.shadow.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Filter by Type:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: colorScheme.onSurface,
+        body: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.shadow.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8.0,
-                    runSpacing: 8.0,
-                    children: transactionTypes.map((type) {
-                      final isSelected = selectedTypes.value.contains(type) ||
-                          (type == 'all' && selectedTypes.value.isEmpty);
-                      return FilterChip(
-                        label: Text(type.toUpperCase()),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          if (type == 'all') {
-                            // Reset to show all
-                            selectedTypes.value = [];
-                          } else {
-                            var updated = [...selectedTypes.value];
-                            updated.remove('all');
-                            if (selected) {
-                              updated.add(type);
-                            } else {
-                              updated.remove(type);
-                            }
-                            selectedTypes.value = updated;
-                          }
-                        },
-                        selectedColor: colorScheme.primary.withOpacity(0.2),
-                        checkmarkColor: colorScheme.primary,
-                        labelStyle: TextStyle(
-                          color: isSelected ? colorScheme.primary : colorScheme.onSurface,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Text(
-                        'Filter by Date:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: colorScheme.onSurface,
-                        ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Filter by Type:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: colorScheme.onSurface,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: colorScheme.outline),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: DropdownButton<String>(
-                            isExpanded: true,
-                            value: selectedDateRange.value,
-                            onChanged: (String? newValue) {
-                              selectedDateRange.value = newValue!;
-                              if (newValue != 'Custom Date') {
-                                customStartDate.value = null;
-                                customEndDate.value = null;
-                              }
-                            },
-                            items: dateRangeOptions.map<DropdownMenuItem<String>>((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
-                            underline: const SizedBox(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (selectedDateRange.value == 'Custom Date') ...[
+                    ),
                     const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8.0,
+                      runSpacing: 8.0,
+                      children: transactionTypes.map((type) {
+                        final isSelected = selectedTypes.value.contains(type) ||
+                            (type == 'all' && selectedTypes.value.isEmpty);
+                        return FilterChip(
+                          label: Text(type.toUpperCase()),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (type == 'all') {
+                              // Reset to show all
+                              selectedTypes.value = [];
+                            } else {
+                              var updated = [...selectedTypes.value];
+                              updated.remove('all');
+                              if (selected) {
+                                updated.add(type);
+                              } else {
+                                updated.remove(type);
+                              }
+                              selectedTypes.value = updated;
+                            }
+                          },
+                          selectedColor: colorScheme.primary.withOpacity(0.2),
+                          checkmarkColor: colorScheme.primary,
+                          labelStyle: TextStyle(
+                            color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(
-                          child: TextButton.icon(
-                            onPressed: () => _pickDate(true),
-                            icon: const Icon(Icons.calendar_today),
-                            label: Text(
-                              customStartDate.value == null
-                                  ? 'Select Start Date'
-                                  : 'Start: ${customStartDate.value!.toLocal().toString().split(' ')[0]}',
-                            ),
-                            style: TextButton.styleFrom(
-                              backgroundColor: colorScheme.surfaceVariant,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
+                        Text(
+                          'Filter by Date:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: TextButton.icon(
-                            onPressed: () => _pickDate(false),
-                            icon: const Icon(Icons.calendar_today),
-                            label: Text(
-                              customEndDate.value == null
-                                  ? 'Select End Date'
-                                  : 'End: ${customEndDate.value!.toLocal().toString().split(' ')[0]}',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: colorScheme.outline),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            style: TextButton.styleFrom(
-                              backgroundColor: colorScheme.surfaceVariant,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: selectedDateRange.value,
+                              onChanged: (String? newValue) {
+                                selectedDateRange.value = newValue!;
+                                if (newValue != 'Custom Date') {
+                                  customStartDate.value = null;
+                                  customEndDate.value = null;
+                                }
+                              },
+                              items: dateRangeOptions.map<DropdownMenuItem<String>>((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                              underline: const SizedBox(),
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: allTransactionsAsync.when(
-                  loading: () => ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 5,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) => const _ShimmerCard(),
-                  ),
-                  error: (e, st) => Center(child: Text('Error loading transactions: ${e.toString()}')),
-                  data: (transactions) {
-                    if (transactions.isEmpty) {
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                    if (selectedDateRange.value == 'Custom Date') ...[
+                      const SizedBox(height: 8),
+                      Row(
                         children: [
-                          Icon(Icons.hourglass_empty_rounded, color: colorScheme.primary, size: 80),
-                          const SizedBox(height: 24),
-                          Text(
-                            'No Transactions Found',
-                            style: TextStyle(
-                              color: colorScheme.onSurface.withOpacity(0.7),
-                              fontSize: 18,
+                          Expanded(
+                            child: TextButton.icon(
+                              onPressed: () => _pickDate(true),
+                              icon: const Icon(Icons.calendar_today),
+                              label: Text(
+                                customStartDate.value == null
+                                    ? 'Select Start Date'
+                                    : 'Start: ${customStartDate.value!.toLocal().toString().split(' ')[0]}',
+                              ),
+                              style: TextButton.styleFrom(
+                                backgroundColor: colorScheme.surfaceVariant,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Adjust your filters or check back later.',
-                            style: TextStyle(
-                              color: colorScheme.onSurface.withOpacity(0.6),
-                              fontSize: 14,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextButton.icon(
+                              onPressed: () => _pickDate(false),
+                              icon: const Icon(Icons.calendar_today),
+                              label: Text(
+                                customEndDate.value == null
+                                    ? 'Select End Date'
+                                    : 'End: ${customEndDate.value!.toLocal().toString().split(' ')[0]}',
+                              ),
+                              style: TextButton.styleFrom(
+                                backgroundColor: colorScheme.surfaceVariant,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
                             ),
-                            textAlign: TextAlign.center,
                           ),
                         ],
-                      );
-                    }
-                    return ListView.separated(
-                      itemCount: transactions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, i) {
-                        final tx = transactions[i];
-                        return TransactionCard(tx: tx);
-                      },
-                    );
-                  },
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: allTransactionsAsync.when(
+                    loading: () => ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: 5,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, i) => const _ShimmerCard(),
+                    ),
+                    error: (e, st) => Center(child: Text('Error loading transactions: ${e.toString()}')),
+                    data: (transactions) {
+                      if (transactions.isEmpty) {
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.hourglass_empty_rounded, color: colorScheme.primary, size: 80),
+                            const SizedBox(height: 24),
+                            Text(
+                              'No Transactions Found',
+                              style: TextStyle(
+                                color: colorScheme.onSurface.withOpacity(0.7),
+                                fontSize: 18,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Adjust your filters or check back later.',
+                              style: TextStyle(
+                                color: colorScheme.onSurface.withOpacity(0.6),
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        );
+                      }
+                      return ListView.separated(
+                        itemCount: transactions.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, i) {
+                          final tx = transactions[i];
+                          return TransactionCard(tx: tx);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

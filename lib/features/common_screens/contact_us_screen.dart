@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart'; // Added for Clipboard
 import 'package:cashsify_app/theme/app_spacing.dart';
 import 'package:cashsify_app/core/config/app_config.dart';
+import 'package:cashsify_app/core/widgets/layout/custom_app_bar.dart';
 
 class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({super.key});
@@ -86,72 +88,82 @@ Future<void> _copyToClipboard(BuildContext context, String text) async {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Contact Us'),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Need help or have questions?',
-              style: textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+    return WillPopScope(
+      onWillPop: () async {
+        context.pop();
+        return false; // Prevent default back behavior
+      },
+      child: Scaffold(
+        appBar: CustomAppBar(
+          title: 'Contact Us',
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Need help or have questions?',
+                style: textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              "We're here to help you. Reach out to our support team and we'll get back to you as soon as possible.",
-              style: textTheme.bodyLarge?.copyWith(
-                height: 1.5,
-                color: colorScheme.onSurfaceVariant,
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                "We're here to help you. Reach out to our support team and we'll get back to you as soon as possible.",
+                style: textTheme.bodyLarge?.copyWith(
+                  height: 1.5,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            _buildContactOption(
-              context,
-              icon: Icons.email_outlined,
-              title: 'Email Support',
-              subtitle: 'Get help via email',
-              value: 'cashsify@gmail.com',
-              onTap: () => _launchSupportEmail(context),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _buildContactOption(
-              context,
-              icon: Icons.chat_bubble_outline,
-              title: 'WhatsApp Chat',
-              subtitle: 'Instant messaging support',
-              value: '+91 80722 23275',
-              onTap: () => _launchWhatsApp(context),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            _buildFAQSection(context),
-            const SizedBox(height: AppSpacing.xxl),
-            Center(
-              child: Column(
-                children: [
-                  Text(
-                    'Response Time: 24-48 hours (Business Days)',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+              const SizedBox(height: AppSpacing.xxl),
+              _buildContactOption(
+                context,
+                icon: Icons.email_outlined,
+                title: 'Email Support',
+                subtitle: 'Get help via email',
+                value: 'cashsify@gmail.com',
+                onTap: () => _launchSupportEmail(context),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              _buildContactOption(
+                context,
+                icon: Icons.chat_bubble_outline,
+                title: 'WhatsApp Chat',
+                subtitle: 'Instant messaging support',
+                value: '+91 80722 23275',
+                onTap: () => _launchWhatsApp(context),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              _buildFAQSection(context),
+              const SizedBox(height: AppSpacing.xxl),
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      'Response Time: 24-48 hours (Business Days)',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    '© 2025 CashSify Support',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      '© 2025 CashSify Support',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-          ],
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
         ),
       ),
     );

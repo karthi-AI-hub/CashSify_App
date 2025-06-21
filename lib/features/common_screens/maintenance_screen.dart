@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:cashsify_app/features/common_screens/contact_us_screen.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../core/providers/app_config_provider.dart';
+import 'package:go_router/go_router.dart';
 
 class MaintenanceScreen extends ConsumerStatefulWidget {
   final String? message;
@@ -253,10 +254,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                       const SizedBox(height: AppSpacing.sm),
                       TextButton.icon(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const ContactUsScreen()),
-                          );
+                          context.push('/contact-us');
                         },
                         icon: Icon(Icons.support_agent, color: colorScheme.primary),
                         label: Text(

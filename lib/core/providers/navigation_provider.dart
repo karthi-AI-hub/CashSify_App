@@ -7,6 +7,7 @@ import 'package:cashsify_app/features/ads/presentation/screens/watch_ads_screen.
 import 'package:cashsify_app/features/referrals/presentation/screens/referrals_screen.dart';
 import 'package:cashsify_app/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:cashsify_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:cashsify_app/core/widgets/layout/exit_confirmation_wrapper.dart';
 
 // Navigation state class
 class NavigationState {
@@ -43,17 +44,53 @@ class NavigationState {
   Widget getCurrentScreen() {
     switch (currentIndex) {
       case 0:
-        return const ReferralsScreen();
+        return ExitConfirmationWrapper(
+          screenIndex: 0,
+          screenTitle: 'Refer & Earn',
+          showNotifications: false,
+          showBonus: false,
+          child: const ReferralsScreen(),
+        );
       case 1:
-        return const WatchAdsScreen();
+        return ExitConfirmationWrapper(
+          screenIndex: 1,
+          screenTitle: 'Watch Ads',
+          showNotifications: false,
+          showBonus: false,
+          child: const WatchAdsScreen(),
+        );
       case 2:
-        return const DashboardScreen();
+        return ExitConfirmationWrapper(
+          screenIndex: 2,
+          screenTitle: 'Home',
+          showNotifications: true,
+          showBonus: true,
+          child: const DashboardScreen(),
+        );
       case 3:
-        return const WalletScreen();
+        return ExitConfirmationWrapper(
+          screenIndex: 3,
+          screenTitle: 'Wallet',
+          showNotifications: false,
+          showBonus: false,
+          child: const WalletScreen(),
+        );
       case 4:
-        return const ProfileScreen();
+        return ExitConfirmationWrapper(
+          screenIndex: 4,
+          screenTitle: 'Profile',
+          showNotifications: false,
+          showBonus: false,
+          child: const ProfileScreen(),
+        );
       default:
-        return const DashboardScreen();
+        return ExitConfirmationWrapper(
+          screenIndex: 2,
+          screenTitle: 'Home',
+          showNotifications: true,
+          showBonus: true,
+          child: const DashboardScreen(),
+        );
     }
   }
 }

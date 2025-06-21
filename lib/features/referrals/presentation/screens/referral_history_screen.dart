@@ -12,6 +12,10 @@ import '../../../../core/widgets/layout/loading_overlay.dart';
 import '../providers/referral_providers.dart';
 import '../../../../core/providers/navigation_provider.dart';
 import '../models/referral_history.dart';
+import '../../../../core/widgets/layout/custom_app_bar.dart';
+import '../../../../core/providers/navigation_provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:cashsify_app/core/providers/user_provider.dart';
 
 class ReferralHistoryScreen extends HookConsumerWidget {
   const ReferralHistoryScreen({super.key});
@@ -22,6 +26,7 @@ class ReferralHistoryScreen extends HookConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final loadingState = ref.watch(loadingProvider);
     final referredUsers = ref.watch(referralHistoryProvider).value ?? [];
+    final isRefreshing = useState(false);
 
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -30,111 +35,118 @@ class ReferralHistoryScreen extends HookConsumerWidget {
       return null;
     }, []);
 
-    return Scaffold(
-      backgroundColor: colorScheme.background,
-      body: LoadingOverlay(
-        isLoading: loadingState == LoadingState.loading,
-        message: loadingState == LoadingState.loading ? 'Loading referral history...' : null,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isSmallScreen = constraints.maxWidth < 600;
-            final padding = isSmallScreen ? AppSpacing.md : AppSpacing.lg;
+    return WillPopScope(
+      onWillPop: () async {
+        context.go('/referrals');
+        return false; // Prevent default back behavior
+      },
+      child: Scaffold(
+        backgroundColor: colorScheme.background,
+        appBar: CustomAppBar(
+          title: 'Referral History',
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/referrals'),
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
+        ),
+        body: LoadingOverlay(
+          isLoading: loadingState == LoadingState.loading,
+          message: loadingState == LoadingState.loading ? 'Loading referral history...' : null,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isSmallScreen = constraints.maxWidth < 600;
+              final padding = isSmallScreen ? AppSpacing.md : AppSpacing.lg;
 
-            return RefreshIndicator(
-              onRefresh: () async {
-                ref.refresh(referralHistoryProvider);
-              },
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(padding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(context, isSmallScreen),
-                    SizedBox(height: padding),
-                    referredUsers.isEmpty
-                        ? _buildEmptyState(context, isSmallScreen)
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: referredUsers.length,
-                            itemBuilder: (context, index) {
-                              final user = referredUsers[index];
-                              return _AnimatedFadeIn(
-                                delay: 100 * index,
-                                child: _buildReferralCard(context, user, isSmallScreen),
-                              );
-                            },
+              return RefreshIndicator(
+                onRefresh: () async {
+                  isRefreshing.value = true;
+                  try {
+                    // Refresh all referral-related data
+                    ref.refresh(referralHistoryProvider);
+                    ref.refresh(referralStatsProvider);
+                    ref.refresh(referralCodeProvider);
+                    
+                    // Also refresh user data to get latest referral count
+                    await ref.read(userProvider.notifier).refreshUser();
+                    
+                    // Show success message
+                    if (context.mounted) {
+                      final updatedUsers = ref.read(referralHistoryProvider).value ?? [];
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Refreshed! Found ${updatedUsers.length} referral${updatedUsers.length == 1 ? '' : 's'}',
                           ),
-                  ],
+                          behavior: SnackBarBehavior.floating,
+                          duration: const Duration(seconds: 2),
+                          backgroundColor: colorScheme.primary,
+                        ),
+                      );
+                    }
+                  } finally {
+                    isRefreshing.value = false;
+                  }
+                },
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(padding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Refresh indicator
+                      if (isRefreshing.value)
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                          margin: EdgeInsets.only(bottom: AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                                ),
+                              ),
+                              SizedBox(width: AppSpacing.sm),
+                              Text(
+                                'Refreshing referral data...',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      SizedBox(height: padding),
+                      referredUsers.isEmpty
+                          ? _buildEmptyState(context, isSmallScreen)
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: referredUsers.length,
+                              itemBuilder: (context, index) {
+                                final user = referredUsers[index];
+                                return _AnimatedFadeIn(
+                                  delay: 100 * index,
+                                  child: _buildReferralCard(context, user, isSmallScreen),
+                                );
+                              },
+                            ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, bool isSmallScreen) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Container(
-      margin: EdgeInsets.zero,
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: colorScheme.outline.withOpacity(0.08),
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
-        vertical: isSmallScreen ? AppSpacing.md : AppSpacing.lg,
-      ),
-      child: Row(
-        children: [
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                padding: EdgeInsets.all(isSmallScreen ? AppSpacing.sm : AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: colorScheme.primary,
-                  size: isSmallScreen ? 20 : 24,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(
-              'Referral History',
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-                fontSize: isSmallScreen ? 20 : 24,
-                letterSpacing: 0.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          SizedBox(width: AppSpacing.md * 2), // For symmetry
-        ],
       ),
     );
   }

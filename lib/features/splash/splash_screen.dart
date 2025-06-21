@@ -3,6 +3,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../core/providers/network_provider.dart';
 import '../../core/providers/app_config_provider.dart';
+import '../../core/providers/app_state_provider.dart';
+import '../../core/providers/navigation_provider.dart';
 import '../../core/services/supabase_service.dart';
 import '../../core/services/user_service.dart';
 import '../common_screens/no_internet_screen.dart';
@@ -64,11 +66,38 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
         SupabaseService().client.from('users').update({
           'last_login': DateTime.now().toIso8601String(),
         }).eq('id', user.id);
+        
+        // Check for saved app state and restore navigation
+        _restoreAppState();
+        
         context.go('/dashboard');
       } else {
         print('Navigating to /');
         context.go('/'); // Onboarding
       }
+    }
+  }
+
+  void _restoreAppState() {
+    try {
+      final appState = ref.read(appStateProvider.notifier);
+      final savedNavigationState = appState.loadNavigationState();
+      
+      if (savedNavigationState != null) {
+        final currentIndex = savedNavigationState['currentIndex'] as int?;
+        final title = savedNavigationState['title'] as String?;
+        final showNotifications = savedNavigationState['showNotifications'] as bool? ?? false;
+        final showBonus = savedNavigationState['showBonus'] as bool? ?? false;
+        
+        if (currentIndex != null && title != null) {
+          // Restore navigation state
+          ref.read(navigationProvider.notifier).setIndex(currentIndex);
+          print('Restored app state: index=$currentIndex, title=$title');
+        }
+      }
+    } catch (e) {
+      print('Error restoring app state: $e');
+      // Continue with default navigation if restoration fails
     }
   }
 

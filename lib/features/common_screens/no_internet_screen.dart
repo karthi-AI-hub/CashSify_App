@@ -7,6 +7,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_spacing.dart';
 import 'package:cashsify_app/features/common_screens/contact_us_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class NoInternetScreen extends StatefulWidget {
   final VoidCallback? onRetry;
@@ -224,10 +225,7 @@ class _NoInternetScreenState extends State<NoInternetScreen> {
                     // Additional help option
                     TextButton.icon(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const ContactUsScreen()),
-                        );
+                        context.push('/contact-us');
                       },
                       icon: Icon(Icons.support_agent, color: colorScheme.primary),
                       label: Text(

@@ -8,6 +8,7 @@ import 'package:cashsify_app/core/services/supabase_service.dart';
 import 'package:cashsify_app/core/utils/logger.dart';
 import 'package:cashsify_app/core/utils/image_utils.dart';
 import 'package:cashsify_app/core/utils/performance_utils.dart';
+import 'package:cashsify_app/core/utils/storage_viewer.dart';
 import 'package:cashsify_app/theme/theme_provider.dart';
 import 'package:cashsify_app/theme/app_theme.dart';
 import 'package:cashsify_app/features/ads/presentation/providers/earnings_provider.dart';
@@ -15,9 +16,26 @@ import 'package:cashsify_app/features/ads/data/services/ad_service.dart';
 import 'package:cashsify_app/core/providers/network_provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cashsify_app/features/common_screens/no_internet_screen.dart';
+import 'dart:io';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Check for debug commands
+  if (args.contains('--view-storage')) {
+    await StorageViewer.printAllData();
+    exit(0);
+  }
+  
+  if (args.contains('--list-keys')) {
+    await StorageViewer.listKeys();
+    exit(0);
+  }
+  
+  if (args.contains('--clear-storage')) {
+    await StorageViewer.clearAllData();
+    exit(0);
+  }
   
   // Initialize logging
   AppLogger.init();
@@ -85,7 +103,7 @@ class MyApp extends ConsumerWidget {
       title: AppConfig.appName,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: themeProvider.themeMode,
+      themeMode: ThemeMode.light,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       showPerformanceOverlay: false,

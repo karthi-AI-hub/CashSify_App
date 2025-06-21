@@ -17,6 +17,7 @@ import 'package:cashsify_app/core/providers/loading_provider.dart';
 import 'package:cashsify_app/core/providers/earnings_provider.dart';
 import 'package:cashsify_app/core/providers/user_provider.dart';
 import 'package:cashsify_app/theme/theme_provider.dart';
+import 'package:go_router/go_router.dart';
 
 // State providers for verification
 final captchaTextProvider = StateProvider<String>((ref) => generateCaptcha());
@@ -71,7 +72,10 @@ class VerificationScreen extends HookConsumerWidget {
     }, [failed]);
 
     return WillPopScope(
-      onWillPop: () async => false,
+      onWillPop: () async {
+        context.pop(false);
+        return false; // Prevent default back behavior
+      },
       child: LoadingOverlay(
         isLoading: loadingState == LoadingState.loading,
         message: loadingState == LoadingState.loading ? 'Verifying...' : null,
@@ -396,7 +400,7 @@ class VerificationScreen extends HookConsumerWidget {
       child: isSuccess.value
           ? SuccessAnimation(
               key: const ValueKey('success'),
-              onComplete: () => Navigator.pop(context, true),
+              onComplete: () => context.pop(true),
             )
           : SizedBox(
               width: double.infinity,
@@ -449,7 +453,7 @@ class VerificationScreen extends HookConsumerWidget {
       Future.delayed(const Duration(seconds: 2), () {
         if (context.mounted) {
           Navigator.of(context, rootNavigator: true).pop(); // Close dialog
-          Navigator.of(context).pop(false); // Pop VerificationScreen, return to WatchAdsScreen
+          context.pop(false); // Pop VerificationScreen, return to WatchAdsScreen
         }
       });
       return;

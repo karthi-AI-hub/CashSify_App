@@ -85,7 +85,7 @@ class ReferralsScreen extends HookConsumerWidget {
                     SizedBox(height: padding),
                     _buildStatsSection(context, ref, isSmallScreen),
                     SizedBox(height: padding),
-                    _buildBottomCTAs(context, isSmallScreen),
+                    _buildBottomCTAs(context, ref, isSmallScreen),
                     SizedBox(height: AppSpacing.lg),
                   ],
                 ),
@@ -263,7 +263,7 @@ class ReferralsScreen extends HookConsumerWidget {
             SizedBox(height: AppSpacing.lg),
             CustomButton(
               onPressed: () => _shareReferral(context, ref),
-              text: '🎁 Invite Friends Now',
+              text: 'Invite Friends Now',
               isFullWidth: true,
               icon: Icon(Icons.person_add, color: colorScheme.onPrimary),
             ),
@@ -661,12 +661,7 @@ class ReferralsScreen extends HookConsumerWidget {
                 SizedBox(height: AppSpacing.lg),
                 CustomButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ReferralHistoryScreen(),
-                      ),
-                    );
+                    context.push('/referral-history');
                   },
                   text: 'View Referral History',
                   isFullWidth: true,
@@ -682,16 +677,14 @@ class ReferralsScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildBottomCTAs(BuildContext context, bool isSmallScreen) {
+  Widget _buildBottomCTAs(BuildContext context, WidgetRef ref, bool isSmallScreen) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       children: [
         CustomButton(
-          onPressed: () {
-            // TODO: Implement invite more friends
-          },
-          text: '📤 Invite More Friends',
+          onPressed: () => _shareReferral(context, ref),
+          text: 'Invite More Friends',
           isFullWidth: true,
           icon: Icon(Icons.person_add, color: colorScheme.onPrimary),
         ),

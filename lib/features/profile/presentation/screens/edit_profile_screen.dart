@@ -16,6 +16,7 @@ import 'package:cashsify_app/core/models/user_state.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cashsify_app/core/services/supabase_service.dart';
 import 'dart:io';
+import 'package:cashsify_app/core/widgets/layout/custom_app_bar.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -270,7 +271,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
       );
 
       // Pop back to profile screen with result
-      Navigator.pop(context, true);
+      context.pop(true);
     } catch (e) {
       if (!mounted || _isDisposed) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -291,329 +292,334 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
     final loadingState = ref.watch(loadingProvider);
     final userNotifier = ref.read(userProvider.notifier);
 
-    return LoadingOverlay(
-      isLoading: loadingState == LoadingState.loading || _isSaving,
-      message: (loadingState == LoadingState.loading || _isSaving) ? 'Saving profile...' : null,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Edit Profile'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
+    return WillPopScope(
+      onWillPop: () async {
+        context.go('/profile');
+        return false; // Prevent default back behavior
+      },
+      child: LoadingOverlay(
+        isLoading: loadingState == LoadingState.loading || _isSaving,
+        message: (loadingState == LoadingState.loading || _isSaving) ? 'Saving profile...' : null,
+        child: Scaffold(
+          appBar: CustomAppBar(
+            title: 'Edit Profile',
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.go('/profile'),
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
           ),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Profile Picture Section
-                _buildAnimatedSection(
-                  Center(
-                    child: Stack(
-                      children: [
-                        Hero(
-                          tag: 'profile_picture',
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.primary.withOpacity(0.2),
-                                  blurRadius: 10,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                            child: CircleAvatar(
-                              radius: 48,
-                              backgroundColor: colorScheme.primary,
-                              backgroundImage: _pickedImage != null
-                                  ? FileImage(File(_pickedImage!.path)) as ImageProvider<Object>
-                                  : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                                      ? NetworkImage(_profileImageUrl!) as ImageProvider<Object>
-                                      : null),
-                              child: (_pickedImage == null && (_profileImageUrl == null || _profileImageUrl!.isEmpty))
-                                  ? Text(
-                                      (_nameController.text.isNotEmpty) ? _nameController.text[0].toUpperCase() : 'U',
-                                      style: textTheme.headlineLarge?.copyWith(
-                                        color: colorScheme.onPrimary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    )
-                                  : null,
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile Picture Section
+                  _buildAnimatedSection(
+                    Center(
+                      child: Stack(
+                        children: [
+                          Hero(
+                            tag: 'profile_picture',
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: colorScheme.primary.withOpacity(0.2),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: CircleAvatar(
+                                radius: 48,
+                                backgroundColor: colorScheme.primary,
+                                backgroundImage: _pickedImage != null
+                                    ? FileImage(File(_pickedImage!.path)) as ImageProvider<Object>
+                                    : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                                        ? NetworkImage(_profileImageUrl!) as ImageProvider<Object>
+                                        : null),
+                                child: (_pickedImage == null && (_profileImageUrl == null || _profileImageUrl!.isEmpty))
+                                    ? Text(
+                                        (_nameController.text.isNotEmpty) ? _nameController.text[0].toUpperCase() : 'U',
+                                        style: textTheme.headlineLarge?.copyWith(
+                                          color: colorScheme.onPrimary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : null,
+                              ),
                             ),
                           ),
-                        ),
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Material(
-                            color: colorScheme.primary,
-                            borderRadius: BorderRadius.circular(20),
-                            child: InkWell(
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Material(
+                              color: colorScheme.primary,
                               borderRadius: BorderRadius.circular(20),
-                              onTap: _pickImage,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.primary,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: colorScheme.primary.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  Icons.camera_alt,
-                                  size: 20,
-                                  color: colorScheme.onPrimary,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: _pickImage,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: colorScheme.primary.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    Icons.camera_alt,
+                                    size: 20,
+                                    color: colorScheme.onPrimary,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-
-                // Account Information Section
-                _buildAnimatedSection(
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.person_outline,
-                            color: colorScheme.primary,
-                            size: 24,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Text(
-                            'Account Information',
-                            style: textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
                         ],
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      CustomTextField(
-                        controller: _nameController,
-                        label: 'Full Name',
-                        prefix: Icon(
-                          Icons.person_outline,
-                          color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Account Information Section
+                  _buildAnimatedSection(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.person_outline,
+                              color: colorScheme.primary,
+                              size: 24,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Text(
+                              'Account Information',
+                              style: textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
                         ),
-                        error: _nameController.text.isEmpty ? 'Name is required' : _validateName(_nameController.text),
-                        onChanged: (_) => _onFieldChanged(),
-                        validator: _validateName,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      // Email (read-only)
-                      CustomTextField(
-                        controller: TextEditingController(text: _email ?? ''),
-                        label: 'Email Address',
-                        prefix: Icon(
-                          Icons.email_outlined,
-                          color: colorScheme.primary,
-                        ),
-                        enabled: false,
-                        filled: true,
-                        fillColor: colorScheme.surfaceVariant.withOpacity(0.5),
-                        validator: (value) {
-                          if ((_email ?? '').isEmpty) {
-                            return 'Email is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      // Phone (read-only)
-                      CustomTextField(
-                        enabled: false,
-                        label: 'Mobile Number',
-                        prefix: Icon(
-                          Icons.phone_android,
-                          color: colorScheme.primary,
-                        ),
-                        controller: TextEditingController(text: _phoneNumber ?? ''),
-                        hint: 'Primary identity - cannot be changed',
-                        filled: true,
-                        fillColor: colorScheme.surfaceVariant.withOpacity(0.5),
-                        validator: (value) {
-                          if ((_phoneNumber ?? '').isEmpty) {
-                            return 'Mobile number is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      DropdownButtonFormField<String>(
-                        value: _selectedGender,
-                        decoration: InputDecoration(
-                          labelText: 'Gender',
-                          prefixIcon: Icon(
+                        const SizedBox(height: AppSpacing.md),
+                        CustomTextField(
+                          controller: _nameController,
+                          label: 'Full Name',
+                          prefix: Icon(
                             Icons.person_outline,
                             color: colorScheme.primary,
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          error: _nameController.text.isEmpty ? 'Name is required' : _validateName(_nameController.text),
+                          onChanged: (_) => _onFieldChanged(),
+                          validator: _validateName,
                         ),
-                        items: ['Male', 'Female', 'Other']
-                            .map((gender) => DropdownMenuItem(
-                                  value: gender,
-                                  child: Text(gender),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              _selectedGender = value;
-                              _hasChanged = true;
-                            });
-                          }
-                        },
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      InkWell(
-                        onTap: () async {
-                          await _selectDate(context);
-                          _onFieldChanged();
-                        },
-                        child: InputDecorator(
+                        const SizedBox(height: AppSpacing.md),
+                        // Email (read-only)
+                        CustomTextField(
+                          controller: TextEditingController(text: _email ?? ''),
+                          label: 'Email Address',
+                          prefix: Icon(
+                            Icons.email_outlined,
+                            color: colorScheme.primary,
+                          ),
+                          enabled: false,
+                          filled: true,
+                          fillColor: colorScheme.surfaceVariant.withOpacity(0.5),
+                          validator: (value) {
+                            if ((_email ?? '').isEmpty) {
+                              return 'Email is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        // Phone (read-only)
+                        CustomTextField(
+                          enabled: false,
+                          label: 'Mobile Number',
+                          prefix: Icon(
+                            Icons.phone_android,
+                            color: colorScheme.primary,
+                          ),
+                          controller: TextEditingController(text: _phoneNumber ?? ''),
+                          hint: 'Primary identity - cannot be changed',
+                          filled: true,
+                          fillColor: colorScheme.surfaceVariant.withOpacity(0.5),
+                          validator: (value) {
+                            if ((_phoneNumber ?? '').isEmpty) {
+                              return 'Mobile number is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        DropdownButtonFormField<String>(
+                          value: _selectedGender,
                           decoration: InputDecoration(
-                            labelText: 'Date of Birth',
+                            labelText: 'Gender',
                             prefixIcon: Icon(
-                              Icons.calendar_today,
+                              Icons.person_outline,
                               color: colorScheme.primary,
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: Text(
-                            _selectedDate != null
-                                ? _dateFormat.format(_selectedDate!)
-                                : 'Select Date',
-                            style: textTheme.bodyLarge,
-                          ),
+                          items: ['Male', 'Female', 'Other']
+                              .map((gender) => DropdownMenuItem(
+                                    value: gender,
+                                    child: Text(gender),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedGender = value;
+                                _hasChanged = true;
+                              });
+                            }
+                          },
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-
-                // Payment Details Section
-                _buildAnimatedSection(
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.payment_outlined,
-                            color: colorScheme.primary,
-                            size: 24,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Text(
-                            'Payment Details',
-                            style: textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.onSurface,
+                        const SizedBox(height: AppSpacing.md),
+                        InkWell(
+                          onTap: () async {
+                            await _selectDate(context);
+                            _onFieldChanged();
+                          },
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: 'Date of Birth',
+                              prefixIcon: Icon(
+                                Icons.calendar_today,
+                                color: colorScheme.primary,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              _selectedDate != null
+                                  ? _dateFormat.format(_selectedDate!)
+                                  : 'Select Date',
+                              style: textTheme.bodyLarge,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      CustomTextField(
-                        controller: _bankAccountController,
-                        label: 'Bank Account Number',
-                        prefix: Icon(
-                          Icons.account_balance,
-                          color: colorScheme.primary,
                         ),
-                        keyboardType: TextInputType.number,
-                        error: _validateBankAccount(_bankAccountController.text),
-                        onChanged: (_) => _onFieldChanged(),
-                        validator: _validateBankAccount,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      CustomTextField(
-                        controller: _accountHolderController,
-                        label: 'Account Holder Name',
-                        prefix: Icon(
-                          Icons.account_box,
-                          color: colorScheme.primary,
-                        ),
-                        onChanged: (_) => _onFieldChanged(),
-                        validator: (value) => null,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      CustomTextField(
-                        controller: _ifscController,
-                        label: 'IFSC Code',
-                        prefix: Icon(
-                          Icons.code,
-                          color: colorScheme.primary,
-                        ),
-                        inputFormatters: [
-                          TextInputFormatter.withFunction((oldValue, newValue) {
-                            return TextEditingValue(
-                              text: newValue.text.toUpperCase(),
-                              selection: newValue.selection,
-                            );
-                          }),
-                          FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
-                        ],
-                        error: _validateIFSC(_ifscController.text),
-                        onChanged: (_) => _onFieldChanged(),
-                        validator: _validateIFSC,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      CustomTextField(
-                        controller: _upiController,
-                        label: 'UPI ID',
-                        prefix: Icon(
-                          Icons.payment,
-                          color: colorScheme.primary,
-                        ),
-                        error: _validateUPI(_upiController.text),
-                        onChanged: (_) => _onFieldChanged(),
-                        validator: _validateUPI,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: AppSpacing.xl),
 
-                // Save Changes Button
-                _buildAnimatedSection(
-                  CustomButton(
-                    onPressed: !_hasChanged || _isSaving
-                        ? null
-                        : _saveProfile,
-                    text: _isSaving ? 'Saving...' : 'Save Changes',
-                    isFullWidth: true,
-                    isLoading: _isSaving,
+                  // Payment Details Section
+                  _buildAnimatedSection(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.payment_outlined,
+                              color: colorScheme.primary,
+                              size: 24,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Text(
+                              'Payment Details',
+                              style: textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        CustomTextField(
+                          controller: _bankAccountController,
+                          label: 'Bank Account Number',
+                          prefix: Icon(
+                            Icons.account_balance,
+                            color: colorScheme.primary,
+                          ),
+                          keyboardType: TextInputType.number,
+                          error: _validateBankAccount(_bankAccountController.text),
+                          onChanged: (_) => _onFieldChanged(),
+                          validator: _validateBankAccount,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        CustomTextField(
+                          controller: _accountHolderController,
+                          label: 'Account Holder Name',
+                          prefix: Icon(
+                            Icons.account_box,
+                            color: colorScheme.primary,
+                          ),
+                          onChanged: (_) => _onFieldChanged(),
+                          validator: (value) => null,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        CustomTextField(
+                          controller: _ifscController,
+                          label: 'IFSC Code',
+                          prefix: Icon(
+                            Icons.code,
+                            color: colorScheme.primary,
+                          ),
+                          inputFormatters: [
+                            TextInputFormatter.withFunction((oldValue, newValue) {
+                              return TextEditingValue(
+                                text: newValue.text.toUpperCase(),
+                                selection: newValue.selection,
+                              );
+                            }),
+                            FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                          ],
+                          error: _validateIFSC(_ifscController.text),
+                          onChanged: (_) => _onFieldChanged(),
+                          validator: _validateIFSC,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        CustomTextField(
+                          controller: _upiController,
+                          label: 'UPI ID',
+                          prefix: Icon(
+                            Icons.payment,
+                            color: colorScheme.primary,
+                          ),
+                          error: _validateUPI(_upiController.text),
+                          onChanged: (_) => _onFieldChanged(),
+                          validator: _validateUPI,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-              ],
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Save Changes Button
+                  _buildAnimatedSection(
+                    CustomButton(
+                      onPressed: !_hasChanged || _isSaving
+                          ? null
+                          : _saveProfile,
+                      text: _isSaving ? 'Saving...' : 'Save Changes',
+                      isFullWidth: true,
+                      isLoading: _isSaving,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+              ),
             ),
           ),
         ),

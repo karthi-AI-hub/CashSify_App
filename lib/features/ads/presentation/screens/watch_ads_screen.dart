@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:math' as math;
 import '../../../../theme/app_theme.dart';
 import 'package:cashsify_app/features/ads/presentation/screens/verification_screen.dart';
@@ -56,8 +57,15 @@ class WatchAdsScreen extends HookConsumerWidget {
       if (isLimit) {
         confettiController.play();
       }
-      return confettiController.dispose;
+      return null;
     }, [isLimit]);
+
+    // Dispose confetti controller when widget is disposed
+    useEffect(() {
+      return () {
+        confettiController.dispose();
+      };
+    }, []);
 
     return Stack(
       children: [
@@ -225,7 +233,7 @@ class WatchAdsScreen extends HookConsumerWidget {
           if (!isLimit) ...[
             const SizedBox(height: 8),
             Text(
-              'Complete ${(20 - (progress * 20).toInt())} more ads to earn bonus',
+              'Complete ${(20 - (progress * 20).toInt())} more ads to earn coins',
               style: textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onPrimary.withOpacity(0.8),
                 fontWeight: FontWeight.w500,
@@ -285,45 +293,14 @@ class WatchAdsScreen extends HookConsumerWidget {
                       ),
                       key: const ValueKey('wait'),
                     )
-                  : isLimit
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: colorScheme.error.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: colorScheme.error.withOpacity(0.3),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.timer_off_rounded,
-                                color: colorScheme.error,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Daily limit reached',
-                                style: textTheme.titleMedium?.copyWith(
-                                  color: colorScheme.error,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : Text(
-                          'Ready to watch?',
-                          style: textTheme.titleMedium?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          key: const ValueKey('tap'),
-                        ),
+                  : Text(
+                      'Ready to watch?',
+                      style: textTheme.titleMedium?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      key: const ValueKey('tap'),
+                    ),
             ),
             const SizedBox(height: 28),
             AnimatedSwitcher(
@@ -365,6 +342,9 @@ class WatchAdsScreen extends HookConsumerWidget {
                               style: textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
+                                color: isLimit 
+                                    ? colorScheme.onSurface 
+                                    : colorScheme.onPrimary,
                               ),
                             ),
                           ],
@@ -570,7 +550,7 @@ class WatchAdsScreen extends HookConsumerWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                "You've completed today's ads. Come back tomorrow for more!",
+                                "You've completed today's task. Come back tomorrow for more!",
                                 style: textTheme.bodyMedium?.copyWith(
                                   color: colorScheme.onSurface,
                                 ),
@@ -720,21 +700,7 @@ class WatchAdsScreen extends HookConsumerWidget {
     }
 
     if (context.mounted) {
-      final result = await Navigator.push(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              const VerificationScreen(),
-          transitionsBuilder:
-              (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 300),
-        ),
-      );
+      final result = await context.push<bool>('/verification');
 
       if (result == true) {
         // After successful verification

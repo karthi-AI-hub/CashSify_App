@@ -4,6 +4,8 @@ import '../../../../core/services/supabase_service.dart';
 import '../../../../core/providers/user_provider.dart';
 import '../../../../theme/app_spacing.dart';
 import '../../../../core/widgets/layout/custom_card.dart';
+import '../../../../core/widgets/layout/custom_app_bar.dart';
+import 'package:go_router/go_router.dart';
 
 class ForgotPasswordScreen extends HookConsumerWidget {
   const ForgotPasswordScreen({super.key});
@@ -38,7 +40,7 @@ class ForgotPasswordScreen extends HookConsumerWidget {
       try {
         await ref.read(userServiceProvider).supabase.resetPassword(emailController.text);
         showSnackBar('Password reset email sent!');
-        Navigator.pop(context);
+        context.pop();
       } catch (e) {
         showSnackBar('Failed to send reset email', success: false);
       } finally {
@@ -46,42 +48,50 @@ class ForgotPasswordScreen extends HookConsumerWidget {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Forgot Password'),
-        leading: BackButton(),
-        backgroundColor: colorScheme.surface,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: CustomCard(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Enter your email to reset password', style: textTheme.titleMedium),
-                    const SizedBox(height: AppSpacing.lg),
-                    TextFormField(
-                      controller: emailController,
-                      decoration: const InputDecoration(labelText: 'Email'),
-                      validator: (val) => val == null || !val.contains('@') ? 'Enter a valid email' : null,
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : handleForgotPassword,
-                        child: isLoading
-                            ? const CircularProgressIndicator()
-                            : const Text('Send Reset Email'),
+    return WillPopScope(
+      onWillPop: () async {
+        context.go('/profile');
+        return false; // Prevent default back behavior
+      },
+      child: Scaffold(
+        appBar: CustomAppBar(
+          title: 'Forgot Password',
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/profile'),
+            color: colorScheme.onPrimary,
+          ),
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: CustomCard(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Enter your email to reset password', style: textTheme.titleMedium),
+                      const SizedBox(height: AppSpacing.lg),
+                      TextFormField(
+                        controller: emailController,
+                        decoration: const InputDecoration(labelText: 'Email'),
+                        validator: (val) => val == null || !val.contains('@') ? 'Enter a valid email' : null,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.xl),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : handleForgotPassword,
+                          child: isLoading
+                              ? const CircularProgressIndicator()
+                              : const Text('Send Reset Email'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

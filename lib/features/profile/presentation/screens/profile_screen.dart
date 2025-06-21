@@ -21,7 +21,9 @@ import 'package:cashsify_app/core/services/supabase_service.dart';
 import 'package:cashsify_app/core/models/user_state.dart';
 import 'package:flutter/rendering.dart';
 import 'package:cashsify_app/core/widgets/optimized_image.dart';
-import 'dart:async';
+import 'package:cashsify_app/core/widgets/feedback/custom_dialog.dart';
+import 'package:cashsify_app/core/widgets/form/custom_button.dart';
+import 'package:cashsify_app/core/providers/app_state_provider.dart';
 import 'package:cashsify_app/core/config/app_config.dart';
 import 'change_password_screen.dart';
 import 'forgot_password_screen.dart';
@@ -223,13 +225,10 @@ class ProfileScreen extends HookConsumerWidget {
                   child: GestureDetector(
                     onTap: () async {
                       // Navigate to edit screen and wait for result
-                      final result = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(builder: (context) => const EditProfileScreen()),
-                      );
+                      final result = await context.push<bool>('/edit-profile');
                       
                       // If profile was updated, refresh the data
-                      if (result == true && context.mounted) {
+                      if (result == true) {
                         await ref.read(userProvider.notifier).refreshUser();
                       }
                     },
@@ -438,10 +437,7 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.edit,
             'Edit Profile',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const EditProfileScreen()),
-            ),
+            onTap: () => context.push('/edit-profile'),
           ),
           Divider(height: 1),
           _settingsTile(
@@ -450,23 +446,20 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.lock,
             'Change Password',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
-            ),
+            onTap: () => context.push('/change-password'),
           ),
-          Divider(height: 1),
-          _settingsTile(
-            context,
-            colorScheme,
-            textTheme,
-            Icons.palette,
-            'Dark Theme',
-            trailing: Switch(
-              value: isDarkMode,
-              onChanged: (value) => themeNotifier.toggleTheme(),
-            ),
-          ),
+          // Divider(height: 1),
+          // _settingsTile(
+          //   context,
+          //   colorScheme,
+          //   textTheme,
+          //   Icons.palette,
+          //   'Dark Theme',
+          //   trailing: Switch(
+          //     value: isDarkMode,
+          //     onChanged: (value) => themeNotifier.toggleTheme(),
+          //   ),
+          // ),
           Divider(height: 1),
           _settingsTile(
             context,
@@ -474,10 +467,7 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.support_agent,
             'Contact Us',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ContactUsScreen()),
-            ),
+            onTap: () => context.push('/contact-us'),
           ),
           Divider(height: 1),
           _settingsTile(
@@ -486,10 +476,7 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.help_outline,
             'FAQ',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const FAQScreen()),
-            ),
+            onTap: () => context.push('/faq'),
           ),
         ],
       ),
@@ -513,10 +500,7 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.delete_forever,
             'Delete Account',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const DeleteAccountScreen()),
-            ),
+            onTap: () => context.push('/delete-account'),
             textColor: colorScheme.error,
             iconColor: colorScheme.error,
           ),
@@ -527,10 +511,7 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.lock_reset,
             'Forgot Password',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
-            ),
+            onTap: () => context.push('/forgot-password'),
           ),
           Divider(height: 1),
           _settingsTile(
@@ -614,10 +595,7 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.description,
             'Terms & Conditions',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const TermsScreen()),
-            ),
+            onTap: () => context.push('/terms'),
           ),
           Divider(height: 1),
           _settingsTile(
@@ -626,10 +604,7 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.privacy_tip,
             'Privacy Policy',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
-            ),
+            onTap: () => context.push('/privacy-policy'),
           ),
           Divider(height: 1),
           _settingsTile(
@@ -638,10 +613,7 @@ class ProfileScreen extends HookConsumerWidget {
             textTheme,
             Icons.info,
             'About Us',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AboutUsScreen()),
-            ),
+            onTap: () => context.push('/about-us'),
           ),
         ],
       ),

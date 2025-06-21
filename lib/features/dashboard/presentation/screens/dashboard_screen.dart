@@ -9,9 +9,10 @@ import 'package:cashsify_app/core/widgets/layout/loading_overlay.dart';
 import 'package:cashsify_app/core/providers/loading_provider.dart';
 import 'package:cashsify_app/core/providers/user_provider.dart';
 import 'package:cashsify_app/core/providers/earnings_provider.dart';
-import 'package:cashsify_app/core/models/user_state.dart';
-import 'package:cashsify_app/core/models/earnings_state.dart';
-import 'package:cashsify_app/core/services/earnings_service.dart';
+import '../../../../core/models/user_state.dart';
+import '../../../../core/models/earnings_state.dart';
+import '../../../../core/services/earnings_service.dart';
+import 'package:go_router/go_router.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -75,7 +76,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     if (mounted) {
-      Navigator.pushNamed(context, '/ad');
+      context.push('/ad');
     }
   }
 

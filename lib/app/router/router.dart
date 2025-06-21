@@ -19,6 +19,18 @@ import 'package:cashsify_app/features/wallet/presentation/screens/withdraw_scree
 import 'package:cashsify_app/features/wallet/presentation/screens/transaction_history_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cashsify_app/features/splash/splash_screen.dart';
+import 'package:cashsify_app/features/profile/presentation/screens/edit_profile_screen.dart';
+import 'package:cashsify_app/features/profile/presentation/screens/change_password_screen.dart';
+import 'package:cashsify_app/features/profile/presentation/screens/forgot_password_screen.dart' as profile_forgot;
+import 'package:cashsify_app/features/referrals/presentation/screens/referral_history_screen.dart';
+import 'package:cashsify_app/features/common_screens/contact_us_screen.dart';
+import 'package:cashsify_app/features/common_screens/faq_screen.dart';
+import 'package:cashsify_app/features/common_screens/terms_screen.dart';
+import 'package:cashsify_app/features/common_screens/privacy_policy_screen.dart';
+import 'package:cashsify_app/features/profile/presentation/screens/about_us_screen.dart';
+import 'package:cashsify_app/features/profile/presentation/screens/delete_account_screen.dart';
+import 'package:cashsify_app/features/profile/presentation/screens/debug_storage_screen.dart';
+import 'package:cashsify_app/features/ads/presentation/screens/verification_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -130,6 +142,66 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/transaction-history',
         name: 'transaction-history',
         builder: (context, state) => const TransactionHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/edit-profile',
+        name: 'edit-profile',
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/change-password',
+        name: 'change-password',
+        builder: (context, state) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        name: 'forgot-password',
+        builder: (context, state) => const profile_forgot.ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/referral-history',
+        name: 'referral-history',
+        builder: (context, state) => const ReferralHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/contact-us',
+        name: 'contact-us',
+        builder: (context, state) => const ContactUsScreen(),
+      ),
+      GoRoute(
+        path: '/faq',
+        name: 'faq',
+        builder: (context, state) => const FAQScreen(),
+      ),
+      GoRoute(
+        path: '/terms',
+        name: 'terms',
+        builder: (context, state) => const TermsScreen(),
+      ),
+      GoRoute(
+        path: '/privacy-policy',
+        name: 'privacy-policy',
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: '/about-us',
+        name: 'about-us',
+        builder: (context, state) => const AboutUsScreen(),
+      ),
+      GoRoute(
+        path: '/delete-account',
+        name: 'delete-account',
+        builder: (context, state) => const DeleteAccountScreen(),
+      ),
+      GoRoute(
+        path: '/debug-storage',
+        name: 'debug-storage',
+        builder: (context, state) => const DebugStorageScreen(),
+      ),
+      GoRoute(
+        path: '/verification',
+        name: 'verification',
+        builder: (context, state) => const VerificationScreen(),
       ),
     ],
   );
