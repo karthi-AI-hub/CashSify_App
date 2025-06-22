@@ -106,17 +106,19 @@ class WatchAdsScreen extends HookConsumerWidget {
                             delay: 100,
                             child: isLoading
                                 ? const _ShimmerLoadingCard()
-                                : _buildTimerCard(
-                                    context,
-                                    colorScheme,
-                                    textTheme,
-                                    isAdPlaying,
-                                    timerSeconds,
-                                    ref,
-                                    pulseController,
-                                    isLimit,
-                                    adsWatchedToday,
-                                  ),
+                                : isLimit
+                                    ? const SizedBox.shrink()
+                                    : _buildTimerCard(
+                                        context,
+                                        colorScheme,
+                                        textTheme,
+                                        isAdPlaying,
+                                        timerSeconds,
+                                        ref,
+                                        pulseController,
+                                        isLimit,
+                                        adsWatchedToday,
+                                      ),
                           ),
                           SizedBox(height: isSmallScreen ? 24 : 32),
                           _AnimatedFadeIn(

@@ -32,25 +32,6 @@ class WalletScreen extends HookConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 32),
-              // Header
-              Text(
-                'My Wallet',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 28,
-                  color: colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Track your coins and rewards',
-                style: TextStyle(
-                  color: colorScheme.onSurface.withOpacity(0.7),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
               const SizedBox(height: 24),
               // Coin Balance Card
               userAsync.when(
@@ -76,10 +57,7 @@ class WalletScreen extends HookConsumerWidget {
 
                       return allMet
                           ? () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const WithdrawScreen()),
-                              );
+                              context.push('/withdraw');
                             }
                           : () {
                               final colorScheme = Theme.of(context).colorScheme;
@@ -132,6 +110,12 @@ class WalletScreen extends HookConsumerWidget {
                     ('At least 5 referrals', referralCount >= 5),
                   ];
                   final metCount = requirements.where((r) => r.$2).length;
+                  final allRequirementsMet = metCount == requirements.length;
+
+                  // Hide requirements section if all requirements are met
+                  if (allRequirementsMet) {
+                    return const SizedBox.shrink();
+                  }
 
                   return Card(
                     elevation: 0,

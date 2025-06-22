@@ -93,30 +93,50 @@ class AppLayout extends HookConsumerWidget {
           ref.read(navigationProvider.notifier).setIndex(index);
         },
         height: 68,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.people_outline),
+            icon: SizedBox(
+              width: 24,
+              height: 24,
+              child: Icon(Icons.people_outline, size: 24),
+            ),
             selectedIcon: Icon(Icons.people),
             label: 'Refer',
           ),
           NavigationDestination(
-            icon: Icon(Icons.play_circle_outline),
+            icon: SizedBox(
+              width: 24,
+              height: 24,
+              child: Icon(Icons.play_circle_outline, size: 24),
+            ),
             selectedIcon: Icon(Icons.play_circle),
-            label: 'Watch',
+            label: 'Ads',
           ),
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
+            icon: SizedBox(
+              width: 24,
+              height: 24,
+              child: Icon(Icons.home_outlined, size: 24),
+            ),
             selectedIcon: Icon(Icons.home),
             label: 'Home',
           ),
           NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
+            icon: SizedBox(
+              width: 24,
+              height: 24,
+              child: Icon(Icons.account_balance_wallet_outlined, size: 24),
+            ),
             selectedIcon: Icon(Icons.account_balance_wallet),
             label: 'Wallet',
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
+            icon: SizedBox(
+              width: 24,
+              height: 24,
+              child: Icon(Icons.person_outline, size: 24),
+            ),
             selectedIcon: Icon(Icons.person),
             label: 'Profile',
           ),

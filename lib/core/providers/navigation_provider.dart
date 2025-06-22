@@ -62,15 +62,15 @@ class NavigationState {
       case 2:
         return ExitConfirmationWrapper(
           screenIndex: 2,
-          screenTitle: 'Home',
-          showNotifications: true,
-          showBonus: true,
+          screenTitle: 'Dashboard',
+          showNotifications: false,
+          showBonus: false,
           child: const DashboardScreen(),
         );
       case 3:
         return ExitConfirmationWrapper(
           screenIndex: 3,
-          screenTitle: 'Wallet',
+          screenTitle: 'My Wallet',
           showNotifications: false,
           showBonus: false,
           child: const WalletScreen(),
@@ -78,7 +78,7 @@ class NavigationState {
       case 4:
         return ExitConfirmationWrapper(
           screenIndex: 4,
-          screenTitle: 'Profile',
+          screenTitle: 'My Profile',
           showNotifications: false,
           showBonus: false,
           child: const ProfileScreen(),
@@ -86,7 +86,7 @@ class NavigationState {
       default:
         return ExitConfirmationWrapper(
           screenIndex: 2,
-          screenTitle: 'Home',
+          screenTitle: 'Dashboard',
           showNotifications: true,
           showBonus: true,
           child: const DashboardScreen(),
@@ -133,7 +133,7 @@ class NavigationNotifier extends StateNotifier<NavigationState> {
       case 3:
         state = state.copyWith(
           currentIndex: index,
-          title: 'Wallet',
+          title: 'My Wallet',
           showNotifications: false,
           showBonus: false,
         );
@@ -141,7 +141,7 @@ class NavigationNotifier extends StateNotifier<NavigationState> {
       case 4:
         state = state.copyWith(
           currentIndex: index,
-          title: 'Profile',
+          title: 'My Profile',
           showNotifications: false,
           showBonus: false,
         );

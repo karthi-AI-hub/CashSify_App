@@ -15,6 +15,8 @@ import '../../theme/app_spacing.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -44,6 +46,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     });
     // Optionally, prefetch referral code for onboarding/register
     _prefetchReferralCode();
+    
+    // Android-specific optimizations
+    if (!kIsWeb) {
+      // Ensure proper Android status bar handling
+      SystemChrome.setSystemUIOverlayStyle(
+        const SystemUiOverlayStyle(
+          statusBarColor: Color(0xFFF5F6FA),
+          statusBarIconBrightness: Brightness.dark,
+          systemNavigationBarColor: Color(0xFFF5F6FA),
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
+      );
+    }
   }
 
   @override
@@ -141,88 +156,118 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA), // Match native splash background
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        color: colorScheme.background,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF5F6FA), Color(0xFFE8EAF6)],
+          ),
+        ),
         child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Rotating logo (left to right, Y-axis 0 to pi)
-                  AnimatedBuilder(
-                    animation: _controller,
-                    builder: (context, child) {
-                      return Transform(
-                        alignment: Alignment.center,
-                        transform: Matrix4.identity()
-                          ..setEntry(3, 2, 0.001)
-                          ..rotateY(_controller.value * 3.1415926535),
-                        child: child,
-                      );
-                    },
-                    child: Container(
-                      width: 150,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        color: colorScheme.surface,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: colorScheme.shadow.withOpacity(0.08),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
+          child: Column(
+            children: [
+              // Top spacer to push content to center
+              const Spacer(),
+              // Main content centered
+              Expanded(
+                flex: 2,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Rotating logo (left to right, Y-axis 0 to pi)
+                        AnimatedBuilder(
+                          animation: _controller,
+                          builder: (context, child) {
+                            return Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.identity()
+                                ..setEntry(3, 2, 0.001)
+                                ..rotateY(_controller.value * 3.1415926535),
+                              child: child,
+                            );
+                          },
+                          child: Container(
+                            width: 150,
+                            height: 150,
+                            decoration: BoxDecoration(
+                              color: colorScheme.surface,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorScheme.shadow.withOpacity(0.08),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                              border: Border.all(
+                                color: colorScheme.primary.withOpacity(0.08),
+                                width: 2,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Image.asset(
+                                'assets/logo/logo.jpg',
+                                fit: BoxFit.contain,
+                              ),
+                            ),
                           ),
-                        ],
-                        border: Border.all(
-                          color: colorScheme.primary.withOpacity(0.08),
-                          width: 2,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Image.asset(
-                          'assets/logo/logo.jpg',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
+                        ).animate().fadeIn(duration: 600.ms),
+                        const SizedBox(height: AppSpacing.xl),
+                        Text(
+                          'Welcome to CashSify',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                          textAlign: TextAlign.center,
+                        ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          'Earn Cash Simply!',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: colorScheme.secondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                          textAlign: TextAlign.center,
+                        ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
+                        const SizedBox(height: AppSpacing.xl),
+                        // Loading indicator
+                        SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                          ),
+                        ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+                      ],
                     ),
-                  ).animate().fadeIn(duration: 600.ms),
-                  const SizedBox(height: AppSpacing.xl),
-                  Text(
-                    'Welcome to CashSify',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                    textAlign: TextAlign.center,
-                  ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'Earn Cash Simply!',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.secondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                    textAlign: TextAlign.center,
-                  ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
-                  const SizedBox(height: AppSpacing.xl),
-                  const Spacer(),
-                  Text(
-                    'Powered By CashSify',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 1.2,
-                        ),
-                    textAlign: TextAlign.center,
                   ),
-                ],
+                ),
               ),
-            ),
+              // Bottom spacer and powered by text
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                child: Text(
+                  'Powered By CashSify',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1.2,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ),
         ),
       ),

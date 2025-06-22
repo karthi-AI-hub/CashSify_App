@@ -128,8 +128,24 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
+# Native splash screen configuration
+# This creates splash screens for Android, iOS, and Web
+# The native splash shows immediately when app starts, then transitions to the custom splash widget
 flutter_native_splash:
-  color: "#F5F6FA"           # Your splash background color (match your app theme)
+  color: "#F5F6FA"           # Background color matching the app theme
   image: assets/logo/logo.jpg # Your logo
   android: true
   ios: true
+  web: true
+  android_12:
+    image: assets/logo/logo.jpg
+    color: "#F5F6FA"
+    icon_background_color: "#F5F6FA"
+    branding: assets/logo/logo.jpg
+    image_dark: assets/logo/logo.jpg
+    color_dark: "#F5F6FA"
+    icon_background_color_dark: "#F5F6FA"
+    branding_dark: assets/logo/logo.jpg
+  fullscreen: true
+  android_gravity: center
+  ios_content_mode: center
