@@ -13,6 +13,7 @@ import 'package:cashsify_app/features/auth/presentation/widgets/animated_button.
 import 'package:cashsify_app/features/auth/presentation/widgets/auth_page_transition.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/forgot_password_screen.dart';
+import 'package:cashsify_app/core/widgets/layout/exit_confirmation_wrapper.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -124,134 +125,138 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   }
 
   void _navigateToRegister() {
-    context.go('/auth/register');
+    context.push('/auth/register');
   }
 
   void _navigateToForgotPassword() {
-    context.go('/auth/forgot-password');
+    context.push('/auth/forgot-password');
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return AuthLayout(
-      title: 'Welcome Back',
-      isLoading: _isLoading,
-      errorMessage: _errorMessage,
-      onErrorDismiss: () {
-        setState(() {
-          _errorMessage = null;
-        });
-      },
-      child: AnimatedBuilder(
-        animation: _shakeAnimation,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(_shakeAnimation.value, 0),
-            child: child,
-          );
+    return ExitConfirmationWrapper(
+      screenIndex: 0, // Login screen index
+      screenTitle: 'Login',
+      child: AuthLayout(
+        title: 'Welcome Back',
+        isLoading: _isLoading,
+        errorMessage: _errorMessage,
+        onErrorDismiss: () {
+          setState(() {
+            _errorMessage = null;
+          });
         },
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo or App Name
-              Center(
-                child: Image.asset(
-                  'assets/logo/logo.jpg',
-                  height: 100, // Adjust height as needed
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Email Field
-              AnimatedFormField(
-                label: 'Email',
-                hint: 'Enter your email',
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(Icons.email_outlined),
-                index: 0,
-                totalFields: 2,
-                hasError: _errorMessage != null,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Password Field
-              AnimatedFormField(
-                label: 'Password',
-                hint: 'Enter your password',
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                prefixIcon: const Icon(Icons.lock_outline),
-                index: 1,
-                totalFields: 2,
-                hasError: _errorMessage != null,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your password';
-                  }
-                  return null;
-                },
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
+        child: AnimatedBuilder(
+          animation: _shakeAnimation,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(_shakeAnimation.value, 0),
+              child: child,
+            );
+          },
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Logo or App Name
+                Center(
+                  child: Image.asset(
+                    'assets/logo/logo.jpg',
+                    height: 100, // Adjust height as needed
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
+                ),
+                const SizedBox(height: 32),
+
+                // Email Field
+                AnimatedFormField(
+                  label: 'Email',
+                  hint: 'Enter your email',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  index: 0,
+                  totalFields: 2,
+                  hasError: _errorMessage != null,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!value.contains('@')) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
                   },
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 16),
 
-              // Forgot Password
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _navigateToForgotPassword,
-                  child: const Text('Forgot Password?'),
+                // Password Field
+                AnimatedFormField(
+                  label: 'Password',
+                  hint: 'Enter your password',
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  index: 1,
+                  totalFields: 2,
+                  hasError: _errorMessage != null,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    return null;
+                  },
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 8),
 
-              // Login Button
-              AnimatedButton(
-                text: 'Login',
-                onPressed: _handleLogin,
-                isLoading: _isLoading,
-              ),
-              const SizedBox(height: 24),
+                // Forgot Password
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _navigateToForgotPassword,
+                    child: const Text('Forgot Password?'),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-              // Register Link
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Don\'t have an account?',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  TextButton(
-                    onPressed: _navigateToRegister,
-                    child: const Text('Register'),
-                  ),
-                ],
-              ),
-            ],
+                // Login Button
+                AnimatedButton(
+                  text: 'Login',
+                  onPressed: _handleLogin,
+                  isLoading: _isLoading,
+                ),
+                const SizedBox(height: 24),
+
+                // Register Link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Don\'t have an account?',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    TextButton(
+                      onPressed: _navigateToRegister,
+                      child: const Text('Register'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

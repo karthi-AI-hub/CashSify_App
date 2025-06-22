@@ -4,18 +4,222 @@ import 'package:cashsify_app/features/common_screens/contact_us_screen.dart';
 import 'package:cashsify_app/core/widgets/layout/custom_app_bar.dart';
 import 'package:go_router/go_router.dart';
 
-class FAQScreen extends StatelessWidget {
+class FAQScreen extends StatefulWidget {
   const FAQScreen({super.key});
+
+  @override
+  State<FAQScreen> createState() => _FAQScreenState();
+}
+
+class _FAQScreenState extends State<FAQScreen> {
+  final List<FAQSection> _allSections = const [
+    FAQSection(
+      title: 'About CashSify',
+      icon: Icons.info_outline,
+      questions: [
+        FAQItem(
+          question: 'What is CashSify?',
+          answer: 'CashSify is a rewards platform where users can earn virtual coins by watching ads, referring friends, and participating in various activities. These coins can be redeemed for rewards within the platform.',
+        ),
+        FAQItem(
+          question: 'Is CashSify free to use?',
+          answer: 'Yes, CashSify is completely free to download and use. You can start earning coins immediately after registration.',
+        ),
+        FAQItem(
+          question: 'Is CashSify available worldwide?',
+          answer: 'Currently, CashSify is available in select regions. Please check the app store in your country for availability.',
+        ),
+      ],
+    ),
+    FAQSection(
+      title: 'Earning Coins',
+      icon: Icons.emoji_events_outlined,
+      questions: [
+        FAQItem(
+          question: 'How can I earn coins?',
+          answer: 'You can earn coins by watching video ads, referring friends to the platform, and participating in various engagement activities. Each activity has different coin rewards.',
+        ),
+        FAQItem(
+          question: 'Are there daily limits on earning?',
+          answer: 'Yes, there are daily limits on coin earning to ensure fair usage and platform stability. These limits may vary based on your activity level and region.',
+        ),
+        FAQItem(
+          question: 'Why do I need to watch ads?',
+          answer: 'Watching ads is one of the primary ways to earn coins. This helps support the platform and provides you with rewards for your time and engagement.',
+        ),
+        FAQItem(
+          question: 'Do I get coins for referring friends?',
+          answer: 'Yes! When your friends join CashSify using your referral code, both you and your friend receive bonus coins. The exact amount varies based on current promotions.',
+        ),
+      ],
+    ),
+    FAQSection(
+      title: 'Coins & Rewards',
+      icon: Icons.monetization_on_outlined,
+      questions: [
+        FAQItem(
+          question: 'What can I do with my coins?',
+          answer: 'Coins can be used to unlock premium features, access exclusive content, and redeem various rewards within the platform. Check the rewards section for current options.',
+        ),
+        FAQItem(
+          question: 'What is the minimum coin requirement?',
+          answer: 'Most reward redemptions require a minimum of 15,000 coins. This helps maintain platform stability and ensures meaningful rewards.',
+        ),
+        FAQItem(
+          question: 'Do coins expire?',
+          answer: 'Coins do not expire as long as your account remains active. However, we recommend using them regularly to enjoy the platform\'s features.',
+        ),
+        FAQItem(
+          question: 'Can I transfer coins to other users?',
+          answer: 'No, coins are non-transferable and can only be used by the account holder who earned them.',
+        ),
+      ],
+    ),
+    FAQSection(
+      title: 'Account & Security',
+      icon: Icons.security,
+      questions: [
+        FAQItem(
+          question: 'How do I create an account?',
+          answer: 'Download the app, enter your phone number, and follow the verification process. You\'ll need to provide basic information to complete registration.',
+        ),
+        FAQItem(
+          question: 'How can I reset my password?',
+          answer: 'Use the "Forgot Password" option on the login screen. You\'ll receive a verification code via SMS to reset your password.',
+        ),
+        FAQItem(
+          question: 'Is my personal information safe?',
+          answer: 'Yes, we take data security seriously. Your personal information is encrypted and stored securely. We never share your data with third parties without your consent.',
+        ),
+        FAQItem(
+          question: 'Can I have multiple accounts?',
+          answer: 'No, each phone number can only be associated with one CashSify account. Multiple accounts may result in suspension.',
+        ),
+      ],
+    ),
+    FAQSection(
+      title: 'Referral Program',
+      icon: Icons.people_outline,
+      questions: [
+        FAQItem(
+          question: 'How does the referral system work?',
+          answer: 'Share your unique referral code with friends. When they join using your code, both you and your friend receive bonus coins.',
+        ),
+        FAQItem(
+          question: 'Where can I find my referral code?',
+          answer: 'Your referral code is available in the Referrals section of the app. You can copy and share it with friends.',
+        ),
+        FAQItem(
+          question: 'How many friends can I refer?',
+          answer: 'There\'s no limit to the number of friends you can refer. However, each friend can only use one referral code.',
+        ),
+        FAQItem(
+          question: 'When do I receive referral bonuses?',
+          answer: 'Referral bonuses are credited immediately when your friend completes the registration process using your code.',
+        ),
+      ],
+    ),
+    FAQSection(
+      title: 'Technical Support',
+      icon: Icons.support_agent,
+      questions: [
+        FAQItem(
+          question: 'The app is not working properly',
+          answer: 'Try restarting the app or clearing the cache. If the issue persists, contact our support team through the in-app contact form.',
+        ),
+        FAQItem(
+          question: 'I didn\'t receive my coins',
+          answer: 'Check your internet connection and try refreshing the app. If coins still haven\'t appeared, contact support with details of the activity.',
+        ),
+        FAQItem(
+          question: 'How can I contact support?',
+          answer: 'You can reach our support team through the in-app contact form, email us at support@cashsify.com, or use the contact information in the About Us section.',
+        ),
+        FAQItem(
+          question: 'What are your support hours?',
+          answer: 'Our support team is available 24/7 to assist you with any questions or issues you may have.',
+        ),
+      ],
+    ),
+    FAQSection(
+      title: 'Platform Policies',
+      icon: Icons.policy,
+      questions: [
+        FAQItem(
+          question: 'What are the terms of service?',
+          answer: 'Our terms of service outline the rules and guidelines for using CashSify. You can find the complete terms in the app settings or on our website.',
+        ),
+        FAQItem(
+          question: 'What is your privacy policy?',
+          answer: 'Our privacy policy explains how we collect, use, and protect your personal information. You can read it in the app settings or on our website.',
+        ),
+        FAQItem(
+          question: 'Can my account be suspended?',
+          answer: 'Yes, accounts may be suspended for violating our terms of service, including creating multiple accounts, using automated tools, or engaging in fraudulent activities.',
+        ),
+        FAQItem(
+          question: 'How do I report an issue?',
+          answer: 'Use the in-app contact form or email support@cashsify.com to report any issues. Please provide as much detail as possible.',
+        ),
+      ],
+    ),
+  ];
+
+  List<FAQSection> _filteredSections = [];
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredSections = _allSections;
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+    if (query.isEmpty) {
+      setState(() {
+        _filteredSections = _allSections;
+      });
+      return;
+    }
+    setState(() {
+      _filteredSections = _allSections.map((section) {
+        final filteredQuestions = section.questions.where((faq) {
+          return faq.question.toLowerCase().contains(query) || 
+                 faq.answer.toLowerCase().contains(query);
+        }).toList();
+        return filteredQuestions.isEmpty
+            ? null
+            : FAQSection(
+                title: section.title,
+                icon: section.icon,
+                questions: filteredQuestions,
+              );
+      }).whereType<FAQSection>().toList();
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    FocusScope.of(context).unfocus();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    
     return WillPopScope(
       onWillPop: () async {
+        _clearSearch();
         context.go('/profile');
-        return false; // Prevent default back behavior
+        return false;
       },
       child: Scaffold(
         appBar: CustomAppBar(
@@ -26,161 +230,112 @@ class FAQScreen extends StatelessWidget {
             color: colorScheme.onPrimary,
           ),
         ),
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Search bar for FAQs
-              Padding(
-                padding: EdgeInsets.all(AppSpacing.lg),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search FAQs...',
-                    prefixIcon: Icon(Icons.search, color: colorScheme.onSurface.withOpacity(0.6)),
-                    filled: true,
-                    fillColor: colorScheme.surfaceVariant.withOpacity(0.4),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.sm,
-                    ),
+        body: Column(
+          children: [
+            // Permanent search bar
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search FAQs...',
+                  prefixIcon: Icon(Icons.search, color: colorScheme.onSurface.withOpacity(0.6)),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.clear, color: colorScheme.onSurface.withOpacity(0.6)),
+                          onPressed: _clearSearch,
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: colorScheme.surfaceVariant.withOpacity(0.4),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
-                  onChanged: (value) {
-                    // Implement search functionality
-                  },
-                ),
-              ),
-              
-              // FAQ Categories
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: Column(
-                  children: const [
-                    FAQSection(
-                      title: 'General',
-                      icon: Icons.info_outline,
-                      questions: [
-                        FAQItem(
-                          question: 'What is CashSify?',
-                          answer: 'CashSify is a platform where users can engage with content and activities to earn virtual points.',
-                        ),
-                        FAQItem(
-                          question: 'Is CashSify free to use?',
-                          answer: 'Yes, CashSify is completely free to use. Registration only requires a mobile number to access all features.',
-                        ),
-                      ],
-                    ),
-                    FAQSection(
-                      title: 'Engagement Rewards',
-                      icon: Icons.emoji_events_outlined,
-                      questions: [
-                        FAQItem(
-                          question: 'How can I earn points?',
-                          answer: 'You can collect virtual points by participating in platform activities and engaging with content.',
-                        ),
-                        FAQItem(
-                          question: 'Are there limits to point collection?',
-                          answer: 'To ensure fair access for all users, there may be daily limits on virtual point accumulation, which can vary based on user activity.',
-                        ),
-                      ],
-                    ),
-                    FAQSection(
-                      title: 'Virtual Points',
-                      icon: Icons.monetization_on_outlined,
-                      questions: [
-                        FAQItem(
-                          question: 'How do I use my points?',
-                          answer: 'Virtual points can be used within the app for various features and activities. Check the app for current usage options.',
-                        ),
-                        FAQItem(
-                          question: 'What is the minimum point threshold?',
-                          answer: 'Certain features may require a minimum of 15000 points to be used. This helps maintain platform stability.',
-                        ),
-                      ],
-                    ),
-                    FAQSection(
-                      title: 'Platform Features',
-                      icon: Icons.dashboard_customize_outlined,
-                      questions: [
-                        FAQItem(
-                          question: 'How do I access special features?',
-                          answer: 'Navigate to the Wallet section to view available features that may require virtual points.',
-                        ),
-                        FAQItem(
-                          question: 'How long do feature requests take?',
-                          answer: 'Requests are typically processed within 24-72 business hours, excluding holidays.',
-                        ),
-                      ],
-                    ),
-                    FAQSection(
-                      title: 'Social Features',
-                      icon: Icons.people_outline,
-                      questions: [
-                        FAQItem(
-                          question: 'How does the social sharing system work?',
-                          answer: 'The platform offers social sharing features that may provide additional engagement opportunities.',
-                        ),
-                        FAQItem(
-                          question: 'Where can I find my sharing code?',
-                          answer: 'Your unique sharing identifier is available in the Social section of the app.',
-                        ),
-                      ],
-                    ),
-                    FAQSection(
-                      title: 'Account & Support',
-                      icon: Icons.support_agent,
-                      questions: [
-                        FAQItem(
-                          question: 'How can I reset my password?',
-                          answer: 'Use the "Forgot Password" option on the login screen to reset your credentials.',
-                        ),
-                        FAQItem(
-                          question: 'I need technical assistance',
-                          answer: 'Our support team can be reached through the in-app contact form or at support@cashsify.in.',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Contact support button
-              Padding(
-                padding: EdgeInsets.all(AppSpacing.lg),
-                child: ElevatedButton.icon(
-                  icon: Icon(Icons.support_agent, size: 20),
-                  label: Text('Contact Support'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
                   ),
-                  onPressed: () {
-                    context.push('/contact-us');
-                  },
                 ),
               ),
-            ],
-          ),
+            ),
+            // FAQ content
+            Expanded(
+              child: _filteredSections.isEmpty && _searchController.text.isNotEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off_rounded,
+                            size: 48,
+                            color: colorScheme.onSurface.withOpacity(0.5),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            'No results found',
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: colorScheme.onSurface.withOpacity(0.7),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          TextButton(
+                            onPressed: _clearSearch,
+                            child: const Text('Clear search'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                            child: Column(
+                              children: _filteredSections.map((section) {
+                                return FAQSectionWidget(
+                                  section: section,
+                                  isSearchResult: _searchController.text.isNotEmpty,
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          // Contact support button
+                          Padding(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.support_agent, size: 20),
+                              label: const Text('Contact Support'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 50),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () {
+                                context.push('/contact-us');
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class FAQSection extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final List<FAQItem> questions;
+class FAQSectionWidget extends StatelessWidget {
+  final FAQSection section;
+  final bool isSearchResult;
 
-  const FAQSection({
+  const FAQSectionWidget({
     super.key,
-    required this.title,
-    required this.icon,
-    required this.questions,
+    required this.section,
+    this.isSearchResult = false,
   });
 
   @override
@@ -195,22 +350,32 @@ class FAQSection extends StatelessWidget {
       ),
       elevation: 0,
       color: colorScheme.surfaceVariant.withOpacity(0.2),
-      child: ExpansionTile(
-        leading: Icon(icon, color: colorScheme.primary),
-        title: Text(
-          title,
-          style: textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        childrenPadding: EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.lg, bottom: AppSpacing.sm),
-        children: questions.map((faq) {
-          return Padding(
-            padding: EdgeInsets.only(bottom: AppSpacing.sm),
-            child: _buildFAQItem(faq, colorScheme, textTheme),
-          );
-        }).toList(),
-      ),
+      child: isSearchResult
+          ? Column(
+              children: section.questions.map((faq) {
+                return _buildFAQItem(faq, colorScheme, textTheme);
+              }).toList(),
+            )
+          : ExpansionTile(
+              leading: Icon(section.icon, color: colorScheme.primary),
+              title: Text(
+                section.title,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              childrenPadding: EdgeInsets.only(
+                left: AppSpacing.lg,
+                right: AppSpacing.lg,
+                bottom: AppSpacing.sm,
+              ),
+              children: section.questions.map((faq) {
+                return Padding(
+                  padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: _buildFAQItem(faq, colorScheme, textTheme),
+                );
+              }).toList(),
+            ),
     );
   }
   
@@ -248,6 +413,18 @@ class FAQSection extends StatelessWidget {
       ),
     );
   }
+}
+
+class FAQSection {
+  final String title;
+  final IconData icon;
+  final List<FAQItem> questions;
+
+  const FAQSection({
+    required this.title,
+    required this.icon,
+    required this.questions,
+  });
 }
 
 class FAQItem {

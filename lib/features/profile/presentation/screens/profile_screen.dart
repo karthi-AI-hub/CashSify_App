@@ -523,7 +523,6 @@ class ProfileScreen extends HookConsumerWidget {
             onTap: () async {
               try {
                 ref.read(loadingProvider.notifier).state = LoadingState.loading;
-                
                 // Show confirmation dialog
                 final shouldLogout = await showDialog<bool>(
                   context: context,
@@ -546,22 +545,20 @@ class ProfileScreen extends HookConsumerWidget {
                 if (shouldLogout == true && context.mounted) {
                   // Call Supabase service to sign out
                   await SupabaseService().signOut();
-                  
                   // Update user provider state
                   ref.read(userProvider.notifier).signOut();
-
-                  if (context.mounted) {
-                    // Show success message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Successfully logged out'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-
-                    // Navigate to login screen using go_router
-                    context.go('/auth/login');
-                  }
+                  // Set loading state to initial before navigation
+                  ref.read(loadingProvider.notifier).state = LoadingState.initial;
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Successfully logged out'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  // Navigate to login screen using go_router
+                  context.go('/auth/login');
+                  return;
                 }
               } catch (e) {
                 if (context.mounted) {
@@ -573,7 +570,10 @@ class ProfileScreen extends HookConsumerWidget {
                   );
                 }
               } finally {
-                ref.read(loadingProvider.notifier).state = LoadingState.initial;
+                // Only set loading state if still mounted
+                if (context.mounted) {
+                  ref.read(loadingProvider.notifier).state = LoadingState.initial;
+                }
               }
             },
           ),
@@ -663,89 +663,26 @@ class ProfileScreen extends HookConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return Container(
-      margin: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+      margin: EdgeInsets.symmetric(vertical: AppSpacing.sm),
       padding: EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: colorScheme.surfaceVariant.withOpacity(0.3),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: 16,
-                color: colorScheme.primary,
-              ),
-              SizedBox(width: AppSpacing.xs),
-              Text(
-                'App Version: ${AppConfig.appVersion}',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          Icon(
+            Icons.info_outline,
+            size: 16,
+            color: colorScheme.primary,
           ),
-          SizedBox(height: AppSpacing.md),
-          InkWell(
-            onTap: () async {
-              const email = 'cashsify@gmail.com';
-              const phone = '+91 98765 43210';
-              try {
-                final result = await launchUrlString(
-                  'mailto:$email?subject=CashSify Support Request&body=Hello CashSify Support Team,%0A%0AI am writing regarding:%0A%0A%0A%0AUser Details:%0APhone: $phone%0A%0ABest regards,%0A[Your Name]',
-                  mode: LaunchMode.externalNonBrowserApplication,
-                );
-                
-                if (!result && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Please contact us at $email'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Please contact us at $email'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              }
-            },
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.sm,
-              ),
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.email_outlined,
-                    size: 16,
-                    color: colorScheme.primary,
-                  ),
-                  SizedBox(width: AppSpacing.xs),
-                  Text(
-                    'Support Email: cashsify@gmail.com',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
+          SizedBox(width: AppSpacing.xs),
+          Text(
+            'App Version: ${AppConfig.appVersion}',
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.primary,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

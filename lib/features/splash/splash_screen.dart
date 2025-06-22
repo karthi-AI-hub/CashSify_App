@@ -66,21 +66,30 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     super.dispose();
   }
 
-  void _tryNavigate() {
+  void _tryNavigate() async {
     if (_timerDone && _dataReady && !_navigated && mounted) {
       _navigated = true;
       final user = SupabaseService().client.auth.currentUser;
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+
       if (user != null) {
+        // User is authenticated
         final userService = UserService();
         userService.checkAndUpdateEmailVerified();
         SupabaseService().client.from('users').update({
           'last_login': DateTime.now().toIso8601String(),
         }).eq('id', user.id);
-        
+
         _restoreAppState();
         context.go('/dashboard');
       } else {
-        context.go('/');
+        // User is not authenticated
+        if (!onboardingComplete) {
+          context.go('/'); // Show onboarding
+        } else {
+          context.go('/auth/login'); // Go to login
+        }
       }
     }
   }
@@ -88,14 +97,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   void _restoreAppState() {
     try {
       final appState = ref.read(appStateProvider.notifier);
-      final savedNavigationState = appState.loadNavigationState();
-      
-      if (savedNavigationState != null) {
-        final currentIndex = savedNavigationState['currentIndex'] as int?;
-        final title = savedNavigationState['title'] as String?;
+      // Only restore if initialized
+      if (appState.state.isInitialized) {
+        final savedNavigationState = appState.loadNavigationState();
         
-        if (currentIndex != null && title != null) {
-          ref.read(navigationProvider.notifier).setIndex(currentIndex);
+        if (savedNavigationState != null) {
+          final currentIndex = savedNavigationState['currentIndex'] as int?;
+          final title = savedNavigationState['title'] as String?;
+          
+          if (currentIndex != null && title != null) {
+            ref.read(navigationProvider.notifier).setIndex(currentIndex);
+          }
         }
       }
     } catch (e) {

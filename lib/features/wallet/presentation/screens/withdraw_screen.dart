@@ -77,7 +77,7 @@ class WithdrawScreen extends HookConsumerWidget {
             children: [
               // Improved TabBar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.only(top: 40, left: 20, right: 20),
                 child: Container(
                   height: 44,
                   decoration: BoxDecoration(
@@ -97,7 +97,7 @@ class WithdrawScreen extends HookConsumerWidget {
                     unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                     tabs: const [
                       Tab(text: 'Redeem Coins'),
-                      Tab(text: 'Transaction History'),
+                      Tab(text: 'History'),
                     ],
                     splashFactory: NoSplash.splashFactory,
                     overlayColor: MaterialStateProperty.all(Colors.transparent),

@@ -129,4 +129,29 @@ class AppUtils {
   static void logDebug(String message, [Object? error, StackTrace? stackTrace]) {
     AppLogger.debug(message, error, stackTrace);
   }
+
+  /// Shows an exit confirmation dialog
+  /// Returns true if user wants to exit, false if they want to stay
+  static Future<bool> showExitConfirmationDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Exit App'),
+        content: const Text('Are you sure you want to exit the app?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Exit'),
+          ),
+        ],
+      ),
+    );
+    
+    return result ?? false;
+  }
 } 

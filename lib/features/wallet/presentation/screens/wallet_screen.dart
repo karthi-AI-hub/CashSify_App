@@ -226,7 +226,7 @@ class WalletScreen extends HookConsumerWidget {
                   if (transactions.isNotEmpty) {
                     return CustomButton(
                       onPressed: () {
-                        context.go('/transaction-history');
+                        context.push('/transaction-history');
                       },
                       text: 'View Full Transaction History',
                       isFullWidth: true,
@@ -280,7 +280,7 @@ class _BalanceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Animated coin icon or shimmer
-          Icon(Icons.monetization_on_rounded, color: colorScheme.primary, size: 48),
+          Icon(Icons.stars_rounded, color: colorScheme.primary, size: 48),
           const SizedBox(height: 12),
           Text(
             '$balance Coins',

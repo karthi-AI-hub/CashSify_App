@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -113,7 +114,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   void _navigateToLogin() {
     _clearFieldsAndErrors();
-    context.go('/auth/login');
+    context.pop();
+  }
+
+  Future<bool> _handleBackButton() async {
+    _navigateToLogin();
+    return false;
   }
 
   @override
@@ -121,201 +127,204 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final isLoading = ref.watch(loadingProvider) == LoadingState.loading;
     final theme = Theme.of(context);
 
-    return AuthLayout(
-      title: 'Create Account',
-      isLoading: isLoading,
-      onBack: null,
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Logo or App Name
-            Center(
-              child: Image.asset(
-                'assets/logo/logo.jpg',
-                height: 100, // Adjust height as needed
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Name Field
-            AnimatedFormField(
-              label: 'Full Name',
-              hint: 'Enter your full name',
-              controller: _nameController,
-              prefixIcon: const Icon(Icons.person_outline),
-              index: 0,
-              totalFields: 6,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your name';
-                }
-                if (value.length < 2) {
-                  return 'Name must be at least 2 characters';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Email Field
-            AnimatedFormField(
-              label: 'Email',
-              hint: 'Enter your email',
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              prefixIcon: const Icon(Icons.email_outlined),
-              index: 1,
-              totalFields: 6,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your email';
-                }
-                if (!value.contains('@')) {
-                  return 'Please enter a valid email';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Phone Field
-            AnimatedFormField(
-              label: 'Phone Number',
-              hint: 'Enter your phone number',
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              prefixIcon: const Icon(Icons.phone_outlined),
-              index: 2,
-              totalFields: 6,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your phone number';
-                }
-                if (value.length < 10) {
-                  return 'Please enter a valid phone number';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Password Field
-            AnimatedFormField(
-              label: 'Password',
-              hint: 'Enter your password',
-              controller: _passwordController,
-              obscureText: _obscurePassword,
-              prefixIcon: const Icon(Icons.lock_outline),
-              index: 3,
-              totalFields: 6,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your password';
-                }
-                if (value.length < 6) {
-                  return 'Password must be at least 6 characters';
-                }
-                return null;
-              },
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
+    return WillPopScope(
+      onWillPop: _handleBackButton,
+      child: AuthLayout(
+        title: 'Create Account',
+        isLoading: isLoading,
+        onBack: null,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Logo or App Name
+              Center(
+                child: Image.asset(
+                  'assets/logo/logo.jpg',
+                  height: 100, // Adjust height as needed
                 ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
+              ),
+              const SizedBox(height: 32),
+
+              // Name Field
+              AnimatedFormField(
+                label: 'Full Name',
+                hint: 'Enter your full name',
+                controller: _nameController,
+                prefixIcon: const Icon(Icons.person_outline),
+                index: 0,
+                totalFields: 6,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your name';
+                  }
+                  if (value.length < 2) {
+                    return 'Name must be at least 2 characters';
+                  }
+                  return null;
                 },
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Confirm Password Field
-            AnimatedFormField(
-              label: 'Confirm Password',
-              hint: 'Confirm your password',
-              controller: _confirmPasswordController,
-              obscureText: _obscureConfirmPassword,
-              prefixIcon: const Icon(Icons.lock_outline),
-              index: 4,
-              totalFields: 6,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please confirm your password';
-                }
-                if (value != _passwordController.text) {
-                  return 'Passwords do not match';
-                }
-                return null;
-              },
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureConfirmPassword
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscureConfirmPassword = !_obscureConfirmPassword;
-                  });
+              // Email Field
+              AnimatedFormField(
+                label: 'Email',
+                hint: 'Enter your email',
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                prefixIcon: const Icon(Icons.email_outlined),
+                index: 1,
+                totalFields: 6,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  if (!value.contains('@')) {
+                    return 'Please enter a valid email';
+                  }
+                  return null;
                 },
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Referral Code Field
-            AnimatedFormField(
-              label: 'Referral Code (Optional)',
-              hint: 'Enter referral code if you have one',
-              controller: _referralCodeController,
-              prefixIcon: const Icon(Icons.card_giftcard_outlined),
-              index: 5,
-              totalFields: 6,
-              validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  final code = value.trim().toUpperCase();
-                  if (!code.startsWith('REF')) {
-                    return 'Referral code must start with REF';
+              // Phone Field
+              AnimatedFormField(
+                label: 'Phone Number',
+                hint: 'Enter your phone number',
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                prefixIcon: const Icon(Icons.phone_outlined),
+                index: 2,
+                totalFields: 6,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your phone number';
                   }
-                  if (code.length != 10) {
-                    return 'Referral code must be 9 characters';
+                  if (value.length < 10) {
+                    return 'Please enter a valid phone number';
                   }
-                  if (!RegExp(r'^REF[A-Z0-9]{7}$').hasMatch(code)) {
-                    return 'Invalid referral code format';
-                  }
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 32),
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
 
-            // Register Button
-            AnimatedButton(
-              text: 'Create Account',
-              onPressed: _handleRegister,
-              isLoading: isLoading,
-            ),
-            const SizedBox(height: 24),
-
-            // Login Link
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Already have an account?',
-                  style: theme.textTheme.bodyMedium,
+              // Password Field
+              AnimatedFormField(
+                label: 'Password',
+                hint: 'Enter your password',
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                prefixIcon: const Icon(Icons.lock_outline),
+                index: 3,
+                totalFields: 6,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your password';
+                  }
+                  if (value.length < 6) {
+                    return 'Password must be at least 6 characters';
+                  }
+                  return null;
+                },
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
                 ),
-                TextButton(
-                  onPressed: _navigateToLogin,
-                  child: const Text('Login'),
+              ),
+              const SizedBox(height: 16),
+
+              // Confirm Password Field
+              AnimatedFormField(
+                label: 'Confirm Password',
+                hint: 'Confirm your password',
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirmPassword,
+                prefixIcon: const Icon(Icons.lock_outline),
+                index: 4,
+                totalFields: 6,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please confirm your password';
+                  }
+                  if (value != _passwordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirmPassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                    });
+                  },
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 16),
+
+              // Referral Code Field
+              AnimatedFormField(
+                label: 'Referral Code (Optional)',
+                hint: 'Enter referral code if you have one',
+                controller: _referralCodeController,
+                prefixIcon: const Icon(Icons.card_giftcard_outlined),
+                index: 5,
+                totalFields: 6,
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    final code = value.trim().toUpperCase();
+                    if (!code.startsWith('REF')) {
+                      return 'Referral code must start with REF';
+                    }
+                    if (code.length != 10 && code.length != 11) {
+                      return 'Referral code must be 10 characters';
+                    }
+                    if (!RegExp(r'^REF[A-Z0-9]{7,8}$').hasMatch(code)) {
+                      return 'Invalid referral code format';
+                    }
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 32),
+
+              // Register Button
+              AnimatedButton(
+                text: 'Create Account',
+                onPressed: _handleRegister,
+                isLoading: isLoading,
+              ),
+              const SizedBox(height: 24),
+
+              // Login Link
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Already have an account?',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  TextButton(
+                    onPressed: _navigateToLogin,
+                    child: const Text('Login'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

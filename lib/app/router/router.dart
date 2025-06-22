@@ -46,17 +46,30 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
       final isOnboardingRoute = state.matchedLocation == '/';
       final isLoginCallbackRoute = state.matchedLocation == '/login-callback';
+      final isSplashRoute = state.matchedLocation == '/splash';
 
       // Check onboarding_complete flag
       final prefs = await SharedPreferences.getInstance();
       final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
 
+      // Authentication Flow Logic:
+      // 1. Splash screen handles its own navigation based on auth state
+      // 2. If authenticated, redirect auth/onboarding routes to dashboard
+      // 3. If not authenticated, redirect to login (unless on auth routes or onboarding)
+
+      // If on splash screen, let it handle navigation
+      if (isSplashRoute) {
+        return null;
+      }
+
       if (isAuthenticated) {
+        // If authenticated and on auth/onboarding routes, redirect to dashboard
         if (isAuthRoute || isOnboardingRoute) {
           return '/dashboard';
         }
         return null;
       } else {
+        // If not authenticated
         // If onboarding is not complete, allow onboarding route
         if (!onboardingComplete && isOnboardingRoute) {
           return null;
@@ -74,14 +87,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       onRetry: () => context.go('/'),
     ),
     routes: [
+      // Initial splash screen - handles auth state and navigation
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
+      // Onboarding screen - shown only if onboarding_complete is false
       GoRoute(
         path: '/',
         builder: (context, state) => const OnboardingScreen(),
       ),
+      // Authentication routes
       GoRoute(
         path: '/auth/login',
         name: 'login',
@@ -92,9 +108,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
       ),
+      GoRoute(
+        path: '/auth/forgot-password',
+        name: 'auth-forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      // Main app shell - requires authentication
       ShellRoute(
         builder: (context, state, child) {
-          // Temporarily remove WillPopScope to test if back button reaches Dashboard
           return AppLayout(child: child);
         },
         routes: [
@@ -125,6 +146,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      // Error handling
       GoRoute(
         path: '/error',
         name: 'error',
@@ -133,13 +155,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           onRetry: () => context.go('/'),
         ),
       ),
+      // Auth callback handling (email verification, password reset, etc.)
       GoRoute(
         path: '/login-callback',
         name: 'login-callback',
         builder: (context, state) => AuthCallbackScreen(
           queryParams: state.uri.queryParameters,
         ),
-      ), // Handles all Supabase auth callbacks (verify, reset, magiclink)
+      ),
+      // Feature-specific routes (all require authentication)
       GoRoute(
         path: '/withdraw',
         name: 'withdraw',
@@ -160,6 +184,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'change-password',
         builder: (context, state) => const ChangePasswordScreen(),
       ),
+      // Profile forgot password (different from auth forgot password)
       GoRoute(
         path: '/forgot-password',
         name: 'forgot-password',

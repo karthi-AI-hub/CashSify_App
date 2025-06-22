@@ -22,18 +22,18 @@ class OnboardingScreen extends HookConsumerWidget {
 
     final pages = [
       OnboardingPage(
-        title: 'Watch & Earn Rewards',
-        description: 'Complete tasks and earn rewards through our platform',
+        title: 'Watch & Earn Coins',
+        description: 'Watch ads and complete tasks to earn virtual coins',
         animation: 'earnmoney.json',
       ),
       OnboardingPage(
         title: 'Invite Friends',
-        description: 'Share with friends and earn bonus rewards',
+        description: 'Share with friends and earn bonus coins together',
         animation: 'referral.json',
       ),
       OnboardingPage(
         title: 'Redeem Rewards',
-        description: 'Convert your rewards through our platform',
+        description: 'Use your coins redeem rewards',
         animation: 'withdraw.json',
       ),
     ];
@@ -133,6 +133,7 @@ class OnboardingScreen extends HookConsumerWidget {
                           : 'Next',
                       onPressed: () => PerformanceUtils.throttle(handleNavigation),
                       isLoading: isProcessing.value,
+                      isFullWidth: true,
                     ),
                   ],
                 ),
