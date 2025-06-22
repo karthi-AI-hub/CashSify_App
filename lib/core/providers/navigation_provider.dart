@@ -7,7 +7,6 @@ import 'package:cashsify_app/features/ads/presentation/screens/watch_ads_screen.
 import 'package:cashsify_app/features/referrals/presentation/screens/referrals_screen.dart';
 import 'package:cashsify_app/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:cashsify_app/features/profile/presentation/screens/profile_screen.dart';
-import 'package:cashsify_app/core/widgets/layout/exit_confirmation_wrapper.dart';
 
 // Navigation state class
 class NavigationState {
@@ -44,53 +43,17 @@ class NavigationState {
   Widget getCurrentScreen() {
     switch (currentIndex) {
       case 0:
-        return ExitConfirmationWrapper(
-          screenIndex: 0,
-          screenTitle: 'Refer & Earn',
-          showNotifications: false,
-          showBonus: false,
-          child: const ReferralsScreen(),
-        );
+        return const ReferralsScreen();
       case 1:
-        return ExitConfirmationWrapper(
-          screenIndex: 1,
-          screenTitle: 'Watch Ads',
-          showNotifications: false,
-          showBonus: false,
-          child: const WatchAdsScreen(),
-        );
+        return const WatchAdsScreen();
       case 2:
-        return ExitConfirmationWrapper(
-          screenIndex: 2,
-          screenTitle: 'Dashboard',
-          showNotifications: false,
-          showBonus: false,
-          child: const DashboardScreen(),
-        );
+        return const DashboardScreen();
       case 3:
-        return ExitConfirmationWrapper(
-          screenIndex: 3,
-          screenTitle: 'My Wallet',
-          showNotifications: false,
-          showBonus: false,
-          child: const WalletScreen(),
-        );
+        return const WalletScreen();
       case 4:
-        return ExitConfirmationWrapper(
-          screenIndex: 4,
-          screenTitle: 'My Profile',
-          showNotifications: false,
-          showBonus: false,
-          child: const ProfileScreen(),
-        );
+        return const ProfileScreen();
       default:
-        return ExitConfirmationWrapper(
-          screenIndex: 2,
-          screenTitle: 'Dashboard',
-          showNotifications: true,
-          showBonus: true,
-          child: const DashboardScreen(),
-        );
+        return const DashboardScreen();
     }
   }
 }
@@ -98,8 +61,8 @@ class NavigationState {
 // Navigation notifier
 class NavigationNotifier extends StateNotifier<NavigationState> {
   NavigationNotifier() : super(const NavigationState(
-    currentIndex: 2, // Default to Home
-    title: 'Home',
+    currentIndex: 2, // Default to Dashboard
+    title: 'Dashboard',
     showNotifications: true,
     showBonus: true,
   ));
@@ -125,7 +88,7 @@ class NavigationNotifier extends StateNotifier<NavigationState> {
       case 2:
         state = state.copyWith(
           currentIndex: index,
-          title: 'Home',
+          title: 'Dashboard',
           showNotifications: true,
           showBonus: true,
         );

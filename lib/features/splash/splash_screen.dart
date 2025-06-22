@@ -36,20 +36,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 3),
       vsync: this,
     )..repeat();
+    
     // Ensure splash stays for at least 3 seconds
     Future.delayed(const Duration(seconds: 3), () {
       _timerDone = true;
       _tryNavigate();
     });
-    // Optionally, prefetch referral code for onboarding/register
+    
     _prefetchReferralCode();
     
-    // Android-specific optimizations
     if (!kIsWeb) {
-      // Ensure proper Android status bar handling
       SystemChrome.setSystemUIOverlayStyle(
         const SystemUiOverlayStyle(
           statusBarColor: Color(0xFFF5F6FA),
@@ -68,27 +67,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   }
 
   void _tryNavigate() {
-    print('_tryNavigate called: _timerDone=$_timerDone, _dataReady=$_dataReady, _navigated=$_navigated, mounted=$mounted');
     if (_timerDone && _dataReady && !_navigated && mounted) {
       _navigated = true;
       final user = SupabaseService().client.auth.currentUser;
-      print('User: $user');
       if (user != null) {
-        print('Navigating to /dashboard');
-        // Update is_verified and last_login (is_verified will only be true if user has actually verified email)
         final userService = UserService();
         userService.checkAndUpdateEmailVerified();
         SupabaseService().client.from('users').update({
           'last_login': DateTime.now().toIso8601String(),
         }).eq('id', user.id);
         
-        // Check for saved app state and restore navigation
         _restoreAppState();
-        
         context.go('/dashboard');
       } else {
-        print('Navigating to /');
-        context.go('/'); // Onboarding
+        context.go('/');
       }
     }
   }
@@ -101,25 +93,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       if (savedNavigationState != null) {
         final currentIndex = savedNavigationState['currentIndex'] as int?;
         final title = savedNavigationState['title'] as String?;
-        final showNotifications = savedNavigationState['showNotifications'] as bool? ?? false;
-        final showBonus = savedNavigationState['showBonus'] as bool? ?? false;
         
         if (currentIndex != null && title != null) {
-          // Restore navigation state
           ref.read(navigationProvider.notifier).setIndex(currentIndex);
-          print('Restored app state: index=$currentIndex, title=$title');
         }
       }
     } catch (e) {
       print('Error restoring app state: $e');
-      // Continue with default navigation if restoration fails
     }
   }
 
   Future<void> _prefetchReferralCode() async {
     final prefs = await SharedPreferences.getInstance();
     final refCode = prefs.getString('pending_referral_code');
-    // Optionally, you could pass this to a provider if needed
   }
 
   @override
@@ -129,50 +115,48 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     final appConfig = ref.watch(appConfigProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Network check (skip on web)
     if (!kIsWeb && networkStatus.value == ConnectivityResult.none) {
       return NoInternetScreen(onRetry: () => setState(() {}));
     }
 
-    // App config error handling
     if (appConfig.hasError) {
       return Scaffold(
-        body: Center(child: Text('Error loading app config: \\${appConfig.error}')),
+        body: Center(child: Text('Error loading app config: ${appConfig.error}')),
       );
     }
 
-    // Maintenance check
     if (appConfig.hasValue && (appConfig.value?['app_runs'] == false)) {
       return MaintenanceScreen(
-      message: appConfig.value?['message'],
-      estimatedTime: appConfig.value?['estimated_time']?.toString(),
+        message: appConfig.value?['message'],
+        estimatedTime: appConfig.value?['estimated_time']?.toString(),
       );
     }
 
-    // If all good, show splash and proceed
     if (((kIsWeb || networkStatus.hasValue) && appConfig.hasValue) && !_dataReady) {
       _dataReady = true;
       Future.microtask(_tryNavigate);
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA), // Match native splash background
+      backgroundColor: const Color(0xFFF5F6FA),
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF5F6FA), Color(0xFFE8EAF6)],
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.5,
+            colors: [
+              const Color(0xFFF5F6FA).withOpacity(0.8),
+              const Color(0xFFE8EAF6).withOpacity(0.9),
+            ],
+            stops: const [0.0, 1.0],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              // Top spacer to push content to center
               const Spacer(),
-              // Main content centered
               Expanded(
                 flex: 2,
                 child: Center(
@@ -181,71 +165,90 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Rotating logo (left to right, Y-axis 0 to pi)
-                        AnimatedBuilder(
-                          animation: _controller,
-                          builder: (context, child) {
-                            return Transform(
-                              alignment: Alignment.center,
-                              transform: Matrix4.identity()
-                                ..setEntry(3, 2, 0.001)
-                                ..rotateY(_controller.value * 3.1415926535),
-                              child: child,
-                            );
-                          },
-                          child: Container(
-                            width: 150,
-                            height: 150,
-                            decoration: BoxDecoration(
-                              color: colorScheme.surface,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.shadow.withOpacity(0.08),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 4),
+                        // 3D Coin Rotation Effect
+                        SizedBox(
+                          width: 180,
+                          height: 180,
+                          child: AnimatedBuilder(
+                            animation: _controller,
+                            builder: (context, child) {
+                              return Transform(
+                                alignment: Alignment.center,
+                                transform: Matrix4.identity()
+                                  ..setEntry(3, 2, 0.001)
+                                  ..rotateY(_controller.value * 6.283), // 360 degrees in radians
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Color(0xFFF9D423),
+                                        Color(0xFFE65C00),
+                                      ],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 20,
+                                        spreadRadius: 2,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                    ],
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.5),
+                                      width: 3,
+                                    ),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: ClipOval(
+                                      child: Image.asset(
+                                        'assets/logo/logo.jpg',
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ],
-                              border: Border.all(
-                                color: colorScheme.primary.withOpacity(0.08),
-                                width: 2,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Image.asset(
-                                'assets/logo/logo.jpg',
-                                fit: BoxFit.contain,
-                              ),
-                            ),
+                              );
+                            },
                           ),
-                        ).animate().fadeIn(duration: 600.ms),
+                        ).animate().scale(
+                          begin: const Offset(0.8, 0.8),
+                          end: const Offset(1.0, 1.0),
+                          duration: 800.ms,
+                        ),
                         const SizedBox(height: AppSpacing.xl),
                         Text(
                           'Welcome to CashSify',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                 color: colorScheme.primary,
                                 fontWeight: FontWeight.bold,
+                                letterSpacing: 1.1,
                               ),
                           textAlign: TextAlign.center,
                         ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
                         const SizedBox(height: AppSpacing.md),
                         Text(
                           'Earn Cash Simply!',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 color: colorScheme.secondary,
                                 fontWeight: FontWeight.w600,
                               ),
                           textAlign: TextAlign.center,
                         ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
                         const SizedBox(height: AppSpacing.xl),
-                        // Loading indicator
+                        // Custom loading indicator with coin theme
                         SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                          width: 120,
+                          child: LinearProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              colorScheme.primary.withOpacity(0.8),
+                            ),
+                            backgroundColor: colorScheme.primary.withOpacity(0.1),
+                            minHeight: 6,
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
                       ],
@@ -253,7 +256,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                   ),
                 ),
               ),
-              // Bottom spacer and powered by text
               const Spacer(),
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.lg),
@@ -273,4 +275,4 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       ),
     );
   }
-} 
+}

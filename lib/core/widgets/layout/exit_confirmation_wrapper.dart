@@ -5,6 +5,7 @@ import 'package:cashsify_app/core/providers/app_state_provider.dart';
 import 'package:cashsify_app/core/providers/user_provider.dart';
 import 'package:cashsify_app/core/widgets/feedback/custom_dialog.dart';
 import 'package:cashsify_app/theme/app_spacing.dart';
+import 'package:cashsify_app/core/utils/logger.dart';
 
 /// A reusable widget that wraps any screen with exit confirmation functionality.
 /// This eliminates code duplication and provides centralized exit behavior.
@@ -26,16 +27,36 @@ class ExitConfirmationWrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    AppLogger.debug('ExitConfirmationWrapper: Building with screenIndex: $screenIndex, title: $screenTitle');
+    
     return WillPopScope(
-      onWillPop: () => _onWillPop(context, ref),
+      onWillPop: () async {
+        AppLogger.debug('ExitConfirmationWrapper: onWillPop called - Back button pressed!');
+        AppLogger.debug('ExitConfirmationWrapper: Current route: ${ModalRoute.of(context)?.settings.name}');
+        AppLogger.debug('ExitConfirmationWrapper: Can pop: ${Navigator.of(context).canPop()}');
+        
+        // Check if we can pop (go back to previous screen)
+        if (Navigator.of(context).canPop()) {
+          AppLogger.debug('ExitConfirmationWrapper: Can pop, allowing normal back navigation');
+          return true; // Allow normal back navigation
+        } else {
+          AppLogger.debug('ExitConfirmationWrapper: Cannot pop, showing exit dialog');
+          await _showExitDialog(context, ref);
+          return false; // Prevent default back behavior
+        }
+      },
       child: child,
     );
   }
 
-  Future<bool> _onWillPop(BuildContext context, WidgetRef ref) async {
+  Future<void> _showExitDialog(BuildContext context, WidgetRef ref) async {
+    AppLogger.debug('ExitConfirmationWrapper: _showExitDialog called');
+    
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final userState = ref.read(userProvider);
+    
+    AppLogger.debug('ExitConfirmationWrapper: Showing exit confirmation dialog');
     
     // Show confirmation dialog
     final shouldExit = await showDialog<bool>(
@@ -71,14 +92,20 @@ class ExitConfirmationWrapper extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () {
+              AppLogger.debug('ExitConfirmationWrapper: User cancelled exit');
+              Navigator.of(context).pop(false);
+            },
             child: Text(
               'Cancel',
               style: TextStyle(color: colorScheme.onSurfaceVariant),
             ),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () {
+              AppLogger.debug('ExitConfirmationWrapper: User confirmed exit');
+              Navigator.of(context).pop(true);
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.primary,
               foregroundColor: colorScheme.onPrimary,
@@ -89,68 +116,84 @@ class ExitConfirmationWrapper extends ConsumerWidget {
       ),
     );
 
+    AppLogger.debug('ExitConfirmationWrapper: Dialog result: $shouldExit');
+
     if (shouldExit == true) {
-      try {
-        // Get current user data
-        final user = userState.value;
-        if (user != null) {
-          // Save app state
-          await ref.read(appStateProvider.notifier).saveAppState(
-            currentIndex: screenIndex,
-            title: screenTitle,
-            userData: {
-              'id': user.id,
-              'email': user.email,
-              'name': user.name,
-              'coins': user.coins,
-              'referralCode': user.referralCode,
-              'referralCount': user.referralCount,
-              'isEmailVerified': user.isEmailVerified,
-              'lastLogin': user.lastLogin?.toIso8601String(),
-              'createdAt': user.createdAt.toIso8601String(),
-            },
-            showNotifications: showNotifications,
-            showBonus: showBonus,
-          );
+      await _exitApp(context, ref);
+    } else {
+      AppLogger.debug('ExitConfirmationWrapper: User cancelled exit, staying in app');
+    }
+  }
 
-          // Show success message
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'App state saved successfully!',
-                  style: TextStyle(color: colorScheme.onPrimary),
-                ),
-                backgroundColor: colorScheme.primary,
-                duration: const Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        }
+  Future<void> _exitApp(BuildContext context, WidgetRef ref) async {
+    try {
+      AppLogger.debug('ExitConfirmationWrapper: Saving app state before exit');
+      
+      final colorScheme = Theme.of(context).colorScheme;
+      final userState = ref.read(userProvider);
+      
+      // Get current user data
+      final user = userState.value;
+      if (user != null) {
+        // Save app state
+        await ref.read(appStateProvider.notifier).saveAppState(
+          currentIndex: screenIndex,
+          title: screenTitle,
+          userData: {
+            'id': user.id,
+            'email': user.email,
+            'name': user.name,
+            'coins': user.coins,
+            'referralCode': user.referralCode,
+            'referralCount': user.referralCount,
+            'isEmailVerified': user.isEmailVerified,
+            'lastLogin': user.lastLogin?.toIso8601String(),
+            'createdAt': user.createdAt.toIso8601String(),
+          },
+          showNotifications: showNotifications,
+          showBonus: showBonus,
+        );
 
-        // Exit the app
-        SystemNavigator.pop();
-      } catch (e) {
-        // If saving fails, still exit but show error
+        // Show success message
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Failed to save state, but exiting app: ${e.toString()}',
+                'App state saved successfully!',
                 style: TextStyle(color: colorScheme.onPrimary),
               ),
-              backgroundColor: colorScheme.error,
+              backgroundColor: colorScheme.primary,
               duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
             ),
           );
         }
-        // Still exit the app
-        SystemNavigator.pop();
       }
-    }
 
-    return false; // Prevent default back behavior
+      AppLogger.debug('ExitConfirmationWrapper: Exiting app with SystemNavigator.pop()');
+      // Exit the app
+      SystemNavigator.pop();
+    } catch (e) {
+      AppLogger.error('ExitConfirmationWrapper: Error saving state: $e');
+      
+      final colorScheme = Theme.of(context).colorScheme;
+      
+      // If saving fails, still exit but show error
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to save state, but exiting app: ${e.toString()}',
+              style: TextStyle(color: colorScheme.onPrimary),
+            ),
+            backgroundColor: colorScheme.error,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      // Still exit the app
+      SystemNavigator.pop();
+    }
   }
 } 

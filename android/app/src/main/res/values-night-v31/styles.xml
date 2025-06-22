@@ -3,7 +3,6 @@
     <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is on -->
     <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowSplashScreenAnimationDuration">1000</item>
-        <item name="android:windowSplashScreenIconSize">200dp</item>
         <item name="android:statusBarColor">#F5F6FA</item>
         <item name="android:navigationBarColor">#F5F6FA</item>
         <item name="android:forceDarkAllowed">false</item>

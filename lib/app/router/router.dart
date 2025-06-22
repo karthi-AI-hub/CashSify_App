@@ -31,6 +31,10 @@ import 'package:cashsify_app/features/profile/presentation/screens/about_us_scre
 import 'package:cashsify_app/features/profile/presentation/screens/delete_account_screen.dart';
 import 'package:cashsify_app/features/profile/presentation/screens/debug_storage_screen.dart';
 import 'package:cashsify_app/features/ads/presentation/screens/verification_screen.dart';
+import 'package:flutter/services.dart';
+import 'package:cashsify_app/core/widgets/feedback/custom_dialog.dart';
+import 'package:cashsify_app/theme/app_spacing.dart';
+import 'package:cashsify_app/core/utils/logger.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -89,7 +93,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const RegisterScreen(),
       ),
       ShellRoute(
-        builder: (context, state, child) => AppLayout(child: child),
+        builder: (context, state, child) {
+          // Temporarily remove WillPopScope to test if back button reaches Dashboard
+          return AppLayout(child: child);
+        },
         routes: [
           GoRoute(
             path: '/dashboard',
