@@ -142,4 +142,8 @@ class UserNotifier extends StateNotifier<AsyncValue<UserState?>> {
       state = AsyncValue.error(e, StackTrace.current);
     }
   }
+
+  Future<void> resendVerificationEmail(String email) async {
+    await _userService.resendVerificationEmail(email);
+  }
 } 

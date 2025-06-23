@@ -14,6 +14,7 @@ class AnimatedFormField extends StatelessWidget {
   final int totalFields;
   final bool hasError;
   final bool readOnly;
+  final ValueChanged<String>? onChanged;
 
   const AnimatedFormField({
     super.key,
@@ -29,6 +30,7 @@ class AnimatedFormField extends StatelessWidget {
     required this.totalFields,
     this.hasError = false,
     this.readOnly = false,
+    this.onChanged,
   });
 
   @override
@@ -96,6 +98,7 @@ class AnimatedFormField extends StatelessWidget {
           ),
         ),
         validator: validator,
+        onChanged: onChanged,
       ),
     );
   }

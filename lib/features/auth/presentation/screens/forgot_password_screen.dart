@@ -17,6 +17,7 @@ import 'package:cashsify_app/features/auth/presentation/widgets/auth_page_transi
 import 'package:cashsify_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:cashsify_app/core/providers/user_provider.dart';
 import 'package:cashsify_app/theme/app_spacing.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -29,6 +30,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isEmailReadOnly = false;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -61,16 +64,18 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   Future<void> _handleResetPassword() async {
     if (!_formKey.currentState!.validate()) return;
-
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
-      ref.read(loadingProvider.notifier).startLoading();
-
-      await ref.read(authProvider.notifier).resetPassword(
+      await Supabase.instance.client.auth.resetPasswordForEmail(
         _emailController.text.trim(),
       );
-
       if (mounted) {
-        ref.read(loadingProvider.notifier).finishLoading();
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Password reset instructions sent to your email'),
@@ -78,25 +83,25 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         );
         context.go('/auth/login');
       }
+    } on AuthException catch (e) {
+      setState(() {
+        _errorMessage = e.message ?? 'Failed to send reset instructions.';
+        _isLoading = false;
+      });
     } catch (e) {
-      if (mounted) {
-        ref.read(loadingProvider.notifier).setError();
-        ref.read(errorProvider.notifier).setError(
-          e.toString(),
-          code: e is AuthError ? e.code : 'UNKNOWN_ERROR',
-        );
-      }
+      setState(() {
+        _errorMessage = 'Failed to send reset instructions.';
+        _isLoading = false;
+      });
     }
   }
 
   void _handleLoginNavigation() {
     if (!mounted) return;
-    
-    // Clear fields and errors before navigation
     _emailController.clear();
-    ref.read(errorProvider.notifier).clearError();
-    
-    // Navigate back to login screen using context.go for consistency
+    setState(() {
+      _errorMessage = null;
+    });
     context.go('/auth/login');
   }
 
@@ -114,10 +119,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(loadingProvider) == LoadingState.loading;
-    final error = ref.watch(errorProvider);
     final theme = Theme.of(context);
-
     return WillPopScope(
       onWillPop: _handleBackButton,
       child: Scaffold(
@@ -165,7 +167,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         const SizedBox(height: AppSpacing.xl),
 
                         // Error message display
-                        if (error.message != null && error.message!.isNotEmpty)
+                        if (_errorMessage != null && _errorMessage!.isNotEmpty)
                           Container(
                             padding: const EdgeInsets.all(AppSpacing.md),
                             margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -183,7 +185,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                 const SizedBox(width: AppSpacing.sm),
                                 Expanded(
                                   child: Text(
-                                    error.message!,
+                                    _errorMessage!,
                                     style: theme.textTheme.bodyMedium?.copyWith(
                                       color: theme.colorScheme.error,
                                     ),
@@ -228,8 +230,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         // Reset Button
                         AnimatedButton(
                           text: 'Send Reset Instructions',
-                          onPressed: _handleResetPassword,
-                          isLoading: isLoading,
+                          onPressed: _isLoading ? () {} : () => _handleResetPassword(),
+                          isLoading: _isLoading,
                         ),
                         const SizedBox(height: AppSpacing.lg),
 
@@ -242,7 +244,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                               style: theme.textTheme.bodyMedium,
                             ),
                             TextButton(
-                              onPressed: _handleLoginNavigation,
+                              onPressed: _isLoading ? null : _handleLoginNavigation,
                               child: const Text('Login'),
                             ),
                           ],

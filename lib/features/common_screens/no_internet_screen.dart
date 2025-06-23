@@ -34,6 +34,16 @@ class _NoInternetScreenState extends State<NoInternetScreen> {
     }
   }
 
+  void _openWifiSettings() async {
+    // Attempt to open Wi-Fi settings (Android/iOS)
+    const wifiUrl = 'wifi:';
+    if (await canLaunchUrl(Uri.parse(wifiUrl))) {
+      await launchUrl(Uri.parse(wifiUrl));
+    } else {
+      _openSettings();
+    }
+  }
+
   Future<void> _handleRefresh() async {
     final connectivity = await Connectivity().checkConnectivity();
     if (connectivity != ConnectivityResult.none) {
@@ -76,7 +86,7 @@ class _NoInternetScreenState extends State<NoInternetScreen> {
         ),
         child: SafeArea(
           child: RefreshIndicator(
-            onRefresh: _handleRefresh,
+            onRefresh: widget.onRetry != null ? () async { widget.onRetry!(); } : _handleRefresh,
             child: Center(
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -194,7 +204,7 @@ class _NoInternetScreenState extends State<NoInternetScreen> {
                     const SizedBox(height: AppSpacing.xl),
                     // Primary action button
                     FilledButton.icon(
-                      onPressed: widget.onRetry ?? () => (context as Element).markNeedsBuild(),
+                      onPressed: widget.onRetry ?? _handleRefresh,
                       icon: const Icon(Icons.refresh),
                       label: const Text('Retry Connection'),
                       style: FilledButton.styleFrom(
@@ -222,9 +232,24 @@ class _NoInternetScreenState extends State<NoInternetScreen> {
                       ),
                     ).animate().fadeIn(duration: 300.ms, delay: 500.ms),
                     const SizedBox(height: AppSpacing.md),
+                    // Try another network button
+                    FilledButton.icon(
+                      onPressed: _openWifiSettings,
+                      icon: Icon(Icons.wifi, color: colorScheme.onPrimary),
+                      label: Text('Try Another Network', style: TextStyle(color: colorScheme.onPrimary)),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colorScheme.tertiary,
+                        foregroundColor: colorScheme.onTertiary,
+                        minimumSize: const Size(220, 52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
                     // Additional help option
                     TextButton.icon(
-                      onPressed: () {
+                      onPressed: widget.onContactSupport ?? () {
                         context.push('/contact-us');
                       },
                       icon: Icon(Icons.support_agent, color: colorScheme.primary),

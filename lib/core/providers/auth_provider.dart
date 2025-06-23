@@ -6,6 +6,7 @@ import 'package:cashsify_app/core/error/app_error.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cashsify_app/core/providers/supabase_provider.dart';
 import 'package:cashsify_app/core/models/user_state.dart';
+import 'package:cashsify_app/core/utils/logger.dart';
 
 // Auth state class
 class AppAuthState {
@@ -78,6 +79,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
     required String password,
   }) async {
     if (!mounted) return;
+    AppLogger.info('Attempting login for: ' + email);
     state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await _supabaseService.signIn(
@@ -86,10 +88,12 @@ class AuthProvider extends StateNotifier<AppAuthState> {
       );
 
       if (response.user == null) {
+        AppLogger.error('Login failed: Invalid credentials');
         throw AuthError.invalidCredentials();
       }
 
       if (!mounted) return;
+      AppLogger.info('Login successful for: ' + email);
       state = state.copyWith(
         user: UserState.fromUser(response.user!),
         isLoading: false,
@@ -97,22 +101,13 @@ class AuthProvider extends StateNotifier<AppAuthState> {
       );
     } catch (e) {
       if (!mounted) return;
-      
-      if (e is AuthException) {
-        rethrow; // Let the UI handle the error message
-      } else if (e is AppError) {
-        state = state.copyWith(
-          error: e.message,
-          isLoading: false,
-        );
-        rethrow;
-      } else {
-        state = state.copyWith(
-          error: 'An unexpected error occurred during login',
-          isLoading: false,
-        );
-        rethrow;
-      }
+      AppLogger.error('Login error for $email: $e');
+      // Do not clear user field on error, just set isLoading to false and set error
+      state = state.copyWith(
+        isLoading: false,
+        error: e is AppError ? e.message : 'An unexpected error occurred during login',
+      );
+      rethrow;
     }
   }
 

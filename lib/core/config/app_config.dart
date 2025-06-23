@@ -3,6 +3,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// Configuration class that holds all app-wide constants and configuration values.
 class AppConfig {
   // Required environment variables
+
+  static const bool debug = bool.fromEnvironment('dart.vm.product', defaultValue: false);
+  
   static const List<String> _requiredVariables = [
     'SUPABASE_URL',
     'SUPABASE_ANON_KEY',

@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import '../../core/utils/logger.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -67,6 +68,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   }
 
   void _tryNavigate() async {
+    AppLogger.info('SplashScreen: _tryNavigate called. _timerDone=$_timerDone, _dataReady=$_dataReady, _navigated=$_navigated');
     if (_timerDone && _dataReady && !_navigated && mounted) {
       _navigated = true;
       final user = SupabaseService().client.auth.currentUser;
@@ -74,6 +76,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
 
       if (user != null) {
+        AppLogger.info('SplashScreen: User is authenticated, navigating to dashboard');
         // User is authenticated
         final userService = UserService();
         userService.checkAndUpdateEmailVerified();
@@ -84,10 +87,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
         _restoreAppState();
         context.go('/dashboard');
       } else {
+        AppLogger.info('SplashScreen: User is NOT authenticated, onboardingComplete=$onboardingComplete');
         // User is not authenticated
         if (!onboardingComplete) {
+          AppLogger.info('SplashScreen: Navigating to onboarding');
           context.go('/'); // Show onboarding
         } else {
+          AppLogger.info('SplashScreen: Navigating to login');
           context.go('/auth/login'); // Go to login
         }
       }
@@ -174,96 +180,98 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // 3D Coin Rotation Effect
-                        SizedBox(
-                          width: 180,
-                          height: 180,
-                          child: AnimatedBuilder(
-                            animation: _controller,
-                            builder: (context, child) {
-                              return Transform(
-                                alignment: Alignment.center,
-                                transform: Matrix4.identity()
-                                  ..setEntry(3, 2, 0.001)
-                                  ..rotateY(_controller.value * 6.283), // 360 degrees in radians
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: const LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Color(0xFFF9D423),
-                                        Color(0xFFE65C00),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // 3D Coin Rotation Effect
+                          SizedBox(
+                            width: 180,
+                            height: 180,
+                            child: AnimatedBuilder(
+                              animation: _controller,
+                              builder: (context, child) {
+                                return Transform(
+                                  alignment: Alignment.center,
+                                  transform: Matrix4.identity()
+                                    ..setEntry(3, 2, 0.001)
+                                    ..rotateY(_controller.value * 6.283), // 360 degrees in radians
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Color(0xFFF9D423),
+                                          Color(0xFFE65C00),
+                                        ],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 20,
+                                          spreadRadius: 2,
+                                          offset: const Offset(0, 10),
+                                        ),
                                       ],
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 20,
-                                        spreadRadius: 2,
-                                        offset: const Offset(0, 10),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.5),
+                                        width: 3,
                                       ),
-                                    ],
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.5),
-                                      width: 3,
                                     ),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12.0),
-                                    child: ClipOval(
-                                      child: Image.asset(
-                                        'assets/logo/logo.jpg',
-                                        fit: BoxFit.cover,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: ClipOval(
+                                        child: Image.asset(
+                                          'assets/logo/logo.jpg',
+                                          fit: BoxFit.cover,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-                        ).animate().scale(
-                          begin: const Offset(0.8, 0.8),
-                          end: const Offset(1.0, 1.0),
-                          duration: 800.ms,
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        Text(
-                          'Welcome to CashSify',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.1,
-                              ),
-                          textAlign: TextAlign.center,
-                        ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
-                        const SizedBox(height: AppSpacing.md),
-                        Text(
-                          'Earn Cash Simply!',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: colorScheme.secondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                          textAlign: TextAlign.center,
-                        ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
-                        const SizedBox(height: AppSpacing.xl),
-                        // Custom loading indicator with coin theme
-                        SizedBox(
-                          width: 120,
-                          child: LinearProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              colorScheme.primary.withOpacity(0.8),
+                                );
+                              },
                             ),
-                            backgroundColor: colorScheme.primary.withOpacity(0.1),
-                            minHeight: 6,
-                            borderRadius: BorderRadius.circular(10),
+                          ).animate().scale(
+                            begin: const Offset(0.8, 0.8),
+                            end: const Offset(1.0, 1.0),
+                            duration: 800.ms,
                           ),
-                        ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
-                      ],
+                          const SizedBox(height: AppSpacing.xl),
+                          Text(
+                            'Welcome to CashSify',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.1,
+                                ),
+                            textAlign: TextAlign.center,
+                          ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            'Earn Cash Simply!',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: colorScheme.secondary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                            textAlign: TextAlign.center,
+                          ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
+                          const SizedBox(height: AppSpacing.xl),
+                          // Custom loading indicator with coin theme
+                          SizedBox(
+                            width: 120,
+                            child: LinearProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                colorScheme.primary.withOpacity(0.8),
+                              ),
+                              backgroundColor: colorScheme.primary.withOpacity(0.1),
+                              minHeight: 6,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+                        ],
+                      ),
                     ),
                   ),
                 ),

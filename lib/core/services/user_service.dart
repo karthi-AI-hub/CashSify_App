@@ -399,4 +399,12 @@ class UserService {
       AppLogger.error('Debug error: $e');
     }
   }
+
+  // Resend verification email
+  Future<void> resendVerificationEmail(String email) async {
+    await _supabase.client.auth.resend(
+      type: OtpType.signup,
+      email: email,
+    );
+  }
 }

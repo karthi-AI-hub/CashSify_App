@@ -21,7 +21,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cashsify_app/features/splash/splash_screen.dart';
 import 'package:cashsify_app/features/profile/presentation/screens/edit_profile_screen.dart';
 import 'package:cashsify_app/features/profile/presentation/screens/change_password_screen.dart';
-import 'package:cashsify_app/features/profile/presentation/screens/forgot_password_screen.dart' as profile_forgot;
 import 'package:cashsify_app/features/referrals/presentation/screens/referral_history_screen.dart';
 import 'package:cashsify_app/features/common_screens/contact_us_screen.dart';
 import 'package:cashsify_app/features/common_screens/faq_screen.dart';
@@ -35,55 +34,96 @@ import 'package:flutter/services.dart';
 import 'package:cashsify_app/core/widgets/feedback/custom_dialog.dart';
 import 'package:cashsify_app/theme/app_spacing.dart';
 import 'package:cashsify_app/core/utils/logger.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cashsify_app/features/wallet/presentation/screens/withdraw_requirements_screen.dart';
 
-final routerProvider = Provider<GoRouter>((ref) {
+// Ensures splash is only shown on cold start
+class _SplashNavigationGuard {
+  static bool hasNavigated = false;
+}
+
+final routerProvider = Provider.family<GoRouter, String?>((ref, initialLocation) {
   final authState = ref.watch(authProvider);
 
+  // Determine initial location: if authenticated, go to dashboard, else splash
+  String effectiveInitialLocation;
+  if (authState.isAuthenticated) {
+    effectiveInitialLocation = '/dashboard';
+  } else {
+    effectiveInitialLocation = initialLocation ?? '/splash';
+  }
+
   return GoRouter(
-    initialLocation: '/splash',
+    initialLocation: effectiveInitialLocation,
     redirect: (context, state) async {
       final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
       final isOnboardingRoute = state.matchedLocation == '/';
-      final isLoginCallbackRoute = state.matchedLocation == '/login-callback';
+      final isLoginCallbackRoute = state.matchedLocation.startsWith('/login-callback');
       final isSplashRoute = state.matchedLocation == '/splash';
 
       // Check onboarding_complete flag
       final prefs = await SharedPreferences.getInstance();
       final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
 
-      // Authentication Flow Logic:
-      // 1. Splash screen handles its own navigation based on auth state
-      // 2. If authenticated, redirect auth/onboarding routes to dashboard
-      // 3. If not authenticated, redirect to login (unless on auth routes or onboarding)
+      AppLogger.info('Router redirect: isAuthenticated=$isAuthenticated, matchedLocation=${state.matchedLocation}, fullPath=${state.fullPath}, onboardingComplete=$onboardingComplete');
 
-      // If on splash screen, let it handle navigation
-      if (isSplashRoute) {
-        return null;
+      // If on splash screen and already authenticated, skip splash
+      if (isSplashRoute && isAuthenticated) {
+        AppLogger.info('Router redirect: Authenticated user on splash, redirecting to /dashboard');
+        return '/dashboard';
+      }
+
+      // Only allow /splash on the very first navigation after app launch
+      if (isSplashRoute && !isAuthenticated) {
+        if (!_SplashNavigationGuard.hasNavigated) {
+          _SplashNavigationGuard.hasNavigated = true;
+          AppLogger.info('Router redirect: First navigation, letting splash handle navigation');
+          return null;
+        } else {
+          AppLogger.info('Router redirect: Not initial navigation, redirecting to /auth/login');
+          // Instead of redirecting to /auth/login, just return null if already on /auth/login
+          if (state.matchedLocation != '/auth/login') {
+            return '/auth/login';
+          }
+          return null;
+        }
       }
 
       if (isAuthenticated) {
         // If authenticated and on auth/onboarding routes, redirect to dashboard
         if (isAuthRoute || isOnboardingRoute) {
+          AppLogger.info('Router redirect: Authenticated user on auth/onboarding, redirecting to /dashboard');
           return '/dashboard';
         }
+        AppLogger.info('Router redirect: Authenticated user, no redirect');
         return null;
       } else {
-        // If not authenticated
+        // If not authenticated and not on any /auth route, redirect to /auth/login
+        if (!isAuthenticated && !state.matchedLocation.startsWith('/auth')) {
+          return '/auth/login';
+        }
         // If onboarding is not complete, allow onboarding route
         if (!onboardingComplete && isOnboardingRoute) {
+          AppLogger.info('Router redirect: Unauthenticated user, onboarding not complete, allowing onboarding');
           return null;
         }
         // If on an auth route or login callback, allow
         if (isAuthRoute || isLoginCallbackRoute) {
+          AppLogger.info('Router redirect: Unauthenticated user on auth/login-callback, allowing');
           return null;
         }
-        // If onboarding is complete, always redirect to login
-        return '/auth/login';
+        // If onboarding is complete, always redirect to login, but only if not already on /auth/login
+        if (onboardingComplete && state.matchedLocation != '/auth/login') {
+          AppLogger.info('Router redirect: Unauthenticated user, onboarding complete, redirecting to /auth/login');
+          return '/auth/login';
+        }
+        // If already on /auth/login, do not redirect
+        return null;
       }
     },
     errorBuilder: (context, state) => ErrorScreen(
-      error: NetworkError(message: 'Navigation error: ${state.error?.message ?? "Unknown error"}'),
+      error: NetworkError(message: 'Navigation error: \\${state.error?.message ?? "Unknown error"}'),
       onRetry: () => context.go('/'),
     ),
     routes: [
@@ -170,6 +210,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const WithdrawScreen(),
       ),
       GoRoute(
+        path: '/withdraw-requirements',
+        name: 'withdraw-requirements',
+        builder: (context, state) => const WithdrawRequirementsScreen(),
+      ),
+      GoRoute(
         path: '/transaction-history',
         name: 'transaction-history',
         builder: (context, state) => const TransactionHistoryScreen(),
@@ -184,12 +229,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'change-password',
         builder: (context, state) => const ChangePasswordScreen(),
       ),
-      // Profile forgot password (different from auth forgot password)
-      GoRoute(
-        path: '/forgot-password',
-        name: 'forgot-password',
-        builder: (context, state) => const profile_forgot.ForgotPasswordScreen(),
-      ),
+     
       GoRoute(
         path: '/referral-history',
         name: 'referral-history',
@@ -237,4 +277,4 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
-}); 
+});

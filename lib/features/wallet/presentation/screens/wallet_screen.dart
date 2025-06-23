@@ -60,20 +60,7 @@ class WalletScreen extends HookConsumerWidget {
                               context.push('/withdraw');
                             }
                           : () {
-                              final colorScheme = Theme.of(context).colorScheme;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      Icon(Icons.check_circle, color: colorScheme.surface),
-                                      const SizedBox(width: 8),
-                                      const Text('Please complete all requirements to withdraw.'),
-                                    ],
-                                  ),
-                                  behavior: SnackBarBehavior.floating,
-                                  backgroundColor: colorScheme.primary,
-                                ),
-                              );
+                              context.push('/withdraw-requirements');
                             };
                     },
                     loading: () => null, // Disable button while loading user data

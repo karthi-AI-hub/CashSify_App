@@ -26,12 +26,12 @@ import 'package:cashsify_app/core/widgets/form/custom_button.dart';
 import 'package:cashsify_app/core/providers/app_state_provider.dart';
 import 'package:cashsify_app/core/config/app_config.dart';
 import 'change_password_screen.dart';
-import 'forgot_password_screen.dart';
 import 'delete_account_screen.dart';
 import 'about_us_screen.dart';
 
 // Add this provider to fetch the referrer's name by ID
-final referrerNameProvider = FutureProvider.family<String?, String?>((ref, referrerId) async {
+final referrerNameProvider =
+    FutureProvider.family<String?, String?>((ref, referrerId) async {
   if (referrerId == null) return null;
   final supabase = SupabaseService().client;
   final response = await supabase
@@ -56,16 +56,16 @@ class ProfileScreen extends HookConsumerWidget {
 
     // Store the loading notifier before useEffect
     final loadingNotifier = ref.read(loadingProvider.notifier);
-    
+
     useEffect(() {
       final userService = ref.read(userServiceProvider);
       final currentUser = userService.supabase.client.auth.currentUser;
-      
+
       // Refresh user data when screen is mounted
       if (currentUser != null) {
         ref.read(userProvider.notifier).refreshUser();
       }
-      
+
       // No cleanup needed as we don't want to modify state after disposal
       return null;
     }, []);
@@ -77,7 +77,8 @@ class ProfileScreen extends HookConsumerWidget {
 
     return LoadingOverlay(
       isLoading: loadingState == LoadingState.loading && userState.isLoading,
-      message: loadingState == LoadingState.loading ? 'Loading profile...' : null,
+      message:
+          loadingState == LoadingState.loading ? 'Loading profile...' : null,
       child: Scaffold(
         backgroundColor: colorScheme.background,
         body: userState.when(
@@ -131,7 +132,8 @@ class ProfileScreen extends HookConsumerWidget {
                           _buildSection(
                             context,
                             'Settings',
-                            _settingsCard(context, colorScheme, textTheme, isDarkMode, themeNotifier),
+                            _settingsCard(context, colorScheme, textTheme,
+                                isDarkMode, themeNotifier),
                             delay: 400,
                           ),
                           SizedBox(height: AppSpacing.xxl),
@@ -171,7 +173,8 @@ class ProfileScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildSection(BuildContext context, String title, Widget content, {required int delay}) {
+  Widget _buildSection(BuildContext context, String title, Widget content,
+      {required int delay}) {
     return _AnimatedFadeIn(
       delay: delay,
       child: Column(
@@ -211,7 +214,9 @@ class ProfileScreen extends HookConsumerWidget {
                       : null,
                   child: user.profileImageUrl == null
                       ? Text(
-                          (user.name?.isNotEmpty ?? false) ? user.name![0].toUpperCase() : 'U',
+                          (user.name?.isNotEmpty ?? false)
+                              ? user.name![0].toUpperCase()
+                              : 'U',
                           style: textTheme.headlineLarge?.copyWith(
                             color: colorScheme.onPrimary,
                             fontWeight: FontWeight.bold,
@@ -226,7 +231,7 @@ class ProfileScreen extends HookConsumerWidget {
                     onTap: () async {
                       // Navigate to edit screen and wait for result
                       final result = await context.push<bool>('/edit-profile');
-                      
+
                       // If profile was updated, refresh the data
                       if (result == true) {
                         await ref.read(userProvider.notifier).refreshUser();
@@ -274,7 +279,8 @@ class ProfileScreen extends HookConsumerWidget {
                 SizedBox(width: AppSpacing.xs),
                 Text(
                   'verified',
-                  style: textTheme.labelMedium?.copyWith(color: colorScheme.primary),
+                  style: textTheme.labelMedium
+                      ?.copyWith(color: colorScheme.primary),
                 ),
               ],
             ),
@@ -322,13 +328,15 @@ class ProfileScreen extends HookConsumerWidget {
           if (user.referredBy != null)
             Consumer(
               builder: (context, ref, _) {
-                final referrerNameAsync = ref.watch(referrerNameProvider(user.referredBy));
+                final referrerNameAsync =
+                    ref.watch(referrerNameProvider(user.referredBy));
                 return referrerNameAsync.when(
                   data: (name) => _infoRow(
                     context,
                     Icons.group,
                     'Referred By',
-                    name ?? user.referredBy!, // fallback to ID if name not found
+                    name ??
+                        user.referredBy!, // fallback to ID if name not found
                   ),
                   loading: () => _infoRow(
                     context,
@@ -426,7 +434,8 @@ class ProfileScreen extends HookConsumerWidget {
     return '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}';
   }
 
-  Widget _settingsCard(BuildContext context, ColorScheme colorScheme, TextTheme textTheme, bool isDarkMode, ThemeNotifier themeNotifier) {
+  Widget _settingsCard(BuildContext context, ColorScheme colorScheme,
+      TextTheme textTheme, bool isDarkMode, ThemeNotifier themeNotifier) {
     return CustomCard(
       margin: EdgeInsets.only(top: AppSpacing.md),
       child: Column(
@@ -509,15 +518,6 @@ class ProfileScreen extends HookConsumerWidget {
             context,
             colorScheme,
             textTheme,
-            Icons.lock_reset,
-            'Forgot Password',
-            onTap: () => context.push('/forgot-password'),
-          ),
-          Divider(height: 1),
-          _settingsTile(
-            context,
-            colorScheme,
-            textTheme,
             Icons.logout,
             'Logout',
             onTap: () async {
@@ -548,7 +548,8 @@ class ProfileScreen extends HookConsumerWidget {
                   // Update user provider state
                   ref.read(userProvider.notifier).signOut();
                   // Set loading state to initial before navigation
-                  ref.read(loadingProvider.notifier).state = LoadingState.initial;
+                  ref.read(loadingProvider.notifier).state =
+                      LoadingState.initial;
                   // Show success message
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -572,11 +573,25 @@ class ProfileScreen extends HookConsumerWidget {
               } finally {
                 // Only set loading state if still mounted
                 if (context.mounted) {
-                  ref.read(loadingProvider.notifier).state = LoadingState.initial;
+                  ref.read(loadingProvider.notifier).state =
+                      LoadingState.initial;
                 }
               }
             },
           ),
+          // Add this block for debug-storage if in debug mode
+          if (AppConfig.debug) Divider(height: 1),
+          if (AppConfig.debug)
+            _settingsTile(
+              context,
+              colorScheme,
+              textTheme,
+              Icons.bug_report,
+              'Debug Storage',
+              onTap: () => context.push('/debug-storage'),
+              textColor: colorScheme.primary,
+              iconColor: colorScheme.primary,
+            ),
         ],
       ),
     );
@@ -639,7 +654,8 @@ class ProfileScreen extends HookConsumerWidget {
           color: textColor ?? colorScheme.onSurface,
         ),
       ),
-      trailing: trailing ?? Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+      trailing: trailing ??
+          Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
       onTap: onTap,
     );
   }
@@ -713,19 +729,24 @@ class ProfileScreen extends HookConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+                    Text(label,
+                        style: textTheme.bodySmall
+                            ?.copyWith(color: colorScheme.onSurfaceVariant)),
                     Row(
                       children: [
                         Text(
                           value.isEmpty ? 'Not available' : value,
                           style: textTheme.bodyMedium?.copyWith(
-                            color: value.isEmpty ? colorScheme.error : colorScheme.onSurface,
+                            color: value.isEmpty
+                                ? colorScheme.error
+                                : colorScheme.onSurface,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         if (isVerified) ...[
                           SizedBox(width: 4),
-                          Icon(Icons.verified, color: colorScheme.primary, size: 16),
+                          Icon(Icons.verified,
+                              color: colorScheme.primary, size: 16),
                         ],
                       ],
                     ),
@@ -751,7 +772,8 @@ class _AnimatedFadeIn extends StatefulWidget {
   State<_AnimatedFadeIn> createState() => _AnimatedFadeInState();
 }
 
-class _AnimatedFadeInState extends State<_AnimatedFadeIn> with SingleTickerProviderStateMixin {
+class _AnimatedFadeInState extends State<_AnimatedFadeIn>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _opacityAnimation;
   late final Animation<Offset> _slideAnimation;
@@ -804,4 +826,4 @@ class _AnimatedFadeInState extends State<_AnimatedFadeIn> with SingleTickerProvi
       ),
     );
   }
-} 
+}
