@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:cashsify_app/core/providers/error_provider.dart';
+import 'package:cashsify_app/core/utils/logger.dart';
 import 'dart:async';
 import 'package:cashsify_app/core/services/user_service.dart';
 
@@ -69,18 +70,40 @@ class _AuthCallbackScreenState extends ConsumerState<AuthCallbackScreen> {
         });
         if (_success && mounted && !_navigated) {
           _navigated = true;
-          await UserService().checkAndUpdateEmailVerified();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Email verified successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Future.delayed(const Duration(seconds: 1), () {
+          try {
+            // Update email verification status in database
+            await UserService().checkAndUpdateEmailVerified();
+            
+            if (mounted) {
+              final colorScheme = Theme.of(context).colorScheme;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      Icon(Icons.check_circle, color: colorScheme.surface),
+                      SizedBox(width: 12),
+                      Text('Email verified successfully!'),
+                    ],
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: colorScheme.primary,
+                ),
+              );
+            }
+            
+            // Give user time to see the success message
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted && _navigated) {
+                context.go('/dashboard');
+              }
+            });
+          } catch (e) {
+            // Even if database update fails, still redirect (user is verified in auth)
+            AppLogger.warning('Failed to update email verification status: $e');
             if (mounted && _navigated) {
               context.go('/dashboard');
             }
-          });
+          }
         }
       } on TimeoutException {
         setState(() {
@@ -122,8 +145,19 @@ class _AuthCallbackScreenState extends ConsumerState<AuthCallbackScreen> {
         _error = null;
       });
       if (mounted) {
+        final colorScheme = Theme.of(context).colorScheme;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password updated! Please log in.')),
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: colorScheme.surface),
+                SizedBox(width: 12),
+                Text('Password updated! Please log in.'),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: colorScheme.primary,
+          ),
         );
         GoRouter.of(context).go('/auth/login');
       }
@@ -158,8 +192,19 @@ class _AuthCallbackScreenState extends ConsumerState<AuthCallbackScreen> {
           _resent = true;
         });
         if (mounted) {
+          final colorScheme = Theme.of(context).colorScheme;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Verification email resent!')),
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: colorScheme.surface),
+                  SizedBox(width: 12),
+                  Text('Verification email resent!'),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: colorScheme.primary,
+            ),
           );
         }
       }

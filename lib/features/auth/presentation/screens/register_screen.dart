@@ -103,9 +103,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful! Please check your email to verify your account.'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Column(
+        mainAxisSize: MainAxisSize.min, // ← Important for height
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.check_circle, color: Theme.of(context).colorScheme.surface),
+              const SizedBox(width: 12),
+              Text('Registration successful!'),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('Please check your email to verify your account.'),
+        ],
+      ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
         context.go('/auth/login');

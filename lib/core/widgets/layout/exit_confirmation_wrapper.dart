@@ -158,13 +158,15 @@ class ExitConfirmationWrapper extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                'App state saved successfully!',
-                style: TextStyle(color: colorScheme.onPrimary),
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: colorScheme.surface),
+                  SizedBox(width: 12),
+                  Text('App state saved successfully!'),
+                ],
               ),
-              backgroundColor: colorScheme.primary,
-              duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
+              backgroundColor: colorScheme.primary,
             ),
           );
         }
@@ -182,13 +184,15 @@ class ExitConfirmationWrapper extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Failed to save state, but exiting app: ${e.toString()}',
-              style: TextStyle(color: colorScheme.onPrimary),
+            content: Row(
+              children: [
+                Icon(Icons.error, color: colorScheme.error),
+                SizedBox(width: 12),
+                Text('Failed to save state, but exiting app: ${e.toString()}'),
+              ],
             ),
-            backgroundColor: colorScheme.error,
-            duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
+            backgroundColor: colorScheme.error,
           ),
         );
       }

@@ -7,6 +7,7 @@ import 'package:cashsify_app/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cashsify_app/core/widgets/layout/custom_app_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cashsify_app/core/services/user_service.dart';
 
 class WithdrawRequirementsScreen extends ConsumerWidget {
   const WithdrawRequirementsScreen({super.key});
@@ -123,6 +124,50 @@ class WithdrawRequirementsScreen extends ConsumerWidget {
                             ref.read(loadingProvider.notifier).finishLoading();
                           }
                         },
+                        onManualUpdate: () async {
+                          ref.read(loadingProvider.notifier).startLoading();
+                          try {
+                            // Manually update email verification status
+                            await UserService().checkAndUpdateEmailVerified();
+                            // Refresh user data
+                            await ref.read(userProvider.notifier).refreshUser();
+                            
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Icon(Icons.check_circle, color: colorScheme.surface),
+                                      SizedBox(width: 12),
+                                      Text('Email verification status updated!'),
+                                    ],
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                  backgroundColor: colorScheme.primary,
+                                ),
+                              );
+                              Navigator.pop(context);
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Icon(Icons.error, color: colorScheme.surface),
+                                      SizedBox(width: 12),
+                                      Text('Failed to update status: $e'),
+                                    ],
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                  backgroundColor: colorScheme.primary,
+                                ),
+                              );
+                            }
+                          } finally {
+                            ref.read(loadingProvider.notifier).finishLoading();
+                          }
+                        },
                       );
                     },
                   );
@@ -135,9 +180,9 @@ class WithdrawRequirementsScreen extends ConsumerWidget {
                 'At least 5 referrals',
                 (user.referralCount ?? 0) >= 5,
                 'Invite at least 5 friends to join CashSify using your referral code.',
-                () => context.push('/referrals'),
+                null,
                 Icons.group_rounded,
-                'Invite Friends',
+                null,
                 Colors.green,
               ),
             ];
@@ -177,7 +222,7 @@ class WithdrawRequirementsScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
                           // Animated progress bar
                           TweenAnimationBuilder<double>(
                             tween: Tween<double>(begin: 0, end: metCount / requirements.length),
@@ -236,7 +281,7 @@ class WithdrawRequirementsScreen extends ConsumerWidget {
                               width: double.infinity,
                               child: ElevatedButton.icon(
                                 icon: const Icon(Icons.arrow_forward_rounded),
-                                onPressed: () => context.go('/withdraw'),
+                                onPressed: () => context.push('/withdraw'),
                                 label: const Text('Proceed to Withdraw'),
                                 style: ElevatedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -326,7 +371,12 @@ class _RequirementTile extends StatelessWidget {
 class _VerifyEmailGuide extends StatelessWidget {
   final String email;
   final Future<void> Function() onResend;
-  const _VerifyEmailGuide({required this.email, required this.onResend});
+  final Future<void> Function()? onManualUpdate;
+  const _VerifyEmailGuide({
+    required this.email, 
+    required this.onResend,
+    this.onManualUpdate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -394,50 +444,14 @@ class _VerifyEmailGuide extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.mail_outline_rounded),
-                  onPressed: () async {
-                    // Try to open the default mail app inbox
-                    bool opened = false;
-                    // Android intent for email inbox
-                    const androidIntent = 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_EMAIL;end';
-                    // iOS URL scheme for mail app
-                    const iosUrl = 'message://';
-                    try {
-                      if (Theme.of(context).platform == TargetPlatform.android) {
-                        if (await canLaunchUrl(Uri.parse(androidIntent))) {
-                          await launchUrl(Uri.parse(androidIntent));
-                          opened = true;
-                        }
-                      } else if (Theme.of(context).platform == TargetPlatform.iOS) {
-                        if (await canLaunchUrl(Uri.parse(iosUrl))) {
-                          await launchUrl(Uri.parse(iosUrl));
-                          opened = true;
-                        }
-                      }
-                    } catch (_) {}
-                    if (!opened) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              Icon(Icons.error, color: colorScheme.surface),
-                              SizedBox(width: 12),
-                              Text('Could not open mail inbox.'),
-                            ],
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: colorScheme.primary,
-                        ),
-                      );
-                    }
-                  },
-                  label: const Text('Open Mail App'),
+                  icon: const Icon(Icons.update_rounded),
+                  onPressed: onManualUpdate,
+                  label: const Text('Manual Update'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.secondary,
-                    foregroundColor: colorScheme.onSecondary,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     textStyle: const TextStyle(fontWeight: FontWeight.bold),
                   ),

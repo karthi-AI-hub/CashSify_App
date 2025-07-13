@@ -195,10 +195,18 @@ class ErrorHandler {
 
     // Show error message to user
     if (context.mounted) {
+      final colorScheme = Theme.of(context).colorScheme;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(appError.message),
-          backgroundColor: Theme.of(context).colorScheme.error,
+          content: Row(
+            children: [
+              Icon(Icons.error_rounded, color: colorScheme.surface),
+              SizedBox(width: 12),
+              Text(appError.message),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: colorScheme.primary,
         ),
       );
     }

@@ -31,16 +31,15 @@ class ErrorHandler {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(appError.message),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(
-            label: 'Dismiss',
-            textColor: Theme.of(context).colorScheme.onError,
-            onPressed: () {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            },
+          content: Row(
+            children: [
+              Icon(Icons.error_rounded, color: Theme.of(context).colorScheme.surface),
+              SizedBox(width: 12),
+              Text(appError.message),
+            ],
           ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
     }

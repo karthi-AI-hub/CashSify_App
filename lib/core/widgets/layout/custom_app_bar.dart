@@ -24,6 +24,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       child: AppBar(
         backgroundColor: colorScheme.primary,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           title,
           style: textTheme.titleLarge?.copyWith(

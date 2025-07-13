@@ -72,4 +72,36 @@ class StorageViewer {
       print('- $key');
     }
   }
+
+  static Future<String> getAllDataAsString() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys();
+    
+    final buffer = StringBuffer();
+    buffer.writeln('=== SharedPreferences Data ===');
+    buffer.writeln('Total keys: ${keys.length}');
+    buffer.writeln('');
+    
+    for (final key in keys) {
+      final value = prefs.get(key);
+      buffer.writeln('Key: $key');
+      buffer.writeln('Type: ${value.runtimeType}');
+      
+      if (value is String) {
+        try {
+          // Try to parse as JSON
+          final jsonData = jsonDecode(value);
+          buffer.writeln('Value (JSON):');
+          buffer.writeln(const JsonEncoder.withIndent('  ').convert(jsonData));
+        } catch (e) {
+          buffer.writeln('Value (String): $value');
+        }
+      } else {
+        buffer.writeln('Value: $value');
+      }
+      buffer.writeln('---');
+    }
+    
+    return buffer.toString();
+  }
 } 

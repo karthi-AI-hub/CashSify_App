@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../theme/app_spacing.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/layout/custom_card.dart';
 import '../../../../core/widgets/layout/custom_app_bar.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/providers/app_config_provider.dart';
 
-class AboutUsScreen extends StatelessWidget {
+class AboutUsScreen extends HookConsumerWidget {
   const AboutUsScreen({super.key});
 
   Future<void> _launchUrl(String url) async {
+    if (url.isEmpty) return;
+    
     final Uri uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
@@ -19,9 +23,13 @@ class AboutUsScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    
+    // Watch the providers
+    final socialUrlsAsync = ref.watch(socialMediaUrlsProvider);
+    final contactInfoAsync = ref.watch(contactInfoProvider);
 
     return WillPopScope(
       onWillPop: () async {
@@ -40,7 +48,7 @@ class AboutUsScreen extends StatelessWidget {
           actions: [
             IconButton(
               icon: const Icon(Icons.share_rounded),
-              onPressed: () => _shareApp(context),
+              onPressed: () => _shareApp(context, ref),
               tooltip: 'Share App',
               color: Colors.white,
             ),
@@ -203,34 +211,81 @@ class AboutUsScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.md),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildSocialButton(
-                              context,
-                              icon: Icons.facebook,
-                              label: 'Facebook',
-                              onTap: () => _launchUrl('https://facebook.com/cashsify'),
+                        socialUrlsAsync.when(
+                          data: (socialUrls) => Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              if (socialUrls['whatsapp']?.isNotEmpty == true)
+                                _buildSocialButton(
+                                  context,
+                                  icon: Icons.message,
+                                  label: 'WhatsApp',
+                                  onTap: () => _launchUrl(socialUrls['whatsapp']!),
+                                ),
+                              if (socialUrls['telegram']?.isNotEmpty == true)
+                                _buildSocialButton(
+                                  context,
+                                  icon: Icons.send,
+                                  label: 'Telegram',
+                                  onTap: () => _launchUrl(socialUrls['telegram']!),
+                                ),
+                              if (socialUrls['facebook']?.isNotEmpty == true)
+                                _buildSocialButton(
+                                  context,
+                                  icon: Icons.facebook,
+                                  label: 'Facebook',
+                                  onTap: () => _launchUrl(socialUrls['facebook']!),
+                                ),
+                              if (socialUrls['youtube']?.isNotEmpty == true)
+                                _buildSocialButton(
+                                  context,
+                                  icon: Icons.play_circle_filled,
+                                  label: 'YouTube',
+                                  onTap: () => _launchUrl(socialUrls['youtube']!),
+                                ),
+                              if (socialUrls['instagram']?.isNotEmpty == true)
+                                _buildSocialButton(
+                                  context,
+                                  icon: Icons.camera_alt,
+                                  label: 'Instagram',
+                                  onTap: () => _launchUrl(socialUrls['instagram']!),
+                                ),
+                              if (socialUrls['twitter']?.isNotEmpty == true)
+                                _buildSocialButton(
+                                  context,
+                                  icon: Icons.flutter_dash,
+                                  label: 'Twitter',
+                                  onTap: () => _launchUrl(socialUrls['twitter']!),
+                                ),
+                            ],
+                          ),
+                          loading: () => const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(AppSpacing.lg),
+                              child: CircularProgressIndicator(),
                             ),
-                            _buildSocialButton(
-                              context,
-                              icon: Icons.message,
-                              label: 'WhatsApp',
-                              onTap: () => _launchUrl('https://wa.me/918072223275'),
+                          ),
+                          error: (error, stack) => Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppSpacing.lg),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: colorScheme.error,
+                                    size: 48,
+                                  ),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Text(
+                                    'Failed to load social links',
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      color: colorScheme.error,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            _buildSocialButton(
-                              context,
-                              icon: Icons.send,
-                              label: 'Telegram',
-                              onTap: () => _launchUrl('https://t.me/cashsify'),
-                            ),
-                            // _buildSocialButton(
-                            //   context,
-                            //   icon: Icons.play_circle_filled,
-                            //   label: 'YouTube',
-                            //   onTap: () => _launchUrl('https://youtube.com/cashsify'),
-                            // ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
@@ -371,9 +426,15 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 
-  void _shareApp(BuildContext context) async {
-    final playStoreBase = AppConfig.playStoreUrl;
-    final message = "🎉 Discover CashSify - the ultimate rewards platform! Earn virtual coins by watching ads, referring friends, and completing simple tasks. Download now: $playStoreBase and start earning rewards today! 🚀";
+  void _shareApp(BuildContext context, WidgetRef ref) async {
+    final contactInfoAsync = ref.read(contactInfoProvider);
+    final playStoreUrl = await contactInfoAsync.when(
+      data: (contactInfo) => contactInfo['playstore'] ?? AppConfig.playStoreUrl,
+      loading: () => AppConfig.playStoreUrl,
+      error: (_, __) => AppConfig.playStoreUrl,
+    );
+    
+    final message = "🎉 Discover CashSify - the ultimate rewards platform! Earn virtual coins by watching ads, referring friends, and completing simple tasks. Download now: $playStoreUrl and start earning rewards today! 🚀";
     await Share.share(message);
   }
 }

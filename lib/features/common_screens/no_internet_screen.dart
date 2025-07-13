@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_spacing.dart';
 import 'package:cashsify_app/features/common_screens/contact_us_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cashsify_app/core/utils/logger.dart';
 
 class NoInternetScreen extends StatefulWidget {
   final VoidCallback? onRetry;
@@ -25,44 +25,134 @@ class NoInternetScreen extends StatefulWidget {
   State<NoInternetScreen> createState() => _NoInternetScreenState();
 }
 
-class _NoInternetScreenState extends State<NoInternetScreen> {
-  void _openSettings() async {
-    // Attempt to open device network settings
-    const url = 'app-settings:';
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
+class _NoInternetScreenState extends State<NoInternetScreen> with WidgetsBindingObserver {
+  bool _isLoading = false;
+  bool _mounted = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    _mounted = false;
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Handle app lifecycle changes if needed
+    if (state == AppLifecycleState.resumed && _mounted) {
+      // Check connectivity when app resumes
+      _handleRefresh();
     }
   }
 
-  void _openWifiSettings() async {
-    // Attempt to open Wi-Fi settings (Android/iOS)
-    const wifiUrl = 'wifi:';
-    if (await canLaunchUrl(Uri.parse(wifiUrl))) {
-      await launchUrl(Uri.parse(wifiUrl));
+  Future<void> openAppSettings() async {
+    final uri = Uri.parse('app-settings:');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Future<void> openWifiSettings() async {
+    // Android intent
+    final androidUri = Uri.parse('intent:#Intent;action=android.settings.WIFI_SETTINGS;end');
+    // iOS
+    final iosUri = Uri.parse('App-Prefs:WIFI');
+    if (await canLaunchUrl(androidUri)) {
+      await launchUrl(androidUri);
+    } else if (await canLaunchUrl(iosUri)) {
+      await launchUrl(iosUri);
     } else {
-      _openSettings();
+      await openAppSettings();
+    }
+  }
+
+  Future<void> openMobileDataSettings() async {
+    // Android intent
+    final androidUri = Uri.parse('intent:#Intent;action=android.settings.DATA_ROAMING_SETTINGS;end');
+    // iOS
+    final iosUri = Uri.parse('App-Prefs:MOBILE_DATA_SETTINGS_ID');
+    if (await canLaunchUrl(androidUri)) {
+      await launchUrl(androidUri);
+    } else if (await canLaunchUrl(iosUri)) {
+      await launchUrl(iosUri);
+    } else {
+      await openAppSettings();
     }
   }
 
   Future<void> _handleRefresh() async {
-    final connectivity = await Connectivity().checkConnectivity();
-    if (connectivity != ConnectivityResult.none) {
-      if (mounted) Navigator.of(context).maybePop();
-    } else {
-      if (mounted) {
-        final colorScheme = Theme.of(context).colorScheme;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Still no internet connection.',
-              style: TextStyle(color: colorScheme.surface),
-            ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: colorScheme.primary,
-          ),
-        );
+    if (_isLoading || !_mounted) return;
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      AppLogger.info('Checking connectivity status');
+      final connectivity = await Connectivity().checkConnectivity();
+      
+      if (connectivity != ConnectivityResult.none) {
+        AppLogger.info('Connection restored');
+        if (_mounted) {
+          _showSuccessSnackBar('Connection restored!');
+          Navigator.of(context).maybePop();
+        }
+      } else {
+        AppLogger.info('Still no internet connection');
+        if (_mounted) {
+          _showErrorSnackBar('Still no internet connection');
+        }
+      }
+    } catch (e) {
+      AppLogger.error('Error checking connectivity: $e');
+      if (_mounted) {
+        _showErrorSnackBar('Error checking connection');
+      }
+    } finally {
+      if (_mounted) {
+        setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _showErrorSnackBar(String message) {
+    final colorScheme = Theme.of(context).colorScheme;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error_rounded, color: colorScheme.surface),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: colorScheme.error,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    final colorScheme = Theme.of(context).colorScheme;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: colorScheme.surface),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: colorScheme.primary,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -192,9 +282,9 @@ class _NoInternetScreenState extends State<NoInternetScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: AppSpacing.xs),
-                                Text('• Toggle Airplane mode on/off.'),
-                                Text('• Restart your router.'),
-                                Text('• Try connecting to a different network.'),
+                                Text('• Toggle Airplane mode on/off'),
+                                Text('• Restart your router'),
+                                Text('• Try connecting to a different network'),
                               ],
                             ),
                           ),
@@ -204,9 +294,18 @@ class _NoInternetScreenState extends State<NoInternetScreen> {
                     const SizedBox(height: AppSpacing.xl),
                     // Primary action button
                     FilledButton.icon(
-                      onPressed: widget.onRetry ?? _handleRefresh,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Retry Connection'),
+                      onPressed: _isLoading ? null : (widget.onRetry ?? _handleRefresh),
+                      icon: _isLoading 
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colorScheme.onPrimary,
+                              ),
+                            )
+                          : const Icon(Icons.refresh),
+                      label: Text(_isLoading ? 'Checking...' : 'Retry Connection'),
                       style: FilledButton.styleFrom(
                         backgroundColor: colorScheme.primary,
                         foregroundColor: colorScheme.onPrimary,
@@ -218,40 +317,118 @@ class _NoInternetScreenState extends State<NoInternetScreen> {
                     ).animate().fadeIn(duration: 300.ms, delay: 400.ms),
                     const SizedBox(height: AppSpacing.md),
                     // Secondary action button
-                    FilledButton.icon(
-                      onPressed: widget.onSettings ?? _openSettings,
-                      icon: Icon(Icons.settings, color: colorScheme.onPrimary),
-                      label: Text('Open Network Settings', style: TextStyle(color: colorScheme.onPrimary)),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: colorScheme.secondary,
-                        foregroundColor: colorScheme.onSecondary,
-                        minimumSize: const Size(220, 52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                    Tooltip(
+                      message: 'Opens network settings with smart fallback',
+                      child: FilledButton.icon(
+                        onPressed: _isLoading ? null : openMobileDataSettings,
+                        icon: _isLoading 
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.onSecondary,
+                                ),
+                              )
+                            : Icon(Icons.settings, color: colorScheme.onPrimary),
+                        label: Text(_isLoading ? 'Opening...' : 'Open Network Settings'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colorScheme.secondary,
+                          foregroundColor: colorScheme.onSecondary,
+                          minimumSize: const Size(220, 52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                       ),
-                    ).animate().fadeIn(duration: 300.ms, delay: 500.ms),
+                    ),
                     const SizedBox(height: AppSpacing.md),
-                    // Try another network button
-                    FilledButton.icon(
-                      onPressed: _openWifiSettings,
-                      icon: Icon(Icons.wifi, color: colorScheme.onPrimary),
-                      label: Text('Try Another Network', style: TextStyle(color: colorScheme.onPrimary)),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: colorScheme.tertiary,
-                        foregroundColor: colorScheme.onTertiary,
-                        minimumSize: const Size(220, 52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                    // Smart network settings button
+                    Tooltip(
+                      message: 'Smart network settings with comprehensive fallback',
+                      child: FilledButton.icon(
+                        onPressed: _isLoading ? null : openMobileDataSettings,
+                        icon: _isLoading 
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.onTertiary,
+                                ),
+                              )
+                            : Icon(Icons.wifi, color: colorScheme.onPrimary),
+                        label: Text(_isLoading ? 'Opening...' : 'Smart Network Settings'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colorScheme.tertiary,
+                          foregroundColor: colorScheme.onTertiary,
+                          minimumSize: const Size(220, 52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    // Wi-Fi settings button
+                    Tooltip(
+                      message: 'Wi-Fi settings with fallback',
+                      child: FilledButton.icon(
+                        onPressed: _isLoading ? null : openWifiSettings,
+                        icon: _isLoading 
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.onPrimary,
+                                ),
+                              )
+                            : Icon(Icons.wifi_tethering, color: colorScheme.onPrimary),
+                        label: Text(_isLoading ? 'Opening...' : 'Wi-Fi Settings'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
+                          minimumSize: const Size(220, 52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    // Mobile data settings button
+                    Tooltip(
+                      message: 'Mobile data settings with fallback',
+                      child: FilledButton.icon(
+                        onPressed: _isLoading ? null : openMobileDataSettings,
+                        icon: _isLoading 
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              )
+                            : Icon(Icons.sim_card, color: colorScheme.onSurfaceVariant),
+                        label: Text(_isLoading ? 'Opening...' : 'Mobile Data Settings'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colorScheme.surfaceVariant,
+                          foregroundColor: colorScheme.onSurfaceVariant,
+                          minimumSize: const Size(220, 52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     // Additional help option
                     TextButton.icon(
-                      onPressed: widget.onContactSupport ?? () {
+                      onPressed: _isLoading ? null : (widget.onContactSupport ?? () {
                         context.push('/contact-us');
-                      },
+                      }),
                       icon: Icon(Icons.support_agent, color: colorScheme.primary),
                       label: Text(
                         'Contact Support',

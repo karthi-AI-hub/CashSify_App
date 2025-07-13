@@ -37,10 +37,18 @@ Best regards,
     }
   } catch (e) {
     if (context.mounted) {
+      final colorScheme = Theme.of(context).colorScheme;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
+          content: Row(
+            children: [
+              Icon(Icons.error_rounded, color: colorScheme.surface),
+              SizedBox(width: 12),
+              Text('Failed to send message. Please try again.'),
+            ],
+          ),
           behavior: SnackBarBehavior.floating,
+          backgroundColor: colorScheme.primary,
         ),
       );
     }
@@ -61,10 +69,18 @@ Future<void> _launchWhatsApp(BuildContext context) async {
     }
   } catch (e) {
     if (context.mounted) {
+      final colorScheme = Theme.of(context).colorScheme;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
+          content: Row(
+            children: [
+              Icon(Icons.error_rounded, color: colorScheme.surface),
+              SizedBox(width: 12),
+              Text('Failed to launch WhatsApp. Please try again.'),
+            ],
+          ),
           behavior: SnackBarBehavior.floating,
+          backgroundColor: colorScheme.primary,
         ),
       );
     }
@@ -74,10 +90,18 @@ Future<void> _launchWhatsApp(BuildContext context) async {
 Future<void> _copyToClipboard(BuildContext context, String text) async {
   await Clipboard.setData(ClipboardData(text: text)); // Removed const
   if (context.mounted) {
+    final colorScheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Copied to clipboard: $text'),
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: colorScheme.surface),
+            SizedBox(width: 12),
+            Text('Email copied to clipboard!'),
+          ],
+        ),
         behavior: SnackBarBehavior.floating,
+        backgroundColor: colorScheme.primary,
       ),
     );
   }

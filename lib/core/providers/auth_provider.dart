@@ -45,23 +45,30 @@ class AuthProvider extends StateNotifier<AppAuthState> {
   }
 
   Future<void> _init() async {
+    AppLogger.auth('Initializing auth provider');
+    
     // Get initial session
     final session = await _supabaseService.getCurrentSession();
     if (session != null) {
+      AppLogger.auth('Found existing session', session.user.id);
       state = state.copyWith(
         user: UserState.fromUser(session.user),
         isLoading: false,
       );
+    } else {
+      AppLogger.auth('No existing session found');
     }
 
     // Listen to auth state changes
     _authStateSubscription = _supabaseService.onAuthStateChange.listen((event) {
       if (event.session?.user != null) {
+        AppLogger.auth('Auth state changed: User logged in', event.session!.user.id);
         state = state.copyWith(
           user: UserState.fromUser(event.session!.user),
           isLoading: false,
         );
       } else {
+        AppLogger.auth('Auth state changed: User logged out');
         state = const AppAuthState();
       }
     });
@@ -79,7 +86,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
     required String password,
   }) async {
     if (!mounted) return;
-    AppLogger.info('Attempting login for: ' + email);
+    AppLogger.auth('Sign in attempt', null, null);
     state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await _supabaseService.signIn(
@@ -88,12 +95,12 @@ class AuthProvider extends StateNotifier<AppAuthState> {
       );
 
       if (response.user == null) {
-        AppLogger.error('Login failed: Invalid credentials');
+        AppLogger.auth('Sign in failed: Invalid credentials', null, 'Invalid credentials');
         throw AuthError.invalidCredentials();
       }
 
       if (!mounted) return;
-      AppLogger.info('Login successful for: ' + email);
+      AppLogger.auth('Sign in successful', response.user!.id);
       state = state.copyWith(
         user: UserState.fromUser(response.user!),
         isLoading: false,
@@ -101,7 +108,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
       );
     } catch (e) {
       if (!mounted) return;
-      AppLogger.error('Login error for $email: $e');
+      AppLogger.auth('Sign in error', null, e.toString());
       // Do not clear user field on error, just set isLoading to false and set error
       state = state.copyWith(
         isLoading: false,
@@ -120,6 +127,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
     String? referredCode, // This is passed from RegisterScreen
   }) async {
     if (!mounted) return;
+    AppLogger.auth('Registration attempt', null, null);
     state = state.copyWith(isLoading: true, error: null);
     try {
       // Step 1: Create auth account
@@ -130,6 +138,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
       );
 
       if (response.user == null) {
+        AppLogger.auth('Registration failed: No user returned', null, 'Registration failed');
         throw AuthError(
           message: 'Registration failed. Please try again.',
           code: 'AUTH_ERROR',
@@ -148,6 +157,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
 
       // Success: Update state with user data
       if (!mounted) return;
+      AppLogger.auth('Registration successful', response.user!.id);
       state = state.copyWith(
         user: UserState.fromUser(response.user!),
         isLoading: false,
@@ -155,6 +165,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
       );
     } catch (e) {
       if (!mounted) return;
+      AppLogger.auth('Registration error', null, e.toString());
       AppError error;
       
       if (e is AuthException) {

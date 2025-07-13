@@ -75,9 +75,12 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
         final colorScheme = Theme.of(context).colorScheme;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'App is still under maintenance.',
-              style: TextStyle(color: colorScheme.surface),
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: colorScheme.surface),
+                SizedBox(width: 12),
+                Text('App refreshed!'),
+              ],
             ),
             behavior: SnackBarBehavior.floating,
             backgroundColor: colorScheme.primary,

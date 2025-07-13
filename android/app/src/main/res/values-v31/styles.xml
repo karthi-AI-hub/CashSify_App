@@ -10,7 +10,6 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:windowSplashScreenBackground">#F5F6FA</item>
-        <item name="android:windowSplashScreenBrandingImage">@drawable/android12branding</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/android12splash</item>
         <item name="android:windowSplashScreenIconBackgroundColor">#F5F6FA</item>
     </style>

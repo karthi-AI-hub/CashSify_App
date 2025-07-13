@@ -184,7 +184,7 @@ class ReferralHistoryScreen extends HookConsumerWidget {
           onPressed: () => context.go('/referrals'),
           style: ElevatedButton.styleFrom(
             backgroundColor: colorScheme.primary,
-            foregroundColor: colorScheme.onPrimary,
+            foregroundColor: Colors.white,
             padding: EdgeInsets.symmetric(
               horizontal: AppSpacing.xl,
               vertical: AppSpacing.md,
@@ -197,6 +197,7 @@ class ReferralHistoryScreen extends HookConsumerWidget {
             'Invite Friends',
             style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
         ),

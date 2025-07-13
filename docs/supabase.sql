@@ -242,7 +242,7 @@ details: , hint: null) from request
     -- 2. Validate CAPTCHA input (simple check, expand as needed)
     IF captcha_input IS NULL OR length(captcha_input) < 4 THEN
         RAISE EXCEPTION 'Invalid CAPTCHA input';
-    END IF;
+    END IF
 
     -- 3. Get today's ad count
     SELECT COALESCE(ads_watched, 0)

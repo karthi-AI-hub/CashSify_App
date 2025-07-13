@@ -580,8 +580,8 @@ class ProfileScreen extends HookConsumerWidget {
             },
           ),
           // Add this block for debug-storage if in debug mode
-          if (AppConfig.debug) Divider(height: 1),
-          if (AppConfig.debug)
+          Divider(height: 1),
+          // if (AppConfig.debug)
             _settingsTile(
               context,
               colorScheme,

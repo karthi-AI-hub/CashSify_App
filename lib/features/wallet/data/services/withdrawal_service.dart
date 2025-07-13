@@ -9,12 +9,16 @@ class WithdrawalService {
 
   // Get withdrawals stream for a user
   Stream<List<Map<String, dynamic>>> getWithdrawalsStream(String userId) {
+    AppLogger.info('Getting withdrawals stream for user: $userId');
     return _supabase.client
         .from('withdrawals')
         .stream(primaryKey: ['id'])
         .eq('user_id', userId)
         .order('requested_at', ascending: false)
-        .map((events) => events);
+        .map((events) {
+          AppLogger.info('Withdrawals stream returned ${events.length} records for user: $userId');
+          return events;
+        });
   }
 
   // Request a new withdrawal
@@ -48,7 +52,16 @@ class WithdrawalService {
         throw Exception('Insufficient coins for withdrawal.');
       }
 
-      // Step 3: Insert into transactions table (debit)
+      // Step 3: Check if this is the user's first withdrawal (BEFORE creating the withdrawal)
+      final existingWithdrawals = await _supabase.client
+          .from('withdrawals')
+          .select('id')
+          .eq('user_id', userId);
+
+      final isFirstWithdrawal = existingWithdrawals.isEmpty;
+      AppLogger.info('Checking first withdrawal for user: $userId, isFirstWithdrawal: $isFirstWithdrawal, existing withdrawals: ${existingWithdrawals.length}');
+
+      // Step 4: Insert into transactions table (debit)
       final transactionResponse = await _supabase.client.from('transactions').insert({
         'user_id': userId,
         'type': 'withdrawal', // Ensure this type is defined in your schema
@@ -58,12 +71,12 @@ class WithdrawalService {
 
       final transactionId = transactionResponse['id'] as String;
 
-      // Step 4: Update users table (decrement coins)
+      // Step 5: Update users table (decrement coins)
       await _supabase.client.from('users').update({
         'coins': currentCoins - amount,
       }).eq('id', userId);
 
-      // Step 5: Create withdrawal record, linking to transaction_id
+      // Step 6: Create withdrawal record, linking to transaction_id
       final withdrawalResponse = await _supabase.client.from('withdrawals').insert({
         'user_id': userId,
         'method': method,
@@ -74,13 +87,10 @@ class WithdrawalService {
         'transaction_id': transactionId, // Link to the newly created transaction
       }).select().single();
 
-      // Step 6: Check if this is the user's first withdrawal and update referral progress (Phase-3)
-      final withdrawals = await _supabase.client
-          .from('withdrawals')
-          .select('id')
-          .eq('user_id', userId);
-
-      if (withdrawals != null && withdrawals.length == 1) {
+      // Step 7: Process Phase-3 reward if this is the user's first withdrawal
+      if (isFirstWithdrawal) {
+        AppLogger.info('Processing Phase-3 reward for first withdrawal of user: $userId');
+        
         // Get the referrer_id from referral_progress
         final referralProgress = await _supabase.client
             .from('referral_progress')
@@ -90,13 +100,21 @@ class WithdrawalService {
 
         if (referralProgress != null) {
           final referrerId = referralProgress['referrer_id'] as String;
+          AppLogger.info('Found referrer: $referrerId for referred user: $userId, processing Phase-3 reward');
+          
           // Mark Phase-3 as done
           await _supabase.client.rpc('update_referral_phase', params: {
             'p_referrer_id': referrerId,
             'p_referred_id': userId,
             'p_phase': 3,
           });
+          
+          AppLogger.info('Phase-3 reward processed for referrer: $referrerId, referred user: $userId');
+        } else {
+          AppLogger.info('No referral progress found for user: $userId, skipping Phase-3 reward');
         }
+      } else {
+        AppLogger.info('Not first withdrawal for user: $userId, skipping Phase-3 reward');
       }
 
       AppLogger.info('Withdrawal request created successfully: ${withdrawalResponse['id']} with transaction ID: $transactionId');
@@ -115,12 +133,14 @@ class WithdrawalService {
   // Get withdrawal history for a user
   Future<List<Map<String, dynamic>>> getWithdrawalHistory(String userId) async {
     try {
+      AppLogger.info('Getting withdrawal history for user: $userId');
       final response = await _supabase.client
           .from('withdrawals')
           .select()
           .eq('user_id', userId)
           .order('requested_at', ascending: false);
 
+      AppLogger.info('Withdrawal history returned ${response.length} records for user: $userId');
       return response;
     } catch (e) {
       AppLogger.error('Error fetching withdrawal history: $e');

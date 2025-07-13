@@ -233,8 +233,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
         uploadedUrl = await _uploadProfileImage(_pickedImage!);
         if (uploadedUrl == null) {
           if (!mounted || _isDisposed) return;
+          final colorScheme = Theme.of(context).colorScheme;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to upload profile image')),
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.error_rounded, color: colorScheme.surface),
+                  SizedBox(width: 12),
+                  Text('Failed to upload profile image'),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: colorScheme.primary,
+            ),
           );
           return;
         }
@@ -266,16 +277,38 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
       if (!mounted || _isDisposed) return;
       
       // Show success message
+      final colorScheme = Theme.of(context).colorScheme;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully!')),
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: colorScheme.surface),
+              SizedBox(width: 12),
+              Text('Profile updated successfully!'),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: colorScheme.primary,
+        ),
       );
 
       // Pop back to profile screen with result
       context.pop(true);
     } catch (e) {
       if (!mounted || _isDisposed) return;
+      final colorScheme = Theme.of(context).colorScheme;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating profile: ${e.toString()}')),
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error_rounded, color: colorScheme.surface),
+              SizedBox(width: 12),
+              Text('Error updating profile: ${e.toString()}'),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: colorScheme.primary,
+        ),
       );
     } finally {
       if (!_isDisposed) {
@@ -626,4 +659,4 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> with Sing
       ),
     );
   }
-} 
+}

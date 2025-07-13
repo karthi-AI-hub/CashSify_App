@@ -74,14 +74,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 try {
                   await UserService().resendVerificationEmail(_emailController.text.trim());
                   if (context.mounted) {
+                    final colorScheme = Theme.of(context).colorScheme;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Verification email resent!')),
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(Icons.check_circle, color: colorScheme.surface),
+                            SizedBox(width: 12),
+                            Text('Verification email resent!'),
+                          ],
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: colorScheme.primary,
+                      ),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
+                    final colorScheme = Theme.of(context).colorScheme;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to resend email: $e')),
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(Icons.error, color: colorScheme.surface),
+                            SizedBox(width: 12),
+                            Text('Failed to resend email: $e'),
+                          ],
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: colorScheme.primary,
+                      ),
                     );
                   }
                 }
@@ -118,14 +140,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   try {
                     await UserService().resendVerificationEmail(_emailController.text.trim());
                     if (context.mounted) {
+                      final colorScheme = Theme.of(context).colorScheme;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Verification email resent!')),
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              Icon(Icons.check_circle, color: colorScheme.surface),
+                              SizedBox(width: 12),
+                              Text('Verification email resent!'),
+                            ],
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: colorScheme.primary,
+                        ),
                       );
                     }
                   } catch (e) {
                     if (context.mounted) {
+                      final colorScheme = Theme.of(context).colorScheme;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to resend email: $e')),
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              Icon(Icons.error, color: colorScheme.surface),
+                              SizedBox(width: 12),
+                              Text('Failed to resend email: $e'),
+                            ],
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: colorScheme.primary,
+                        ),
                       );
                     }
                   }
@@ -242,8 +286,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               if (resultEmail != null) {
                                 await Clipboard.setData(ClipboardData(text: resultEmail!));
                                 if (context.mounted) {
+                                  final colorScheme = Theme.of(context).colorScheme;
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Email copied to clipboard!')),
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          Icon(Icons.check_circle, color: colorScheme.surface),
+                                          SizedBox(width: 12),
+                                          Text('Email copied to clipboard!'),
+                                        ],
+                                      ),
+                                      behavior: SnackBarBehavior.floating,
+                                      backgroundColor: colorScheme.primary,
+                                    ),
                                   );
                                 }
                               }
@@ -453,52 +508,22 @@ class _VerifyEmailGuide extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.mail_outline_rounded),
-                  onPressed: () async {
-                    bool opened = false;
-                    const androidIntent = 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_EMAIL;end';
-                    const iosUrl = 'message://';
-                    try {
-                      if (Theme.of(context).platform == TargetPlatform.android) {
-                        if (await canLaunchUrl(Uri.parse(androidIntent))) {
-                          await launchUrl(Uri.parse(androidIntent));
-                          opened = true;
-                        }
-                      } else if (Theme.of(context).platform == TargetPlatform.iOS) {
-                        if (await canLaunchUrl(Uri.parse(iosUrl))) {
-                          await launchUrl(Uri.parse(iosUrl));
-                          opened = true;
-                        }
-                      }
-                    } catch (_) {}
-                    if (!opened) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              Icon(Icons.error, color: colorScheme.surface),
-                              SizedBox(width: 12),
-                              Text('Could not open mail inbox.'),
-                            ],
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: colorScheme.primary,
-                        ),
-                      );
-                    }
-                  },
-                  label: const Text('Open Mail App'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.secondary,
-                    foregroundColor: colorScheme.onSecondary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
+              // const SizedBox(width: 12),
+              // Expanded(
+              //   child: ElevatedButton.icon(
+              //     icon: const Icon(Icons.mail_outline_rounded),
+              //     onPressed: () async {
+              //       ...
+              //     },
+              //     label: const Text('Open Mail App'),
+              //     style: ElevatedButton.styleFrom(
+              //       backgroundColor: colorScheme.secondary,
+              //       foregroundColor: colorScheme.onSecondary,
+              //       padding: const EdgeInsets.symmetric(vertical: 14),
+              //       textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              //     ),
+              //   ),
+              // ),
             ],
           ),
           const SizedBox(height: 16),

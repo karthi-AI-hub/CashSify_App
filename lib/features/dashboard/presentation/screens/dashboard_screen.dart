@@ -65,10 +65,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final canWatch = await ref.read(earningsProvider.notifier).canWatchMoreAds();
     if (!canWatch) {
       if (mounted) {
+        final colorScheme = Theme.of(context).colorScheme;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Daily ad limit reached. Try again tomorrow!'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.timer_off_rounded, color: colorScheme.surface),
+                SizedBox(width: 12),
+                Text('Daily ad limit reached. Try again tomorrow!'),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: colorScheme.primary,
           ),
         );
       }

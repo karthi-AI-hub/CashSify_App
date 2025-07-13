@@ -1,4 +1,4 @@
-package com.cashsify.app.cashsify_app
+package com.cashsify.android
 
 import io.flutter.embedding.android.FlutterActivity
 import android.os.Bundle

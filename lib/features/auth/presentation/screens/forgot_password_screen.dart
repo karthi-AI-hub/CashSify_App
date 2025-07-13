@@ -76,9 +76,18 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         setState(() {
           _isLoading = false;
         });
+        final colorScheme = Theme.of(context).colorScheme;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password reset instructions sent to your email'),
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: colorScheme.surface),
+                SizedBox(width: 12),
+                Text('Password reset email sent! Check your inbox.'),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: colorScheme.primary,
           ),
         );
         context.go('/auth/login');

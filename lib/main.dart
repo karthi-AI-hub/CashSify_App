@@ -15,10 +15,12 @@ import 'package:cashsify_app/features/ads/presentation/providers/earnings_provid
 import 'package:cashsify_app/features/ads/data/services/ad_service.dart';
 import 'package:cashsify_app/core/providers/network_provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:cashsify_app/core/providers/app_config_provider.dart';
 import 'package:cashsify_app/features/common_screens/no_internet_screen.dart';
 import 'dart:io';
 import 'package:app_links/app_links.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cashsify_app/features/common_screens/maintenance_screen.dart';
 
 final appLinks = AppLinks();
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -43,7 +45,7 @@ void main(List<String> args) async {
   }
   
   // Initialize logging
-  AppLogger.init();
+  await AppLogger.init();
   AppLogger.info('App startup: Logger initialized');
   
   // Initialize performance monitoring
@@ -151,9 +153,12 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeProvider = ref.watch(themeProviderProvider);
-    // initialRoute is only used for deep links or cold start; router logic will handle post-login navigation
     final router = ref.watch(routerProvider(initialRoute));
     final networkStatus = ref.watch(networkStatusProvider);
+    final appConfig = ref.watch(appConfigProvider);
+
+    final isOffline = networkStatus.value == ConnectivityResult.none;
+    final isMaintenance = appConfig.hasValue && (appConfig.value?['app_runs'] == false);
 
     return MaterialApp.router(
       title: AppConfig.appName,
@@ -164,44 +169,28 @@ class MyApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       showPerformanceOverlay: false,
       builder: (context, child) {
-        if (networkStatus.value == ConnectivityResult.none) {
-          return NoInternetScreen(
-            onRetry: () => ref.refresh(networkStatusProvider),
-          );
-        }
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
-          child: child!,
+        return Stack(
+          children: [
+            MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+              child: child!,
+            ),
+            if (isMaintenance)
+              Positioned.fill(
+                child: MaintenanceScreen(
+                  message: appConfig.value?['message'],
+                  estimatedTime: appConfig.value?['estimated_time']?.toString(),
+                ),
+              )
+            else if (isOffline)
+              Positioned.fill(
+                child: NoInternetScreen(
+                  onRetry: () => ref.refresh(networkStatusProvider),
+                ),
+              ),
+          ],
         );
       },
-    );
-  }
-}
-
-class HomePage extends ConsumerWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDarkMode = ref.watch(themeProviderProvider).isDarkMode;
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cashsify'),
-        actions: [
-          IconButton(
-            icon: Icon(
-              isDarkMode ? Icons.light_mode : Icons.dark_mode,
-            ),
-            onPressed: () {
-              ref.read(themeProviderProvider.notifier).toggleTheme();
-            },
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Text('Welcome to Cashsify!'),
-      ),
     );
   }
 }
