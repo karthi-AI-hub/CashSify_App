@@ -21,6 +21,7 @@ import 'dart:io';
 import 'package:app_links/app_links.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cashsify_app/features/common_screens/maintenance_screen.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 final appLinks = AppLinks();
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -130,6 +131,10 @@ void main(List<String> args) async {
     // Add your common image URLs here
   ]);
   AppLogger.info('App startup: Images preloaded');
+
+  // Initialize Google Mobile Ads SDK
+  await MobileAds.instance.initialize();
+  AppLogger.info('App startup: Google Mobile Ads SDK initialized');
   
   runApp(
     ProviderScope(
