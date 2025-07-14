@@ -1,4 +1,4 @@
-# Cashsify App
+ # Cashsify App
 
 A Flutter application for managing earnings, referrals, and withdrawals.
 

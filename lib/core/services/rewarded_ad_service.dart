@@ -7,9 +7,9 @@ class RewardedAdService {
   factory RewardedAdService() => _instance;
   RewardedAdService._internal();
 
-  static const String adUnitIdA = 'ca-app-pub-3940256099942544/5224354917';
-  static const String adUnitIdB = 'ca-app-pub-3940256099942544/5224354917';
-  static const String adUnitIdC = 'ca-app-pub-3940256099942544/5224354917';
+  static const String adUnitIdA = 'ca-app-pub-7086602185948470/1291652554';
+  static const String adUnitIdB = 'ca-app-pub-7086602185948470/8767182851';
+  static const String adUnitIdC = 'ca-app-pub-7086602185948470/6802235192';
 
   RewardedAd? _adA;
   RewardedAd? _adB;

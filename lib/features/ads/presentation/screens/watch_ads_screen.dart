@@ -19,13 +19,15 @@ import 'package:confetti/confetti.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:cashsify_app/core/services/rewarded_ad_service.dart';
 import 'dart:async'; // Added for Timer
+import 'package:lottie/lottie.dart';
+import 'dart:ui';
 
 // State providers for managing UI states
 final isAdPlayingProvider = StateProvider<bool>((ref) => false);
 final isLoadingProvider = StateProvider<bool>((ref) => false);
 final adLoadStartTimeProvider = StateProvider<DateTime?>((ref) => null);
 final adLoadErrorProvider = StateProvider<bool>((ref) => false);
-const bool _debugShowAdStates = false; // Set to true for diagnostics
+const bool _debugShowAdStates = true; // Set to true for diagnostics
 
 class WatchAdsScreen extends HookConsumerWidget {
   const WatchAdsScreen({super.key});
@@ -179,20 +181,16 @@ class WatchAdsScreen extends HookConsumerWidget {
         ),
         if (isLoading)
           Positioned.fill(
-            child: Container(
-              color: Colors.black.withOpacity(0.15),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const ShimmerLoading(width: 120, height: 120, borderRadius: 60),
-                    const SizedBox(height: 24),
-                    Text('Preparing your ad...', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 12),
-                    Text('Time left: ${shimmerCountdown.value}s', style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
-              ),
+            child: EnhancedAdLoadingOverlay(
+              secondsLeft: shimmerCountdown.value,
+              onRetry: () {
+                ref.read(isLoadingProvider.notifier).state = false;
+                ref.read(adLoadErrorProvider.notifier).state = false;
+                RewardedAdService().loadAllAds();
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  ref.read(isLoadingProvider.notifier).state = true;
+                });
+              },
             ),
           ),
         // Confetti effect when daily limit is reached
@@ -759,16 +757,18 @@ class WatchAdsScreen extends HookConsumerWidget {
     }
     ref.read(isLoadingProvider.notifier).state = false;
     if (!adShown) {
+      final colorScheme = Theme.of(context).colorScheme;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
-              Icon(Icons.hourglass_empty_rounded, color: Theme.of(context).colorScheme.primary),
+              Icon(Icons.hourglass_empty_rounded, color: colorScheme.surface),
               const SizedBox(width: 12),
               const Text('Preparing your ad...'),
             ],
           ),
-          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: colorScheme.primary,
         ),
       );
     }
@@ -888,6 +888,126 @@ class _AdStateChip extends StatelessWidget {
       label: Text('Ad$label'),
       backgroundColor: loaded ? Colors.green : Colors.grey,
       labelStyle: TextStyle(color: Colors.white),
+    );
+  }
+}
+
+class EnhancedAdLoadingOverlay extends StatelessWidget {
+  final int secondsLeft;
+  final VoidCallback? onRetry;
+  EnhancedAdLoadingOverlay({required this.secondsLeft, this.onRetry});
+
+  static const List<String> _tips = [
+    'Tip: Watch ads daily to maximize your rewards!',
+    'Did you know? Coins can be redeemed for real rewards!',
+    'Invite friends to earn even more coins!',
+    'Complete your profile for bonus coins.',
+    'Check out the referral section for extra bonuses!',
+    'Coins reset daily at midnight. Come back every day!'
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    String message;
+    if (secondsLeft > 15) {
+      message = "Ads are in high demand. Hang tight!";
+    } else if (secondsLeft > 5) {
+      message = "Still preparing, thanks for your patience!";
+    } else {
+      message = "Getting your ad ready...";
+    }
+    final tip = _tips[DateTime.now().millisecondsSinceEpoch % _tips.length];
+
+    return Stack(
+      children: [
+        // Subtle background blur
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+          child: Container(
+            color: Colors.black.withOpacity(0.25),
+          ),
+        ),
+        Center(
+          child: Card(
+            elevation: 12,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            color: theme.colorScheme.surface.withOpacity(0.98),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Lottie.asset(
+                    'assets/animations/earnmoney.json',
+                    width: 120,
+                    height: 120,
+                    repeat: true,
+                  ),
+                  const SizedBox(height: 24),
+                  AnimatedSwitcher(
+                    duration: Duration(milliseconds: 400),
+                    child: Text(
+                      message,
+                      key: ValueKey(message),
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: (30 - secondsLeft) / 30),
+                    duration: Duration(milliseconds: 600),
+                    builder: (context, value, child) {
+                      return LinearProgressIndicator(
+                        value: value,
+                        minHeight: 10,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color.lerp(theme.colorScheme.primary, theme.colorScheme.secondary, value)!,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Time left: $secondsLeft s',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 18),
+                  AnimatedSwitcher(
+                    duration: Duration(milliseconds: 400),
+                    child: Text(
+                      tip,
+                      key: ValueKey(tip),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.secondary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  if (secondsLeft <= 10 && onRetry != null) ...[
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      icon: Icon(Icons.refresh_rounded),
+                      label: Text('Retry'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 4,
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 32),
+                      ),
+                      onPressed: onRetry,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
