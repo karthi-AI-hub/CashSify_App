@@ -476,15 +476,17 @@ class WalletScreen extends HookConsumerWidget {
                 ),
               );
             }
+            // Only show the last 5 transactions
+            final recentTransactions = transactions.take(5).toList();
             return Column(
               children: [
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: transactions.length,
+                  itemCount: recentTransactions.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 16),
                   itemBuilder: (context, i) {
-                    final tx = transactions[i];
+                    final tx = recentTransactions[i];
                     return _EnhancedTransactionCard(tx: tx);
                   },
                 ),

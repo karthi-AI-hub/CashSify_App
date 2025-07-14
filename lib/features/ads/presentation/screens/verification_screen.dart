@@ -317,6 +317,7 @@ class VerificationScreen extends HookConsumerWidget {
           fontSize: 15,
           letterSpacing: 1.2,
         ),
+        maxLength: 6,
         decoration: InputDecoration(
           filled: true,
           fillColor: colorScheme.surfaceVariant.withOpacity(0.2),

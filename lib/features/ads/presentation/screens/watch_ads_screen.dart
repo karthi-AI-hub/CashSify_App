@@ -16,11 +16,16 @@ import 'package:cashsify_app/core/widgets/feedback/custom_tooltip.dart';
 import 'package:cashsify_app/core/providers/loading_provider.dart';
 import 'package:cashsify_app/core/providers/earnings_provider.dart';
 import 'package:confetti/confetti.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:cashsify_app/core/services/rewarded_ad_service.dart';
+import 'dart:async'; // Added for Timer
 
 // State providers for managing UI states
 final isAdPlayingProvider = StateProvider<bool>((ref) => false);
-final timerSecondsProvider = StateProvider<int>((ref) => 5);
 final isLoadingProvider = StateProvider<bool>((ref) => false);
+final adLoadStartTimeProvider = StateProvider<DateTime?>((ref) => null);
+final adLoadErrorProvider = StateProvider<bool>((ref) => false);
+const bool _debugShowAdStates = false; // Set to true for diagnostics
 
 class WatchAdsScreen extends HookConsumerWidget {
   const WatchAdsScreen({super.key});
@@ -29,8 +34,6 @@ class WatchAdsScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final isAdPlaying = ref.watch(isAdPlayingProvider);
-    final timerSeconds = ref.watch(timerSecondsProvider);
     final earningsState = ref.watch(earningsProvider);
     final adsWatchedToday = earningsState.when(
       data: (earnings) => earnings?.adsWatchedToday ?? 0,
@@ -44,12 +47,12 @@ class WatchAdsScreen extends HookConsumerWidget {
       error: (_, __) => false,
     );
     final isLoading = ref.watch(isLoadingProvider);
+    final adLoadError = ref.watch(adLoadErrorProvider);
     final loadingState = ref.watch(loadingProvider);
-
-    // For pulse animation
-    final pulseController = useAnimationController(
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
+    final adService = RewardedAdService();
+    final adALoaded = adService.isAdALoaded;
+    final adBLoaded = adService.isAdBLoaded;
+    final adCLoaded = adService.isAdCLoaded;
 
     // Confetti controller for celebration
     final confettiController = useMemoized(() => ConfettiController());
@@ -60,12 +63,29 @@ class WatchAdsScreen extends HookConsumerWidget {
       return null;
     }, [isLimit]);
 
-    // Dispose confetti controller when widget is disposed
+    // On screen entry, load all ads if not loaded
     useEffect(() {
-      return () {
-        confettiController.dispose();
-      };
+      RewardedAdService().loadAllAds();
+      return null;
     }, []);
+
+    final shimmerCountdown = useState(30);
+    useEffect(() {
+      if (isLoading) {
+        shimmerCountdown.value = 30;
+        Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (!ref.read(isLoadingProvider)) {
+            timer.cancel();
+            return;
+          }
+          shimmerCountdown.value--;
+          if (shimmerCountdown.value <= 0) {
+            timer.cancel();
+          }
+        });
+      }
+      return null;
+    }, [isLoading]);
 
     return Stack(
       children: [
@@ -104,21 +124,17 @@ class WatchAdsScreen extends HookConsumerWidget {
                           SizedBox(height: isSmallScreen ? 24 : 32),
                           _AnimatedFadeIn(
                             delay: 100,
-                            child: isLoading
-                                ? const _ShimmerLoadingCard()
-                                : isLimit
-                                    ? const SizedBox.shrink()
-                                    : _buildTimerCard(
-                                        context,
-                                        colorScheme,
-                                        textTheme,
-                                        isAdPlaying,
-                                        timerSeconds,
-                                        ref,
-                                        pulseController,
-                                        isLimit,
-                                        adsWatchedToday,
-                                      ),
+                            child: isLimit
+                                ? const SizedBox.shrink()
+                                : _buildAdButtonCard(
+                                    context,
+                                    colorScheme,
+                                    textTheme,
+                                    isLimit,
+                                    ref,
+                                    isLoading,
+                                    adLoadError,
+                                  ),
                           ),
                           SizedBox(height: isSmallScreen ? 24 : 32),
                           _AnimatedFadeIn(
@@ -138,6 +154,20 @@ class WatchAdsScreen extends HookConsumerWidget {
                             delay: 300,
                             child: _buildInfoSection(context, colorScheme, textTheme),
                           ),
+                          if (_debugShowAdStates)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _AdStateChip(label: 'A', loaded: adALoaded),
+                                  const SizedBox(width: 6),
+                                  _AdStateChip(label: 'B', loaded: adBLoaded),
+                                  const SizedBox(width: 6),
+                                  _AdStateChip(label: 'C', loaded: adCLoaded),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -147,6 +177,24 @@ class WatchAdsScreen extends HookConsumerWidget {
             ),
           ),
         ),
+        if (isLoading)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.15),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const ShimmerLoading(width: 120, height: 120, borderRadius: 60),
+                    const SizedBox(height: 24),
+                    Text('Preparing your ad...', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 12),
+                    Text('Time left: ${shimmerCountdown.value}s', style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ),
+              ),
+            ),
+          ),
         // Confetti effect when daily limit is reached
         if (isLimit)
           Align(
@@ -247,17 +295,53 @@ class WatchAdsScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildTimerCard(
+  Widget _buildAdButtonCard(
     BuildContext context,
     ColorScheme colorScheme,
     TextTheme textTheme,
-    bool isAdPlaying,
-    int timerSeconds,
-    WidgetRef ref,
-    AnimationController pulseController,
     bool isLimit,
-    int adsWatchedToday,
+    WidgetRef ref,
+    bool isLoading,
+    bool adLoadError,
   ) {
+    if (adLoadError) {
+      return CustomCard(
+        elevation: 6,
+        borderRadius: 24,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline_rounded, color: colorScheme.error, size: 60),
+              const SizedBox(height: 18),
+              Text('No ads available right now.', style: textTheme.titleMedium?.copyWith(color: colorScheme.error)),
+              const SizedBox(height: 18),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 4,
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 32),
+                ),
+                onPressed: () {
+                  ref.read(isLoadingProvider.notifier).state = false;
+                  ref.read(adLoadErrorProvider.notifier).state = false;
+                  RewardedAdService().loadAllAds();
+                  // Restart shimmer/countdown
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    ref.read(isLoadingProvider.notifier).state = true;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return CustomCard(
       elevation: 6,
       borderRadius: 24,
@@ -266,156 +350,67 @@ class WatchAdsScreen extends HookConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
-              switchInCurve: Curves.easeInOut,
-              switchOutCurve: Curves.easeInOut,
-              transitionBuilder: (child, animation) => ScaleTransition(
-                scale: animation,
-                child: child,
-              ),
-              child: isAdPlaying
-                  ? _buildAnimatedTimer(colorScheme, textTheme, timerSeconds, pulseController)
-                  : Icon(
-                      Icons.play_circle_fill_rounded,
-                      color: isLimit ? colorScheme.onSurfaceVariant : colorScheme.primary,
-                      size: 80,
-                      key: const ValueKey('play'),
-                    ),
+            Icon(
+              Icons.play_circle_fill_rounded,
+              color: isLimit ? colorScheme.onSurfaceVariant : colorScheme.primary,
+              size: 80,
             ),
             const SizedBox(height: 24),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
-              child: isAdPlaying
-                  ? Text(
-                      'Preparing your ad...',
-                      style: textTheme.titleMedium?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      key: const ValueKey('wait'),
-                    )
-                  : Text(
-                      'Ready to watch?',
-                      style: textTheme.titleMedium?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      key: const ValueKey('tap'),
-                    ),
+            Text(
+              'Ready to watch?',
+              style: textTheme.titleMedium?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 28),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
-              child: isAdPlaying
-                  ? const SizedBox(height: 56)
-                  : SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isLimit
-                              ? colorScheme.surfaceVariant
-                              : colorScheme.primary,
-                          foregroundColor: isLimit
-                              ? colorScheme.onSurfaceVariant
-                              : colorScheme.onPrimary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: isLimit ? 0 : 4,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shadowColor: colorScheme.primary.withOpacity(0.3),
-                        ),
-                        onPressed: isLimit || isAdPlaying
-                            ? null
-                            : () => _handleTimerStart(context, ref),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              isLimit
-                                  ? Icons.timer_off_rounded
-                                  : Icons.play_arrow_rounded,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              isLimit ? 'Come Back Tomorrow' : 'Watch Now',
-                              style: textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: isLimit 
-                                    ? colorScheme.onSurface 
-                                    : colorScheme.onPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isLimit
+                      ? colorScheme.surfaceVariant
+                      : colorScheme.primary,
+                  foregroundColor: isLimit
+                      ? colorScheme.onSurfaceVariant
+                      : colorScheme.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: isLimit ? 0 : 4,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shadowColor: colorScheme.primary.withOpacity(0.3),
+                ),
+                onPressed: isLimit || isLoading
+                    ? null
+                    : () => _handleShowRewardedAd(context, ref),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isLimit
+                          ? Icons.timer_off_rounded
+                          : Icons.play_arrow_rounded,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      isLimit ? 'Come Back Tomorrow' : 'Watch Now',
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: isLimit 
+                            ? colorScheme.onSurface 
+                            : colorScheme.onPrimary,
                       ),
                     ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildAnimatedTimer(
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    int timerSeconds,
-    AnimationController pulseController,
-  ) {
-    return AnimatedBuilder(
-      animation: pulseController,
-      builder: (context, child) {
-        final scale = 1.0 + 0.05 * pulseController.value;
-        return Transform.scale(
-          scale: scale,
-          child: SizedBox(
-            width: 100,
-            height: 100,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CircularProgressIndicator(
-                  value: (5 - timerSeconds) / 5,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                      colorScheme.primary),
-                  backgroundColor: colorScheme.surfaceVariant,
-                  strokeWidth: 8,
-                  strokeCap: StrokeCap.round,
-                ),
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: colorScheme.surface,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.primary.withOpacity(0.1),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$timerSeconds',
-                      style: textTheme.displayMedium?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 36,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -663,7 +658,7 @@ class WatchAdsScreen extends HookConsumerWidget {
     );
   }
 
-  Future<void> _handleTimerStart(BuildContext context, WidgetRef ref) async {
+  Future<void> _handleShowRewardedAd(BuildContext context, WidgetRef ref) async {
     final earningsState = ref.read(earningsProvider);
     if (earningsState.when(
       data: (earnings) => earnings?.hasReachedDailyLimit ?? false,
@@ -678,8 +673,8 @@ class WatchAdsScreen extends HookConsumerWidget {
                 Icons.timer_off_rounded,
                 color: Theme.of(context).colorScheme.onPrimary,
               ),
-              const SizedBox(width: 8),
-              const Text('Daily limit reached. Come back tomorrow!'),
+              const SizedBox(width: 12),
+              const Text('You have reached your daily ad limit.'),
             ],
           ),
           behavior: SnackBarBehavior.floating,
@@ -691,50 +686,92 @@ class WatchAdsScreen extends HookConsumerWidget {
       );
       return;
     }
+    // Only reload all ads if all are expired
+    RewardedAdService().reloadAllIfAllExpired();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final rewardedAdService = RewardedAdService();
+    ref.read(isLoadingProvider.notifier).state = true;
+    ref.read(adLoadErrorProvider.notifier).state = false;
+    final start = DateTime.now();
+    ref.read(adLoadStartTimeProvider.notifier).state = start;
 
-    ref.read(isAdPlayingProvider.notifier).state = true;
-    ref.read(timerSecondsProvider.notifier).state = 5;
-
-    // Countdown animation
-    for (int i = 5; i > 0; i--) {
-      await Future.delayed(const Duration(seconds: 1));
-      ref.read(timerSecondsProvider.notifier).state = i - 1;
-    }
-
-    if (context.mounted) {
-      final result = await context.push<bool>('/verification');
-
-      if (result == true) {
-        // After successful verification
-        await ref.read(earningsProvider.notifier).loadEarnings();
-        
-        // Show success feedback
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle_rounded,
-                    color: Theme.of(context).colorScheme.onPrimary,
+    bool adShown = false;
+    for (int i = 0; i < 30; i++) {
+      // Try to show ad every second for up to 30 seconds
+      adShown = await rewardedAdService.showAvailableAd(
+        onUserEarnedReward: (ad, reward) async {
+          if (context.mounted) {
+            final result = await context.push<bool>('/verification');
+            if (result == true) {
+              await ref.read(earningsProvider.notifier).loadEarnings();
+              scaffoldMessenger.showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Ad verified successfully!'),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  const Text('Ad verified successfully!'),
-                ],
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            }
+          }
+        },
+        onAdDismissed: () {
+          // If ad was dismissed without reward, show friendly message
+          if (!adShown) {
+            scaffoldMessenger.showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Ad closed. No reward earned.'),
+                  ],
+                ),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
-        }
-      }
+            );
+          }
+        },
+        onAdFailedToShow: () {
+          // Try next ad immediately
+        },
+      );
+      if (adShown) break;
+      await Future.delayed(const Duration(seconds: 1));
     }
-
-    ref.read(isAdPlayingProvider.notifier).state = false;
-    ref.read(timerSecondsProvider.notifier).state = 5;
+    ref.read(isLoadingProvider.notifier).state = false;
+    if (!adShown) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.hourglass_empty_rounded, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              const Text('Preparing your ad...'),
+            ],
+          ),
+          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+        ),
+      );
+    }
   }
 }
 
@@ -837,6 +874,20 @@ class _AnimatedFadeInState extends State<_AnimatedFadeIn>
         );
       },
       child: widget.child,
+    );
+  }
+}
+
+class _AdStateChip extends StatelessWidget {
+  final String label;
+  final bool loaded;
+  const _AdStateChip({required this.label, required this.loaded});
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text('Ad$label'),
+      backgroundColor: loaded ? Colors.green : Colors.grey,
+      labelStyle: TextStyle(color: Colors.white),
     );
   }
 }

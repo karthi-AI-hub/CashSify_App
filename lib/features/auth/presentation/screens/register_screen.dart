@@ -73,6 +73,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         });
         return;
       }
+      // --- Validate referral code existence ---
+      final referralCode = _referralCodeController.text.trim();
+      if (referralCode.isNotEmpty) {
+        final referralUser = await Supabase.instance.client
+            .from('users')
+            .select('id')
+            .eq('referral_code', referralCode)
+            .maybeSingle();
+        if (referralUser == null || referralUser['id'] == null) {
+          setState(() {
+            _errorMessage = 'Referral code does not exist.';
+            _isLoading = false;
+          });
+          return;
+        }
+      }
       // Step 1: Create auth account
       final response = await Supabase.instance.client.auth.signUp(
         email: _emailController.text.trim(),
@@ -85,9 +101,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         throw AuthException('Registration failed. Please try again.');
       }
       // Step 2: Register user profile with referral logic
-      final referralCode = _referralCodeController.text.trim().isEmpty
-          ? null
-          : _referralCodeController.text.trim();
       final generatedReferralCode = _generateReferralCode(phoneNumber);
       await Supabase.instance.client.rpc(
         'register_user_with_referral',
@@ -98,7 +111,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           'p_name': _nameController.text.trim(),
           'p_phone_number': phoneNumber,
           'p_referral_code': generatedReferralCode,
-          'p_referred_code': referralCode,
+          'p_referred_code': referralCode.isEmpty ? null : referralCode,
         },
       );
       if (mounted) {

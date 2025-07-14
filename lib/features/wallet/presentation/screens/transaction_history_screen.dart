@@ -138,6 +138,214 @@ class TransactionHistoryScreen extends HookConsumerWidget {
       }
     }
 
+    // --- EXPANDABLE INLINE FILTER PANEL ---
+    final filterPanelExpanded = useState(false);
+    final tempSelectedTypes = useState<List<String>>(List.from(selectedTypes.value));
+    final tempSelectedDateRange = useState<String>(selectedDateRange.value);
+    final tempCustomStartDate = useState<DateTime?>(customStartDate.value);
+    final tempCustomEndDate = useState<DateTime?>(customEndDate.value);
+
+    Widget filterSummaryChips = Wrap(
+      spacing: 8,
+      runSpacing: 0,
+      children: [
+        if (selectedTypes.value.isNotEmpty)
+          Chip(
+            label: Text(selectedTypes.value.join(', ').toUpperCase()),
+            backgroundColor: colorScheme.primary.withOpacity(0.1),
+            labelStyle: TextStyle(color: colorScheme.primary, fontSize: 12),
+          ),
+        if (selectedDateRange.value != 'All time')
+          Chip(
+            label: Text(selectedDateRange.value),
+            backgroundColor: colorScheme.primary.withOpacity(0.1),
+            labelStyle: TextStyle(color: colorScheme.primary, fontSize: 12),
+          ),
+      ],
+    );
+
+    Widget filterButton = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          ElevatedButton.icon(
+            icon: Icon(filterPanelExpanded.value ? Icons.close : Icons.filter_list_rounded, size: 18),
+            label: Text(filterPanelExpanded.value ? 'Close Filter' : 'Filter'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              backgroundColor: colorScheme.surfaceVariant,
+              foregroundColor: colorScheme.primary,
+              elevation: 0,
+              textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+            onPressed: () {
+              if (filterPanelExpanded.value) {
+                // Cancel: revert temp values
+                tempSelectedTypes.value = List.from(selectedTypes.value);
+                tempSelectedDateRange.value = selectedDateRange.value;
+                tempCustomStartDate.value = customStartDate.value;
+                tempCustomEndDate.value = customEndDate.value;
+              }
+              filterPanelExpanded.value = !filterPanelExpanded.value;
+            },
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: filterSummaryChips),
+        ],
+      ),
+    );
+
+    Widget filterPanel = AnimatedCrossFade(
+      duration: const Duration(milliseconds: 250),
+      crossFadeState: filterPanelExpanded.value ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+      firstChild: Builder(
+        builder: (context) {
+          Future<void> _pickTempDate(bool isStart) async {
+            final DateTime? picked = await showDatePicker(
+              context: context,
+              initialDate: isStart ? tempCustomStartDate.value ?? DateTime.now() : tempCustomEndDate.value ?? DateTime.now(),
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2101),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: ColorScheme.light(
+                      primary: colorScheme.primary,
+                      onPrimary: colorScheme.onPrimary,
+                      surface: colorScheme.surface,
+                      onSurface: colorScheme.onSurface,
+                    ),
+                    textButtonTheme: TextButtonThemeData(
+                      style: TextButton.styleFrom(
+                        foregroundColor: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
+            );
+            if (picked != null) {
+              if (isStart) {
+                tempCustomStartDate.value = picked;
+              } else {
+                tempCustomEndDate.value = picked;
+              }
+            }
+          }
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.shadow.withOpacity(0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildEnhancedFilterSection(
+                  context,
+                  colorScheme,
+                  textTheme,
+                  tempSelectedTypes,
+                  tempSelectedDateRange,
+                  tempCustomStartDate,
+                  tempCustomEndDate,
+                  transactionTypes,
+                  dateRangeOptions,
+                  _pickTempDate,
+                ),
+                if (tempSelectedDateRange.value == 'Custom Date' && (tempCustomStartDate.value == null || tempCustomEndDate.value == null))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                    child: Text(
+                      'Please select both start and end dates.',
+                      style: TextStyle(color: colorScheme.error, fontSize: 13),
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        // Cancel: revert temp values and collapse
+                        tempSelectedTypes.value = List.from(selectedTypes.value);
+                        tempSelectedDateRange.value = selectedDateRange.value;
+                        tempCustomStartDate.value = customStartDate.value;
+                        tempCustomEndDate.value = customEndDate.value;
+                        filterPanelExpanded.value = false;
+                      },
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: (tempSelectedDateRange.value == 'Custom Date' && (tempCustomStartDate.value == null || tempCustomEndDate.value == null))
+                          ? null
+                          : () {
+                              // Apply: copy temp values to real
+                              selectedTypes.value = List.from(tempSelectedTypes.value);
+                              selectedDateRange.value = tempSelectedDateRange.value;
+                              customStartDate.value = tempCustomStartDate.value;
+                              customEndDate.value = tempCustomEndDate.value;
+                              filterPanelExpanded.value = false;
+                            },
+                      child: const Text('Apply'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+      secondChild: const SizedBox.shrink(),
+    );
+
+    // --- COMPACT STATS BAR ---
+    Widget compactStatsBar(List transactions) {
+      final total = transactions.length;
+      final totalEarned = transactions.where((t) => t.type != 'withdrawal').fold<num>(0, (sum, t) => sum + t.amount).toInt();
+      final totalSpent = transactions.where((t) => t.type == 'withdrawal').fold<num>(0, (sum, t) => sum + t.amount).toInt();
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.receipt_long_outlined, size: 18, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text('$total', style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            Row(
+              children: [
+                const Icon(Icons.trending_up_rounded, size: 18, color: Colors.green),
+                const SizedBox(width: 4),
+                Text('+$totalEarned', style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.green)),
+              ],
+            ),
+            Row(
+              children: [
+                const Icon(Icons.trending_down_rounded, size: 18, color: Colors.red),
+                const SizedBox(width: 4),
+                Text('$totalSpent', style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.red)),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     return WillPopScope(
       onWillPop: () async {
         context.pop();
@@ -156,39 +364,55 @@ class TransactionHistoryScreen extends HookConsumerWidget {
         body: SafeArea(
           child: Column(
             children: [
-              // Enhanced Filter Section
-              _buildEnhancedFilterSection(
-                context,
-                colorScheme,
-                textTheme,
-                selectedTypes,
-                selectedDateRange,
-                customStartDate,
-                customEndDate,
-                transactionTypes,
-                dateRangeOptions,
-                _pickDate,
+              filterButton,
+              filterPanel,
+              allTransactionsAsync.when(
+                data: (transactions) => compactStatsBar(transactions),
+                loading: () => const SizedBox(height: 8),
+                error: (e, st) => const SizedBox(height: 8),
               ),
-              
-              // Enhanced Transaction List
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 0),
                   child: allTransactionsAsync.when(
                     loading: () => _buildEnhancedLoadingShimmer(context, colorScheme),
-                    error: (e, st) => _buildErrorState(context, colorScheme, 'Failed to load transactions'),
+                    error: (e, st) => _buildScrollableEmptyState(context, colorScheme, textTheme, isError: true),
                     data: (transactions) {
                       if (transactions.isEmpty) {
-                        return _buildEnhancedEmptyState(context, colorScheme, textTheme);
+                        return _buildScrollableEmptyState(context, colorScheme, textTheme);
                       }
-                      return ListView.separated(
-                        padding: const EdgeInsets.only(top: 24),
-                        itemCount: transactions.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 16),
-                        itemBuilder: (context, i) {
-                          final tx = transactions[i];
-                          return _EnhancedTransactionCard(tx: tx);
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          ref.refresh(filteredTransactionsStreamProvider((
+                            userId: userId,
+                            types: selectedTypes.value.isEmpty ? null : selectedTypes.value,
+                            startDate: effectiveStartDate,
+                            endDate: effectiveEndDate,
+                          )));
                         },
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 350),
+                          child: ListView.separated(
+                            key: ValueKey('${transactions.length}-${transactions.hashCode}'),
+                            padding: const EdgeInsets.only(top: 12, left: 12, right: 12),
+                            itemCount: transactions.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, i) {
+                              final tx = transactions[i];
+                              return MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () {},
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    curve: Curves.easeInOut,
+                                    child: _EnhancedTransactionCard(tx: tx),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -454,56 +678,64 @@ class TransactionHistoryScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildEnhancedEmptyState(BuildContext context, ColorScheme colorScheme, TextTheme textTheme) {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.all(32),
-        margin: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withOpacity(0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+  // --- ENHANCED: Improved empty state with illustration and friendlier text ---
+  Widget _buildScrollableEmptyState(BuildContext context, ColorScheme colorScheme, TextTheme textTheme, {bool isError = false}) {
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height * 0.5),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            margin: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isError ? colorScheme.errorContainer : colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.shadow.withOpacity(0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(
-                Icons.receipt_long_outlined,
-                size: 48,
-                color: colorScheme.primary,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: isError ? colorScheme.error.withOpacity(0.1) : colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    isError ? Icons.error_outline_rounded : Icons.receipt_long_outlined,
+                    size: 48,
+                    color: isError ? colorScheme.error : colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  isError ? 'Failed to load transactions' : 'No Transactions Found',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isError
+                      ? 'Something went wrong. Please try again later or pull to refresh.'
+                      : 'Try adjusting your filters or check back later for new transactions.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            Text(
-              'No Transactions Found',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Try adjusting your filters or check back later for new transactions.',
-              style: TextStyle(
-                fontSize: 14,
-                color: colorScheme.onSurface.withOpacity(0.7),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
         ),
       ),
     );
