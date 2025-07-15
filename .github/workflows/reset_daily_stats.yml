@@ -1,0 +1,17 @@
+name: Reset Daily Stats
+
+on:
+  schedule:
+    # Runs every day at 12:00 AM IST (18:30 UTC)
+    - cron: '30 18 * * *'
+  workflow_dispatch: # Allows you to run manually from the Actions tab
+
+jobs:
+  call-edge-function:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Supabase Edge Function
+        run: |
+          curl -X POST "https://huohftwbbqvhhqsabmzb.supabase.co/functions/v1/reset_daily_stats" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json"

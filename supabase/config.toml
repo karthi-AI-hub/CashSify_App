@@ -8,3 +8,18 @@ entrypoint = "./functions/delete-user/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/delete-user/*.html" ]
+
+[functions.reset_daily_stats]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/reset_daily_stats.ts"
+
+[functions.set_app_runs_off]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/set_app_runs.ts"
+
+[functions.set_app_runs_on]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/set_app_runs.ts"

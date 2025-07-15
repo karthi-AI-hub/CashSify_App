@@ -22,6 +22,7 @@ import 'package:app_links/app_links.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cashsify_app/features/common_screens/maintenance_screen.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:in_app_update/in_app_update.dart';
 
 final appLinks = AppLinks();
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -149,16 +150,104 @@ void main(List<String> args) async {
   );
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends ConsumerStatefulWidget {
   final SharedPreferences prefs;
   final String? initialRoute;
-  
+
   const MyApp({super.key, required this.prefs, this.initialRoute});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> {
+  AppUpdateInfo? _updateInfo;
+  bool _checkingUpdate = true;
+  bool _updateRequired = false;
+  bool _updateInProgress = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkForUpdate();
+  }
+
+  Future<void> _checkForUpdate() async {
+    setState(() {
+      _checkingUpdate = true;
+      _updateRequired = false;
+      _updateInProgress = false;
+    });
+    try {
+      final info = await InAppUpdate.checkForUpdate();
+      final forceUpdate = info.updateAvailability == UpdateAvailability.updateAvailable && info.immediateUpdateAllowed;
+      setState(() {
+        _updateInfo = info;
+        _checkingUpdate = false;
+        _updateRequired = forceUpdate;
+      });
+      if (forceUpdate) {
+        _startImmediateUpdate();
+      }
+    } catch (e) {
+      setState(() {
+        _checkingUpdate = false;
+        _updateRequired = true; // Block if we can't check
+      });
+    }
+  }
+
+  Future<void> _startImmediateUpdate() async {
+    setState(() {
+      _updateInProgress = true;
+    });
+    try {
+      final result = await InAppUpdate.performImmediateUpdate();
+      // If update is successful, re-check for updates
+      if (result == AppUpdateResult.success) {
+        await _checkForUpdate();
+      } else {
+        // If update is cancelled or failed, keep blocking
+        setState(() {
+          _updateRequired = true;
+          _updateInProgress = false;
+        });
+      }
+    } catch (e) {
+      // If update fails, keep blocking
+      setState(() {
+        _updateRequired = true;
+        _updateInProgress = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_checkingUpdate || _updateInProgress) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    if (_updateRequired) {
+      // Block navigation, show update required message
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Text(
+              'A new update is required to continue. Please update the app from the Play Store.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     final themeProvider = ref.watch(themeProviderProvider);
-    final router = ref.watch(routerProvider(initialRoute));
+    final router = ref.watch(routerProvider(widget.initialRoute));
     final networkStatus = ref.watch(networkStatusProvider);
     final appConfig = ref.watch(appConfigProvider);
 
