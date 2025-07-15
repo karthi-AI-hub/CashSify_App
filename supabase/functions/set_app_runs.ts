@@ -2,6 +2,17 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 serve(async (req) => {
+  if (req.method !== "POST") {
+    return new Response("Method Not Allowed", { status: 405 });
+  }
+
+  // Authorization header validation
+  const expectedAuth = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader || authHeader !== `Bearer ${expectedAuth}`) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   let app_runs: boolean | undefined = undefined;
   try {
     const body = await req.json();

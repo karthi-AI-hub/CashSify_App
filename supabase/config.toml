@@ -14,12 +14,7 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/reset_daily_stats.ts"
 
-[functions.set_app_runs_off]
-enabled = true
-verify_jwt = false
-entrypoint = "./functions/set_app_runs.ts"
-
-[functions.set_app_runs_on]
+[functions.set_app_runs]
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/set_app_runs.ts"

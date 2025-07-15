@@ -15,9 +15,10 @@ serve(async (req) => {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  // Get the JWT from the Authorization header
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
+  // Authorization header validation
+  const expectedAuth = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"); // or use a custom secret
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader || authHeader !== `Bearer ${expectedAuth}`) {
     return new Response("Unauthorized", { status: 401 });
   }
 
