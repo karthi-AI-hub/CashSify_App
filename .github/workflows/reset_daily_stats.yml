@@ -3,7 +3,7 @@ name: Reset Daily Stats
 on:
   schedule:
     # Runs every day at 12:00 AM IST (18:30 UTC)
-    - cron: '30 18 * * *'
+    - cron: '45 14 * * *'
   workflow_dispatch: # Allows you to run manually from the Actions tab
 
 jobs:
