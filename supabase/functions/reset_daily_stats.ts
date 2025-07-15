@@ -9,7 +9,7 @@ serve(async (_req) => {
 
   const { error } = await supabase
     .from('earnings')
-    .update({ ads_watched: 0, coins_earned: 0 })
+    .update({ ads_watched: 0, coins_earned: 0, last_updated: new Date().toISOString() })
     .neq('user_id', '00000000-0000-0000-0000-000000000000');
 
   if (error) {
