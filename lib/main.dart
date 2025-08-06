@@ -23,6 +23,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cashsify_app/features/common_screens/maintenance_screen.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:in_app_update/in_app_update.dart';
+import 'package:cashsify_app/theme/app_spacing.dart';
 
 final appLinks = AppLinks();
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -165,6 +166,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   bool _checkingUpdate = true;
   bool _updateRequired = false;
   bool _updateInProgress = false;
+  String? _updateError;
 
   @override
   void initState() {
@@ -177,22 +179,30 @@ class _MyAppState extends ConsumerState<MyApp> {
       _checkingUpdate = true;
       _updateRequired = false;
       _updateInProgress = false;
+      _updateError = null;
     });
     try {
       final info = await InAppUpdate.checkForUpdate();
-      final forceUpdate = info.updateAvailability == UpdateAvailability.updateAvailable && info.immediateUpdateAllowed;
-      setState(() {
-        _updateInfo = info;
-        _checkingUpdate = false;
-        _updateRequired = forceUpdate;
-      });
-      if (forceUpdate) {
-        _startImmediateUpdate();
+      if (info.updateAvailability == UpdateAvailability.updateAvailable &&
+          info.immediateUpdateAllowed) {
+        setState(() {
+          _updateInfo = info;
+          _updateRequired = true;
+        });
+        await _startImmediateUpdate();
+      } else {
+        setState(() {
+          _updateRequired = false;
+        });
       }
     } catch (e) {
       setState(() {
+        _updateError = e.toString();
+        _updateRequired = true; // Block app if update check fails
+      });
+    } finally {
+      setState(() {
         _checkingUpdate = false;
-        _updateRequired = true; // Block if we can't check
       });
     }
   }
@@ -203,20 +213,23 @@ class _MyAppState extends ConsumerState<MyApp> {
     });
     try {
       final result = await InAppUpdate.performImmediateUpdate();
-      // If update is successful, re-check for updates
       if (result == AppUpdateResult.success) {
-        await _checkForUpdate();
-      } else {
-        // If update is cancelled or failed, keep blocking
         setState(() {
+          _updateRequired = false;
+        });
+      } else {
+        setState(() {
+          _updateError = 'Update was not completed. Please try again.';
           _updateRequired = true;
-          _updateInProgress = false;
         });
       }
     } catch (e) {
-      // If update fails, keep blocking
       setState(() {
+        _updateError = e.toString();
         _updateRequired = true;
+      });
+    } finally {
+      setState(() {
         _updateInProgress = false;
       });
     }
@@ -233,13 +246,115 @@ class _MyAppState extends ConsumerState<MyApp> {
     }
 
     if (_updateRequired) {
-      // Block navigation, show update required message
+      final colorScheme = Theme.of(context).colorScheme;
+      final isDarkMode = colorScheme.brightness == Brightness.dark;
+      final textTheme = Theme.of(context).textTheme;
       return MaterialApp(
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
+          backgroundColor: colorScheme.background,
           body: Center(
-            child: Text(
-              'A new update is required to continue. Please update the app from the Play Store.',
-              textAlign: TextAlign.center,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // App Logo
+                  Image.asset(
+                    'assets/logo/logo.jpg',
+                    width: 100,
+                    height: 100,
+                  ),
+                  SizedBox(height: AppSpacing.xl),
+                  ShaderMask(
+                    blendMode: BlendMode.srcIn,
+                    shaderCallback: (bounds) => LinearGradient(
+                      colors: [
+                        colorScheme.primary,
+                        colorScheme.secondary,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ).createShader(bounds),
+                    child: Text(
+                      'Update Required',
+                      style: textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+                  // Card for message, styled like wallet_screen.dart
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    color: colorScheme.surface,
+                    shadowColor: colorScheme.primary.withOpacity(0.08),
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.system_update,
+                              color: colorScheme.primary,
+                              size: 28,
+                            ),
+                          ),
+                          SizedBox(height: AppSpacing.md),
+                          Text(
+                            _updateError != null
+                                ? (_updateError!.contains('ERROR_APP_NOT_OWNED') || _updateError!.contains('not owned')
+                                    ? 'This app was not installed from the Play Store. Please install or update the app from the Play Store to use in-app updates.'
+                                    : 'There was a problem updating the app:\n\n${_updateError!}\nPlease try again. If the problem persists, update manually from the Play Store.')
+                                : 'A new version of CashSify is available. Please update to continue using the app.',
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: colorScheme.onSurface,
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: AppSpacing.xl),
+                  SizedBox(
+                    width: 200,
+                    child: LinearProgressIndicator(
+                      minHeight: 6,
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      backgroundColor: colorScheme.surfaceVariant,
+                      valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                    ),
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+                  FilledButton.icon(
+                    onPressed: _updateError != null ? _checkForUpdate : null,
+                    icon: Icon(Icons.refresh),
+                    label: Text(_updateError != null ? 'Retry Update' : 'Updating...'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -252,7 +367,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     final appConfig = ref.watch(appConfigProvider);
 
     final isOffline = networkStatus.value == ConnectivityResult.none;
-    final isMaintenance = appConfig.hasValue && (appConfig.value?['app_runs'] == false);
+    final isMaintenance = appConfig != null && appConfig['app_runs'] == false;
 
     return MaterialApp.router(
       title: AppConfig.appName,
@@ -260,7 +375,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light,
       routerConfig: router,
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false, // Remove debug banner
       showPerformanceOverlay: false,
       builder: (context, child) {
         return Stack(
@@ -270,16 +385,20 @@ class _MyAppState extends ConsumerState<MyApp> {
               child: child!,
             ),
             if (isMaintenance)
-              Positioned.fill(
-                child: MaintenanceScreen(
-                  message: appConfig.value?['message'],
-                  estimatedTime: appConfig.value?['estimated_time']?.toString(),
+              Builder(
+                builder: (context) => Positioned.fill(
+                  child: MaintenanceScreen(
+                    message: appConfig?['message'],
+                    estimatedTime: appConfig?['estimated_time']?.toString(),
+                  ),
                 ),
               )
             else if (isOffline)
-              Positioned.fill(
-                child: NoInternetScreen(
-                  onRetry: () => ref.refresh(networkStatusProvider),
+              Builder(
+                builder: (context) => Positioned.fill(
+                  child: NoInternetScreen(
+                    onRetry: () => ref.refresh(networkStatusProvider),
+                  ),
                 ),
               ),
           ],

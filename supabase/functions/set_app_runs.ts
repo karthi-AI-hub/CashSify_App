@@ -30,9 +30,19 @@ serve(async (req) => {
   );
 
   // Update the row with id = 1 (change as needed)
+  let updateFields: Record<string, any> = { app_runs, updated_at: new Date().toISOString() };
+  if (app_runs === false) {
+    // Set estimated_time to 1 minute from now
+    const now = new Date();
+    const estimatedTime = new Date(now.getTime() + 2 * 60 * 1000).toISOString();
+    updateFields.estimated_time = estimatedTime;
+  } else {
+    updateFields.estimated_time = null;
+  }
+
   const { error } = await supabase
     .from('app_config')
-    .update({ app_runs, updated_at: new Date().toISOString() })
+    .update(updateFields)
     .eq('id', 1);
 
   if (error) {

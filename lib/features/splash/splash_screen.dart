@@ -137,20 +137,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       return NoInternetScreen(onRetry: () => setState(() {}));
     }
 
-    if (appConfig.hasError) {
-      return Scaffold(
-        body: Center(child: Text('Error loading app config: ${appConfig.error}')),
-      );
+    if (appConfig == null) {
+      // Show loading or error (you may want to add error handling in your provider)
     }
 
-    if (appConfig.hasValue && (appConfig.value?['app_runs'] == false)) {
+    if (appConfig != null && appConfig['app_runs'] == false) {
       return MaintenanceScreen(
-        message: appConfig.value?['message'],
-        estimatedTime: appConfig.value?['estimated_time']?.toString(),
+        message: appConfig?['message'],
+        estimatedTime: appConfig?['estimated_time']?.toString(),
       );
     }
 
-    if (((kIsWeb || networkStatus.hasValue) && appConfig.hasValue) && !_dataReady) {
+    if (((kIsWeb || networkStatus.hasValue) && appConfig != null) && !_dataReady) {
       _dataReady = true;
       Future.microtask(_tryNavigate);
     }

@@ -15,18 +15,20 @@ class AppConfigNotifier extends StateNotifier<Map<String, dynamic>?> {
     state = response as Map<String, dynamic>?;
 
     // Subscribe to realtime updates
-    _channel = supabase
-      .channel('public:app_config')
-      .on(
-        RealtimeListenTypes.postgresChanges,
-        ChannelFilter(event: 'UPDATE', schema: 'public', table: 'app_config'),
-        (payload, [ref]) async {
-          // Optionally, fetch the latest config again
-          final updated = await supabase.from('app_config').select().single();
-          state = updated as Map<String, dynamic>?;
-        },
-      )
-      .subscribe();
+    _channel = supabase.channel('public:app_config');
+
+    _channel!.onPostgresChanges(
+      event: PostgresChangeEvent.update,
+      schema: 'public',
+      table: 'app_config',
+      callback: (payload) async {
+        // Optionally, fetch the latest config again
+        final updated = await supabase.from('app_config').select().single();
+        state = updated as Map<String, dynamic>?;
+      },
+    );
+
+    _channel!.subscribe();
   }
 
   @override

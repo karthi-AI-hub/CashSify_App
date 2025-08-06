@@ -66,9 +66,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
 
   Future<void> _handleRefresh() async {
     // Re-fetch app config using the provider
-    await ref.refresh(appConfigProvider.future);
+    ref.invalidate(appConfigProvider);
     final appConfig = ref.read(appConfigProvider);
-    if (appConfig.hasValue && (appConfig.value?['app_runs'] != false)) {
+    if (appConfig != null && appConfig['app_runs'] != false) {
       if (mounted) Navigator.of(context).maybePop();
     } else {
       if (mounted) {
