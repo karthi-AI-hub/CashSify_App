@@ -758,17 +758,39 @@ class WatchAdsScreen extends HookConsumerWidget {
     ref.read(isLoadingProvider.notifier).state = false;
     if (!adShown) {
       final colorScheme = Theme.of(context).colorScheme;
+      // Print debug info to help diagnose the issue
+      if (RewardedAdService.useTestAds) {
+        rewardedAdService.printDebugInfo();
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.hourglass_empty_rounded, color: colorScheme.surface),
-              const SizedBox(width: 12),
-              const Text('Preparing your ad...'),
+              Row(
+                children: [
+                  Icon(Icons.hourglass_empty_rounded, color: colorScheme.surface),
+                  const SizedBox(width: 12),
+                  const Text('No ads available right now'),
+                ],
+              ),
+              if (!RewardedAdService.useTestAds) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Ads may not be available during account approval process',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.surface.withOpacity(0.8),
+                  ),
+                ),
+              ],
             ],
           ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: colorScheme.primary,
+          duration: const Duration(seconds: 4),
         ),
       );
     }

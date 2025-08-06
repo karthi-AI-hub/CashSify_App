@@ -24,6 +24,7 @@ import 'package:cashsify_app/features/common_screens/maintenance_screen.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:cashsify_app/theme/app_spacing.dart';
+import 'package:flutter/foundation.dart'; // Add this import for kDebugMode
 
 final appLinks = AppLinks();
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -171,10 +172,28 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    _checkForUpdate();
+    // Only check for updates in release mode
+    if (!kDebugMode) {
+      _checkForUpdate();
+    } else {
+      // Skip update check in debug mode
+      setState(() {
+        _checkingUpdate = false;
+        _updateRequired = false;
+      });
+    }
   }
 
   Future<void> _checkForUpdate() async {
+    // Skip if in debug mode
+    if (kDebugMode) {
+      setState(() {
+        _checkingUpdate = false;
+        _updateRequired = false;
+      });
+      return;
+    }
+
     setState(() {
       _checkingUpdate = true;
       _updateRequired = false;
@@ -237,6 +256,58 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Skip update UI in debug mode
+    if (kDebugMode) {
+      final themeProvider = ref.watch(themeProviderProvider);
+      final router = ref.watch(routerProvider(widget.initialRoute));
+      final networkStatus = ref.watch(networkStatusProvider);
+      final appConfig = ref.watch(appConfigProvider);
+
+      final isOffline = networkStatus.value == ConnectivityResult.none;
+      final isMaintenance = appConfig != null && appConfig['app_runs'] == false;
+
+      return MaterialApp.router(
+        title: AppConfig.appName,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.light,
+        routerConfig: router,
+        debugShowCheckedModeBanner: false,
+        showPerformanceOverlay: false,
+        builder: (context, child) {
+          return Stack(
+            children: [
+              MediaQuery(
+                data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+                child: child!,
+              ),
+              if (isMaintenance)
+                Builder(
+                  builder: (context) => Positioned.fill(
+                    child: MaintenanceScreen(
+                      message: appConfig?['message'],
+                      estimatedTime: appConfig?['estimated_time']?.toString(),
+                    ),
+                  ),
+                )
+              else if (isOffline)
+                Builder(
+                  builder: (context) => Positioned.fill(
+                    child: NoInternetScreen(
+                      onRetry: () {
+                        ref.refresh(networkStatusProvider);
+                        ref.refresh(appConfigProvider);
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+      );
+    }
+
+    // Original update logic for release mode
     if (_checkingUpdate || _updateInProgress) {
       return MaterialApp(
         home: Scaffold(
@@ -384,6 +455,7 @@ class _MyAppState extends ConsumerState<MyApp> {
               data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
               child: child!,
             ),
+            // Only show maintenance screen if config loads successfully AND app_runs is false
             if (isMaintenance)
               Builder(
                 builder: (context) => Positioned.fill(
@@ -397,7 +469,10 @@ class _MyAppState extends ConsumerState<MyApp> {
               Builder(
                 builder: (context) => Positioned.fill(
                   child: NoInternetScreen(
-                    onRetry: () => ref.refresh(networkStatusProvider),
+                    onRetry: () {
+                      ref.refresh(networkStatusProvider);
+                      ref.refresh(appConfigProvider);
+                    },
                   ),
                 ),
               ),
