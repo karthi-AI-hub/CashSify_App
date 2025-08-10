@@ -172,7 +172,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               children: [
                 Center(
                   child: Image.asset(
-                    'assets/logo/logo.jpg',
+                    'assets/logo/logo.png',
                     height: 100,
                   ),
                 ),

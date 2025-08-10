@@ -27,7 +27,7 @@ final isAdPlayingProvider = StateProvider<bool>((ref) => false);
 final isLoadingProvider = StateProvider<bool>((ref) => false);
 final adLoadStartTimeProvider = StateProvider<DateTime?>((ref) => null);
 final adLoadErrorProvider = StateProvider<bool>((ref) => false);
-const bool _debugShowAdStates = true; // Set to true for diagnostics
+const bool _debugShowAdStates = false; // Set to true for diagnostics
 
 class WatchAdsScreen extends HookConsumerWidget {
   const WatchAdsScreen({super.key});

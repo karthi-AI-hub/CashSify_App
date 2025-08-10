@@ -331,7 +331,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 Center(
                   child: Image.asset(
-                    'assets/logo/logo.jpg',
+                    'assets/logo/logo.png',
                     height: 100,
                   ),
                 ),

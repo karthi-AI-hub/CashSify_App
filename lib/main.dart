@@ -332,7 +332,7 @@ class _MyAppState extends ConsumerState<MyApp> {
                 children: [
                   // App Logo
                   Image.asset(
-                    'assets/logo/logo.jpg',
+                    'assets/logo/logo.png',
                     width: 100,
                     height: 100,
                   ),

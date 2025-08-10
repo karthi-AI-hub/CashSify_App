@@ -76,7 +76,7 @@ class AboutUsScreen extends HookConsumerWidget {
                           ),
                           padding: const EdgeInsets.all(AppSpacing.md),
                           child: Image.asset(
-                            'assets/logo/logo.jpg',
+                            'assets/logo/logo.png',
                             fit: BoxFit.contain,
                           ),
                         ),

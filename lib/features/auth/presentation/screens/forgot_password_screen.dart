@@ -159,7 +159,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         // Logo or App Name
                         Center(
                           child: Image.asset(
-                            'assets/logo/logo.jpg',
+                            'assets/logo/logo.png',
                             height: 100,
                           ),
                         ),

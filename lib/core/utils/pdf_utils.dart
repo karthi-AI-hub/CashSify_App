@@ -49,7 +49,7 @@ class PdfUtils {
       // Load logo with error handling
       pw.MemoryImage? logoImage;
       try {
-        final ByteData bytes = await rootBundle.load('assets/logo/logo.jpg');
+        final ByteData bytes = await rootBundle.load('assets/logo/logo.png');
         final Uint8List list = bytes.buffer.asUint8List();
         logoImage = pw.MemoryImage(list);
       } catch (logoError) {

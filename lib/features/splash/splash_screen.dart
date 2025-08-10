@@ -222,7 +222,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                                       padding: const EdgeInsets.all(12.0),
                                       child: ClipOval(
                                         child: Image.asset(
-                                          'assets/logo/logo.jpg',
+                                          'assets/logo/logo.png',
                                           fit: BoxFit.cover,
                                         ),
                                       ),
