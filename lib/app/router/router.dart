@@ -11,7 +11,7 @@ import 'package:cashsify_app/features/dashboard/presentation/screens/dashboard_s
 import 'package:cashsify_app/features/error/presentation/screens/error_screen.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/auth_callback_screen.dart';
 import 'package:cashsify_app/presentation/widgets/app_layout.dart';
-import 'package:cashsify_app/features/ads/presentation/screens/watch_ads_screen.dart';
+import 'package:cashsify_app/features/ads/presentation/screens/watch_ads_screen_new.dart';
 import 'package:cashsify_app/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:cashsify_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:cashsify_app/features/referrals/presentation/screens/referrals_screen.dart';

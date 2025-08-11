@@ -1,5 +1,5 @@
 // Screens
-export 'presentation/screens/watch_ads_screen.dart';
+export 'presentation/screens/watch_ads_screen_new.dart';
 export 'presentation/screens/verification_screen.dart';
 
 // Widgets
