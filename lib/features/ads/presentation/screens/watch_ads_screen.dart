@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:math' as math;
 import '../../../../theme/app_theme.dart';
 import 'package:cashsify_app/features/ads/presentation/screens/verification_screen.dart';
 import 'package:cashsify_app/core/widgets/form/custom_button.dart';
@@ -18,7 +17,7 @@ import 'package:cashsify_app/core/providers/earnings_provider.dart';
 import 'package:confetti/confetti.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:cashsify_app/core/services/rewarded_ad_service.dart';
-import 'dart:async'; // Added for Timer
+import 'dart:async';
 import 'package:lottie/lottie.dart';
 import 'dart:ui';
 
@@ -27,7 +26,7 @@ final isAdPlayingProvider = StateProvider<bool>((ref) => false);
 final isLoadingProvider = StateProvider<bool>((ref) => false);
 final adLoadStartTimeProvider = StateProvider<DateTime?>((ref) => null);
 final adLoadErrorProvider = StateProvider<bool>((ref) => false);
-const bool _debugShowAdStates = false; // Set to true for diagnostics
+const bool _debugShowAdStates = false;
 
 class WatchAdsScreen extends HookConsumerWidget {
   const WatchAdsScreen({super.key});
@@ -156,7 +155,7 @@ class WatchAdsScreen extends HookConsumerWidget {
                             delay: 300,
                             child: _buildInfoSection(context, colorScheme, textTheme),
                           ),
-                          if (_debugShowAdStates)
+                          if (_debugShowAdStates) ...[
                             Padding(
                               padding: const EdgeInsets.only(bottom: 8),
                               child: Row(
@@ -170,6 +169,7 @@ class WatchAdsScreen extends HookConsumerWidget {
                                 ],
                               ),
                             ),
+                          ],
                         ],
                       ),
                     ),
@@ -779,7 +779,7 @@ class WatchAdsScreen extends HookConsumerWidget {
               if (!RewardedAdService.useTestAds) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'Ads may not be available during account approval process',
+                  'Ads not available. Try again.',
                   style: TextStyle(
                     fontSize: 12,
                     color: colorScheme.surface.withOpacity(0.8),
@@ -797,42 +797,42 @@ class WatchAdsScreen extends HookConsumerWidget {
   }
 }
 
-class _ShimmerLoadingCard extends StatelessWidget {
-  const _ShimmerLoadingCard();
+// class _ShimmerLoadingCard extends StatelessWidget {
+//   const _ShimmerLoadingCard();
 
-  @override
-  Widget build(BuildContext context) {
-    return CustomCard(
-      elevation: 4,
-      borderRadius: 24,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ShimmerLoading(
-              width: 100,
-              height: 100,
-              borderRadius: 50,
-            ),
-            const SizedBox(height: 24),
-            ShimmerLoading(
-              width: 200,
-              height: 24,
-              borderRadius: 12,
-            ),
-            const SizedBox(height: 32),
-            ShimmerLoading(
-              width: double.infinity,
-              height: 56,
-              borderRadius: 16,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return CustomCard(
+//       elevation: 4,
+//       borderRadius: 24,
+//       child: Padding(
+//         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             ShimmerLoading(
+//               width: 100,
+//               height: 100,
+//               borderRadius: 50,
+//             ),
+//             const SizedBox(height: 24),
+//             ShimmerLoading(
+//               width: 200,
+//               height: 24,
+//               borderRadius: 12,
+//             ),
+//             const SizedBox(height: 32),
+//             ShimmerLoading(
+//               width: double.infinity,
+//               height: 56,
+//               borderRadius: 16,
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 class _AnimatedFadeIn extends StatefulWidget {
   final Widget child;

@@ -16,7 +16,7 @@ class RewardedAdService {
   static const String testAdUnitId = 'ca-app-pub-3940256099942544/5224354917';
   
   // Set this to true during development if your AdMob account is not approved
-  static const bool useTestAds = false; // Using test ads until payment setup complete
+  static const bool useTestAds = false;
 
   RewardedAd? _adA;
   RewardedAd? _adB;
