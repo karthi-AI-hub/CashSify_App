@@ -16,9 +16,9 @@
     <!-- <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
         android:maxSdkVersion="28" /> -->
     
-    <!-- Storage Permissions (Android 13+) -->
-    <!-- <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" /> -->
-    <!-- <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" /> -->
+    <!-- Explicitly remove restricted permissions that may be added by plugins -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />
     
     <!-- Storage Permissions for Downloads folder access -->
     <!-- <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
