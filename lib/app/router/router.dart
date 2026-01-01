@@ -7,6 +7,7 @@ import 'package:cashsify_app/features/onboarding/view/onboarding_screen.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/forgot_password_screen.dart';
+import 'package:cashsify_app/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:cashsify_app/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:cashsify_app/features/error/presentation/screens/error_screen.dart';
 import 'package:cashsify_app/features/auth/presentation/screens/auth_callback_screen.dart';
@@ -42,7 +43,8 @@ class _SplashNavigationGuard {
   static bool hasNavigated = false;
 }
 
-final routerProvider = Provider.family<GoRouter, String?>((ref, initialLocation) {
+final routerProvider =
+    Provider.family<GoRouter, String?>((ref, initialLocation) {
   final authState = ref.watch(authProvider);
 
   // Determine initial location: if authenticated, go to dashboard, else splash
@@ -59,18 +61,21 @@ final routerProvider = Provider.family<GoRouter, String?>((ref, initialLocation)
       final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
       final isOnboardingRoute = state.matchedLocation == '/';
-      final isLoginCallbackRoute = state.matchedLocation.startsWith('/login-callback');
+      final isLoginCallbackRoute =
+          state.matchedLocation.startsWith('/login-callback');
       final isSplashRoute = state.matchedLocation == '/splash';
 
       // Check onboarding_complete flag
       final prefs = await SharedPreferences.getInstance();
       final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
 
-      AppLogger.info('Router redirect: isAuthenticated=$isAuthenticated, matchedLocation=${state.matchedLocation}, fullPath=${state.fullPath}, onboardingComplete=$onboardingComplete');
+      AppLogger.info(
+          'Router redirect: isAuthenticated=$isAuthenticated, matchedLocation=${state.matchedLocation}, fullPath=${state.fullPath}, onboardingComplete=$onboardingComplete');
 
       // If on splash screen and already authenticated, skip splash
       if (isSplashRoute && isAuthenticated) {
-        AppLogger.info('Router redirect: Authenticated user on splash, redirecting to /dashboard');
+        AppLogger.info(
+            'Router redirect: Authenticated user on splash, redirecting to /dashboard');
         return '/dashboard';
       }
 
@@ -78,10 +83,12 @@ final routerProvider = Provider.family<GoRouter, String?>((ref, initialLocation)
       if (isSplashRoute && !isAuthenticated) {
         if (!_SplashNavigationGuard.hasNavigated) {
           _SplashNavigationGuard.hasNavigated = true;
-          AppLogger.info('Router redirect: First navigation, letting splash handle navigation');
+          AppLogger.info(
+              'Router redirect: First navigation, letting splash handle navigation');
           return null;
         } else {
-          AppLogger.info('Router redirect: Not initial navigation, redirecting to /auth/login');
+          AppLogger.info(
+              'Router redirect: Not initial navigation, redirecting to /auth/login');
           // Instead of redirecting to /auth/login, just return null if already on /auth/login
           if (state.matchedLocation != '/auth/login') {
             return '/auth/login';
@@ -91,9 +98,19 @@ final routerProvider = Provider.family<GoRouter, String?>((ref, initialLocation)
       }
 
       if (isAuthenticated) {
-        // If authenticated and on auth/onboarding routes, redirect to dashboard
+        // Allow authenticated users to access specific auth screens
+        if (state.matchedLocation == '/auth/reset-password' ||
+            state.matchedLocation == '/auth/login' ||
+            isLoginCallbackRoute) {
+          AppLogger.info(
+              'Router redirect: Authenticated user accessing auth route, allowing: ${state.matchedLocation}');
+          return null;
+        }
+
+        // If authenticated and on other auth/onboarding routes, redirect to dashboard
         if (isAuthRoute || isOnboardingRoute) {
-          AppLogger.info('Router redirect: Authenticated user on auth/onboarding, redirecting to /dashboard');
+          AppLogger.info(
+              'Router redirect: Authenticated user on auth/onboarding, redirecting to /dashboard');
           return '/dashboard';
         }
         AppLogger.info('Router redirect: Authenticated user, no redirect');
@@ -105,17 +122,20 @@ final routerProvider = Provider.family<GoRouter, String?>((ref, initialLocation)
         }
         // If onboarding is not complete, allow onboarding route
         if (!onboardingComplete && isOnboardingRoute) {
-          AppLogger.info('Router redirect: Unauthenticated user, onboarding not complete, allowing onboarding');
+          AppLogger.info(
+              'Router redirect: Unauthenticated user, onboarding not complete, allowing onboarding');
           return null;
         }
         // If on an auth route or login callback, allow
         if (isAuthRoute || isLoginCallbackRoute) {
-          AppLogger.info('Router redirect: Unauthenticated user on auth/login-callback, allowing');
+          AppLogger.info(
+              'Router redirect: Unauthenticated user on auth/login-callback, allowing');
           return null;
         }
         // If onboarding is complete, always redirect to login, but only if not already on /auth/login
         if (onboardingComplete && state.matchedLocation != '/auth/login') {
-          AppLogger.info('Router redirect: Unauthenticated user, onboarding complete, redirecting to /auth/login');
+          AppLogger.info(
+              'Router redirect: Unauthenticated user, onboarding complete, redirecting to /auth/login');
           return '/auth/login';
         }
         // If already on /auth/login, do not redirect
@@ -123,7 +143,9 @@ final routerProvider = Provider.family<GoRouter, String?>((ref, initialLocation)
       }
     },
     errorBuilder: (context, state) => ErrorScreen(
-      error: NetworkError(message: 'Navigation error: \\${state.error?.message ?? "Unknown error"}'),
+      error: NetworkError(
+          message:
+              'Navigation error: \\${state.error?.message ?? "Unknown error"}'),
       onRetry: () => context.go('/'),
     ),
     routes: [
@@ -162,12 +184,12 @@ final routerProvider = Provider.family<GoRouter, String?>((ref, initialLocation)
           GoRoute(
             path: '/dashboard',
             name: 'dashboard',
-            builder: (context, state) => const SizedBox(), // Empty because IndexedStack handles it
+            builder: (context, state) => const SizedBox(),
           ),
           GoRoute(
             path: '/watch-ads',
             name: 'watch-ads',
-            builder: (context, state) => const SizedBox(), // Empty because IndexedStack handles it
+            builder: (context, state) => const SizedBox(),
           ),
           GoRoute(
             path: '/referrals',
@@ -177,12 +199,12 @@ final routerProvider = Provider.family<GoRouter, String?>((ref, initialLocation)
           GoRoute(
             path: '/wallet',
             name: 'wallet',
-            builder: (context, state) => const SizedBox(), // Empty because IndexedStack handles it
+            builder: (context, state) => const SizedBox(),
           ),
           GoRoute(
             path: '/profile',
             name: 'profile',
-            builder: (context, state) => const SizedBox(), // Empty because IndexedStack handles it
+            builder: (context, state) => const SizedBox(),
           ),
         ],
       ),
@@ -195,15 +217,30 @@ final routerProvider = Provider.family<GoRouter, String?>((ref, initialLocation)
           onRetry: () => context.go('/'),
         ),
       ),
-      // Auth callback handling (email verification, password reset, etc.)
       GoRoute(
         path: '/login-callback',
         name: 'login-callback',
-        builder: (context, state) => AuthCallbackScreen(
-          queryParams: state.uri.queryParameters,
-        ),
+        builder: (context, state) {
+          final allParams = <String, String>{};
+          allParams.addAll(state.uri.queryParameters);
+
+          // Parse fragment parameters if present
+          if (state.uri.fragment.isNotEmpty) {
+            try {
+              allParams.addAll(Uri.splitQueryString(state.uri.fragment));
+            } catch (e) {
+              AppLogger.warning('Failed to parse fragment parameters: $e');
+            }
+          }
+
+          return AuthCallbackScreen(queryParams: allParams);
+        },
       ),
-      // Feature-specific routes (all require authentication)
+      GoRoute(
+        path: '/auth/reset-password',
+        name: 'reset-password',
+        builder: (context, state) => const ResetPasswordScreen(),
+      ),
       GoRoute(
         path: '/withdraw',
         name: 'withdraw',
@@ -229,7 +266,7 @@ final routerProvider = Provider.family<GoRouter, String?>((ref, initialLocation)
         name: 'change-password',
         builder: (context, state) => const ChangePasswordScreen(),
       ),
-     
+
       GoRoute(
         path: '/referral-history',
         name: 'referral-history',

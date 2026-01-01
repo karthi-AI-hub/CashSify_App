@@ -24,111 +24,215 @@ import 'package:cashsify_app/features/common_screens/maintenance_screen.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:cashsify_app/theme/app_spacing.dart';
-import 'package:flutter/foundation.dart'; // Add this import for kDebugMode
+import 'package:flutter/foundation.dart';
 
 final appLinks = AppLinks();
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Add global error handler for uncaught exceptions
+  FlutterError.onError = (FlutterErrorDetails details) {
+    // Log the error but don't crash for auth-related errors
+    AppLogger.error('Flutter error: ${details.exception}', details.exception,
+        details.stack);
+
+    // If it's an auth-related error, handle it gracefully
+    if (details.exception.toString().contains('AuthException') ||
+        details.exception.toString().contains('otp_expired') ||
+        details.exception.toString().contains('flow_state_expired')) {
+      AppLogger.warning('Auth error handled gracefully: ${details.exception}');
+      return; // Don't crash the app
+    }
+
+    // For other errors, use default handling
+    FlutterError.presentError(details);
+  };
+
   // Check for debug commands
   if (args.contains('--view-storage')) {
     await StorageViewer.printAllData();
     exit(0);
   }
-  
+
   if (args.contains('--list-keys')) {
     await StorageViewer.listKeys();
     exit(0);
   }
-  
+
   if (args.contains('--clear-storage')) {
     await StorageViewer.clearAllData();
     exit(0);
   }
-  
+
   // Initialize logging
   await AppLogger.init();
   AppLogger.info('App startup: Logger initialized');
-  
-  // Initialize performance monitoring
+
   PerformanceUtils.startMonitoring();
   AppLogger.info('App startup: Performance monitoring started');
-  
-  // Load environment variables
+
   await dotenv.load();
   await AppConfig.initialize();
   AppLogger.info('App startup: Environment and AppConfig loaded');
-  
-  // Initialize SharedPreferences
+
   final prefs = await SharedPreferences.getInstance();
   AppLogger.info('App startup: SharedPreferences initialized');
-  
-  // --- Deep Link Handling ---
+
   String? initialRoute;
   try {
     final initialUri = await appLinks.getInitialAppLink();
     if (initialUri != null) {
-      AppLogger.info('App startup: Initial deep link: ' + initialUri.toString());
-      // Handle referral code in query or fragment
+      AppLogger.info(
+          'App startup: Initial deep link: ' + initialUri.toString());
+
       String? refCode = initialUri.queryParameters['ref'];
-      if ((refCode == null || refCode.isEmpty) && initialUri.fragment.isNotEmpty) {
+      if ((refCode == null || refCode.isEmpty) &&
+          initialUri.fragment.isNotEmpty) {
         final fragParams = Uri.splitQueryString(initialUri.fragment);
         refCode = fragParams['ref'];
       }
-      if (refCode != null && refCode.isNotEmpty) {
+
+      if (refCode == null || refCode.isEmpty) {
+        final referrer = initialUri.queryParameters['referrer'];
+        if (referrer != null) {
+          try {
+            final referrerParams =
+                Uri.splitQueryString(Uri.decodeComponent(referrer));
+            refCode = referrerParams['utm_content'];
+            if (refCode != null && refCode.isNotEmpty) {
+              AppLogger.info(
+                  'App startup: Referral code extracted from Play Store referrer: $refCode');
+            }
+          } catch (e) {
+            AppLogger.error('App startup: Error parsing referrer: $e');
+          }
+        }
+      }
+
+      if (initialUri.scheme == 'cashsify' && initialUri.host == 'invite') {
+        if (refCode != null && refCode.isNotEmpty) {
+          await prefs.setString('pending_referral_code', refCode);
+          await prefs.setBool('referral_from_invite_link', true);
+          AppLogger.info(
+              'App startup: Referral invite - code set and locked: $refCode');
+        }
+      } else if (refCode != null && refCode.isNotEmpty) {
         await prefs.setString('pending_referral_code', refCode);
+        await prefs.setBool('referral_from_invite_link', true);
         AppLogger.info('App startup: Referral code set: $refCode');
       }
-      // Handle /login-callback with query or fragment
-      if (initialUri.host == 'login-callback' || initialUri.path == '/login-callback') {
+
+      if (initialUri.host == 'login-callback' ||
+          initialUri.path == '/login-callback') {
         String params = initialUri.query;
         if ((params.isEmpty) && initialUri.fragment.isNotEmpty) {
           params = initialUri.fragment;
         }
         initialRoute = '/login-callback?$params';
-        AppLogger.info('App startup: Initial route set to login-callback: $initialRoute');
+        AppLogger.info(
+            'App startup: Initial route set to login-callback: $initialRoute');
       }
     }
   } catch (e) {
     AppLogger.error('App startup: Error handling initial deep link: $e');
   }
-  // Listen for incoming links (while app is running)
+
   appLinks.uriLinkStream.listen((Uri? uri) async {
     if (uri != null) {
       AppLogger.info('App runtime: Incoming deep link: ' + uri.toString());
-      String? refCode = uri.queryParameters['ref'];
-      if ((refCode == null || refCode.isEmpty) && uri.fragment.isNotEmpty) {
-        final fragParams = Uri.splitQueryString(uri.fragment);
-        refCode = fragParams['ref'];
-      }
-      if (refCode != null && refCode.isNotEmpty) {
-        await prefs.setString('pending_referral_code', refCode);
-        AppLogger.info('App runtime: Referral code set: $refCode');
-      }
+
+      // Check if this is an auth callback with error before processing
+      bool isAuthCallbackWithError = false;
       if ((uri.host == 'login-callback' || uri.path == '/login-callback')) {
         String params = uri.query;
         if ((params.isEmpty) && uri.fragment.isNotEmpty) {
           params = uri.fragment;
         }
+
+        // Parse parameters to check for errors
+        try {
+          final queryParams = Uri.splitQueryString(params);
+          if (queryParams.containsKey('error')) {
+            isAuthCallbackWithError = true;
+            AppLogger.warning(
+                'Auth callback contains error: ${queryParams['error']} - ${queryParams['error_description']}');
+          }
+        } catch (e) {
+          AppLogger.error('Error parsing auth callback params: $e');
+        }
+
         final route = '/login-callback?$params';
         AppLogger.info('App runtime: Navigating to login-callback: $route');
         GoRouter.of(navigatorKey.currentContext!).go(route);
+        return; // Exit early for auth callbacks
+      }
+
+      // Process referral codes only if not an auth callback with error
+      if (!isAuthCallbackWithError) {
+        String? refCode = uri.queryParameters['ref'];
+        if ((refCode == null || refCode.isEmpty) && uri.fragment.isNotEmpty) {
+          final fragParams = Uri.splitQueryString(uri.fragment);
+          refCode = fragParams['ref'];
+        }
+
+        if (refCode == null || refCode.isEmpty) {
+          final referrer = uri.queryParameters['referrer'];
+          if (referrer != null) {
+            try {
+              final referrerParams =
+                  Uri.splitQueryString(Uri.decodeComponent(referrer));
+              refCode = referrerParams['utm_content'];
+              if (refCode != null && refCode.isNotEmpty) {
+                AppLogger.info(
+                    'App runtime: Referral code extracted from Play Store referrer: $refCode');
+              }
+            } catch (e) {
+              AppLogger.error('App runtime: Error parsing referrer: $e');
+            }
+          }
+        }
+
+        if (uri.scheme == 'cashsify' && uri.host == 'invite') {
+          if (refCode != null && refCode.isNotEmpty) {
+            await prefs.setString('pending_referral_code', refCode);
+            await prefs.setBool('referral_from_invite_link', true);
+            AppLogger.info(
+                'App runtime: Referral invite - code set and locked: $refCode');
+            final context = navigatorKey.currentContext;
+            if (context != null) {
+              GoRouter.of(context).go('/auth/register');
+            }
+          }
+        } else if (refCode != null && refCode.isNotEmpty) {
+          await prefs.setString('pending_referral_code', refCode);
+          await prefs.setBool('referral_from_invite_link', true);
+          AppLogger.info('App runtime: Referral code set: $refCode');
+        }
       }
     }
   }, onError: (err) {
     AppLogger.error('App runtime: Error in uriLinkStream: $err');
   });
   // --- End Deep Link Handling ---
-  
-  // Initialize Supabase
-  await SupabaseService().initialize(
+
+  // Initialize Supabase with error handling for auth exceptions
+  final supabaseClient = await SupabaseService().initialize(
     supabaseUrl: AppConfig.supabaseUrl,
     supabaseAnonKey: AppConfig.supabaseAnonKey,
   );
+
+  // Add global error handler for Supabase auth exceptions
+  supabaseClient.auth.onAuthStateChange.listen((data) {
+    // Handle auth state changes silently
+  }, onError: (error) {
+    // Log auth errors but don't crash the app
+    AppLogger.warning('Supabase auth error (handled): $error');
+  });
+
   AppLogger.info('App startup: Supabase initialized');
-  
+
   // Preload common images
   await ImageUtils.preloadImages([
     // Add your common image URLs here
@@ -138,14 +242,14 @@ void main(List<String> args) async {
   // Initialize Google Mobile Ads SDK
   await MobileAds.instance.initialize();
   AppLogger.info('App startup: Google Mobile Ads SDK initialized');
-  
+
   runApp(
     ProviderScope(
       overrides: [
         earningsProvider.overrideWith((ref) => EarningsNotifier(
-          AdService(SupabaseService().supabase),
-          SupabaseService().supabase,
-        )),
+              AdService(SupabaseService().supabase),
+              SupabaseService().supabase,
+            )),
       ],
       child: MyApp(prefs: prefs, initialRoute: initialRoute),
     ),
@@ -384,7 +488,9 @@ class _MyAppState extends ConsumerState<MyApp> {
                           SizedBox(height: AppSpacing.md),
                           Text(
                             _updateError != null
-                                ? (_updateError!.contains('ERROR_APP_NOT_OWNED') || _updateError!.contains('not owned')
+                                ? (_updateError!
+                                            .contains('ERROR_APP_NOT_OWNED') ||
+                                        _updateError!.contains('not owned')
                                     ? 'This app was not installed from the Play Store. Please install or update the app from the Play Store to use in-app updates.'
                                     : 'There was a problem updating the app:\n\n${_updateError!}\nPlease try again. If the problem persists, update manually from the Play Store.')
                                 : 'A new version of CashSify is available. Please update to continue using the app.',
@@ -405,22 +511,26 @@ class _MyAppState extends ConsumerState<MyApp> {
                       minHeight: 6,
                       borderRadius: BorderRadius.all(Radius.circular(10)),
                       backgroundColor: colorScheme.surfaceVariant,
-                      valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(colorScheme.primary),
                     ),
                   ),
                   SizedBox(height: AppSpacing.lg),
                   FilledButton.icon(
                     onPressed: _updateError != null ? _checkForUpdate : null,
                     icon: Icon(Icons.refresh),
-                    label: Text(_updateError != null ? 'Retry Update' : 'Updating...'),
+                    label: Text(
+                        _updateError != null ? 'Retry Update' : 'Updating...'),
                     style: FilledButton.styleFrom(
                       backgroundColor: colorScheme.primary,
                       foregroundColor: colorScheme.onPrimary,
-                      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                      padding:
+                          EdgeInsets.symmetric(vertical: 20, horizontal: 24),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      textStyle: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
                       elevation: 0,
                     ),
                   ),

@@ -70,6 +70,13 @@
                     android:scheme="cashsify"
                     android:host="login-callback"/>
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="cashsify" 
+                      android:host="invite" />
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
@@ -79,6 +86,22 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-7086602185948470~4899725073"/>
+        
+        <meta-data
+            android:name="com.unity3d.ads.GameId"
+            android:value="5961395"/>
+        
+        <meta-data
+            android:name="unity.ads.test.mode"
+            android:value="false"/>
+            
+        <!-- Additional mediation networks for better fill rates -->
+        <meta-data
+            android:name="unity.ads.placement.rewardedVideo"
+            android:value="Rewarded_Android"/>
+        <meta-data
+            android:name="unity.ads.enable_debug"
+            android:value="false"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

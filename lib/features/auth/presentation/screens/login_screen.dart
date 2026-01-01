@@ -10,6 +10,7 @@ import 'package:cashsify_app/core/services/user_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -53,7 +54,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         password: _passwordController.text,
       );
       if (response.user == null) {
-        throw AuthException('Invalid login credentials', code: 'invalid_credentials');
+        throw AuthException('Invalid login credentials',
+            code: 'invalid_credentials');
       }
       if (response.user!.emailConfirmedAt == null) {
         setState(() {
@@ -70,44 +72,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           builder: (context) {
             return _VerifyEmailGuide(
               email: _emailController.text.trim(),
-              onResend: () async {
-                try {
-                  await UserService().resendVerificationEmail(_emailController.text.trim());
-                  if (context.mounted) {
-                    final colorScheme = Theme.of(context).colorScheme;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            Icon(Icons.check_circle, color: colorScheme.surface),
-                            SizedBox(width: 12),
-                            Text('Verification email resent!'),
-                          ],
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: colorScheme.primary,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    final colorScheme = Theme.of(context).colorScheme;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            Icon(Icons.error, color: colorScheme.surface),
-                            SizedBox(width: 12),
-                            Text('Failed to resend email: $e'),
-                          ],
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: colorScheme.primary,
-                      ),
-                    );
-                  }
-                }
-              },
+              onResend: () => UserService()
+                  .resendVerificationEmail(_emailController.text.trim()),
             );
           },
         );
@@ -125,8 +91,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _isLoading = false;
         });
         _staticErrorMessage = _errorMessage;
-        if ((e.message?.toLowerCase().contains('email not confirmed') ?? false) ||
-            (e.message?.toLowerCase().contains('confirm your email') ?? false)) {
+        if ((e.message?.toLowerCase().contains('email not confirmed') ??
+                false) ||
+            (e.message?.toLowerCase().contains('confirm your email') ??
+                false)) {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
@@ -136,44 +104,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             builder: (context) {
               return _VerifyEmailGuide(
                 email: _emailController.text.trim(),
-                onResend: () async {
-                  try {
-                    await UserService().resendVerificationEmail(_emailController.text.trim());
-                    if (context.mounted) {
-                      final colorScheme = Theme.of(context).colorScheme;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              Icon(Icons.check_circle, color: colorScheme.surface),
-                              SizedBox(width: 12),
-                              Text('Verification email resent!'),
-                            ],
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: colorScheme.primary,
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      final colorScheme = Theme.of(context).colorScheme;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              Icon(Icons.error, color: colorScheme.surface),
-                              SizedBox(width: 12),
-                              Text('Failed to resend email: $e'),
-                            ],
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: colorScheme.primary,
-                        ),
-                      );
-                    }
-                  }
-                },
+                onResend: () => UserService()
+                    .resendVerificationEmail(_emailController.text.trim()),
               );
             },
           );
@@ -227,7 +159,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Text(
                         'Your email: $resultEmail',
-                        style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            color: Colors.green, fontWeight: FontWeight.bold),
                       ),
                     ),
                 ],
@@ -250,7 +183,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               final phone = phoneController.text.trim();
                               if (phone.isEmpty) {
                                 setState(() {
-                                  errorMessage = 'Please enter your phone number.';
+                                  errorMessage =
+                                      'Please enter your phone number.';
                                   isSubmitting = false;
                                 });
                                 return;
@@ -261,7 +195,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     .select('email')
                                     .eq('phone_number', phone)
                                     .maybeSingle();
-                                if (response != null && response['email'] != null) {
+                                if (response != null &&
+                                    response['email'] != null) {
                                   setState(() {
                                     resultEmail = response['email'] as String;
                                     errorMessage = null;
@@ -269,7 +204,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   });
                                 } else {
                                   setState(() {
-                                    errorMessage = 'No account found for this phone number.';
+                                    errorMessage =
+                                        'No account found for this phone number.';
                                     resultEmail = null;
                                     isSubmitting = false;
                                   });
@@ -284,14 +220,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             }
                           : () async {
                               if (resultEmail != null) {
-                                await Clipboard.setData(ClipboardData(text: resultEmail!));
+                                await Clipboard.setData(
+                                    ClipboardData(text: resultEmail!));
                                 if (context.mounted) {
-                                  final colorScheme = Theme.of(context).colorScheme;
+                                  final colorScheme =
+                                      Theme.of(context).colorScheme;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Row(
                                         children: [
-                                          Icon(Icons.check_circle, color: colorScheme.surface),
+                                          Icon(Icons.check_circle,
+                                              color: colorScheme.surface),
                                           SizedBox(width: 12),
                                           Text('Email copied to clipboard!'),
                                         ],
@@ -304,7 +243,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               }
                             },
                   child: isSubmitting
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : resultEmail == null
                           ? const Text('Find Email')
                           : const Text('Copy Email'),
@@ -402,11 +344,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
-                      onPressed: _isLoading ? null : () => context.push('/auth/forgot-password'),
+                      onPressed: _isLoading
+                          ? null
+                          : () => context.push('/auth/forgot-password'),
                       child: const Text('Forgot Password?'),
                     ),
                     TextButton(
-                      onPressed: _isLoading ? null : () => _showForgotEmailDialog(context),
+                      onPressed: _isLoading
+                          ? null
+                          : () => _showForgotEmailDialog(context),
                       child: const Text('Forgot Email?'),
                     ),
                   ],
@@ -437,10 +383,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-class _VerifyEmailGuide extends StatelessWidget {
+class _VerifyEmailGuide extends StatefulWidget {
   final String email;
   final Future<void> Function() onResend;
   const _VerifyEmailGuide({required this.email, required this.onResend});
+
+  @override
+  State<_VerifyEmailGuide> createState() => _VerifyEmailGuideState();
+}
+
+class _VerifyEmailGuideState extends State<_VerifyEmailGuide> {
+  bool _isResending = false;
+  bool _emailSent = false;
+  int _cooldownSeconds = 0;
+  Timer? _cooldownTimer;
+
+  @override
+  void dispose() {
+    _cooldownTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startCooldown() {
+    setState(() {
+      _cooldownSeconds = 60; // 1 minute cooldown
+    });
+
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _cooldownSeconds--;
+      });
+
+      if (_cooldownSeconds <= 0) {
+        timer.cancel();
+      }
+    });
+  }
+
+  Future<void> _handleResend() async {
+    if (_isResending || _cooldownSeconds > 0) return;
+
+    setState(() {
+      _isResending = true;
+      _emailSent = false;
+    });
+
+    try {
+      await widget.onResend();
+      if (mounted) {
+        setState(() {
+          _emailSent = true;
+          _isResending = false;
+        });
+        _startCooldown();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isResending = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -464,42 +468,112 @@ class _VerifyEmailGuide extends StatelessWidget {
             ),
           ),
           Center(
-            child: Icon(Icons.email_rounded, size: 48, color: colorScheme.primary),
+            child: Icon(
+                _emailSent ? Icons.mark_email_read : Icons.email_rounded,
+                size: 48,
+                color: _emailSent ? Colors.green : colorScheme.primary),
           ),
           const SizedBox(height: 12),
           Center(
-            child: Text('How to Verify Your Email', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            child: Text(
+                _emailSent
+                    ? 'Verification Email Sent!'
+                    : 'How to Verify Your Email',
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: _emailSent ? Colors.green : null,
+                )),
           ),
+          if (_emailSent) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                'Check your inbox and spam folder\nfor the verification email.',
+                textAlign: TextAlign.center,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
-          _StepTile(
-            step: 1,
-            text: 'Tap the button below to resend the verification email to:',
-            subText: email,
-            icon: Icons.send_rounded,
-          ),
-          _StepTile(
-            step: 2,
-            text: 'Check your inbox (and spam folder) for an email from CashSify.',
-            icon: Icons.inbox_rounded,
-          ),
-          _StepTile(
-            step: 3,
-            text: 'Click the verification link in the email to confirm your account.',
-            icon: Icons.link_rounded,
-          ),
-          _StepTile(
-            step: 4,
-            text: 'Return to the app and refresh this screen.',
-            icon: Icons.refresh_rounded,
-          ),
+          if (!_emailSent) ...[
+            _StepTile(
+              step: 1,
+              text: 'Tap the button below to resend the verification email to:',
+              subText: widget.email,
+              icon: Icons.send_rounded,
+            ),
+            _StepTile(
+              step: 2,
+              text:
+                  'Check your inbox (and spam folder) for an email from CashSify.',
+              icon: Icons.inbox_rounded,
+            ),
+            _StepTile(
+              step: 3,
+              text:
+                  'Click the verification link in the email to confirm your account.',
+              icon: Icons.link_rounded,
+            ),
+            _StepTile(
+              step: 4,
+              text: 'Return to the app and refresh this screen.',
+              icon: Icons.refresh_rounded,
+            ),
+          ] else ...[
+            _StepTile(
+              step: 1,
+              text: 'Open your email app and look for an email from CashSify.',
+              icon: Icons.inbox_rounded,
+            ),
+            _StepTile(
+              step: 2,
+              text:
+                  'Don\'t forget to check your spam/junk folder if you don\'t see it.',
+              icon: Icons.folder_special_rounded,
+            ),
+            _StepTile(
+              step: 3,
+              text:
+                  'Click the "Verify Email" button in the email to confirm your account.',
+              icon: Icons.link_rounded,
+            ),
+            _StepTile(
+              step: 4,
+              text:
+                  'Once verified, return to the app and try logging in again.',
+              icon: Icons.login_rounded,
+            ),
+          ],
           const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.send_rounded),
-                  onPressed: onResend,
-                  label: const Text('Resend Email'),
+                  icon: _isResending
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Icon(_emailSent
+                          ? Icons.refresh_rounded
+                          : Icons.send_rounded),
+                  onPressed: (_isResending || _cooldownSeconds > 0)
+                      ? null
+                      : _handleResend,
+                  label: Text(_cooldownSeconds > 0
+                      ? 'Resend in ${_cooldownSeconds}s'
+                      : _isResending
+                          ? 'Sending...'
+                          : _emailSent
+                              ? 'Resend Email'
+                              : 'Send Verification Email'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colorScheme.primary,
                     foregroundColor: colorScheme.onPrimary,
@@ -538,7 +612,11 @@ class _StepTile extends StatelessWidget {
   final String text;
   final String? subText;
   final IconData icon;
-  const _StepTile({required this.step, required this.text, this.subText, required this.icon});
+  const _StepTile(
+      {required this.step,
+      required this.text,
+      this.subText,
+      required this.icon});
 
   @override
   Widget build(BuildContext context) {
@@ -552,7 +630,9 @@ class _StepTile extends StatelessWidget {
           CircleAvatar(
             radius: 16,
             backgroundColor: colorScheme.primary.withOpacity(0.1),
-            child: Text('$step', style: textTheme.bodyLarge?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold)),
+            child: Text('$step',
+                style: textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.primary, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(width: 12),
           Icon(icon, color: colorScheme.primary, size: 24),
@@ -563,7 +643,10 @@ class _StepTile extends StatelessWidget {
               children: [
                 Text(text, style: textTheme.bodyLarge),
                 if (subText != null)
-                  Text(subText!, style: textTheme.bodyMedium?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold)),
+                  Text(subText!,
+                      style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -571,4 +654,4 @@ class _StepTile extends StatelessWidget {
       ),
     );
   }
-} 
+}

@@ -46,7 +46,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
 
   Future<void> _init() async {
     AppLogger.auth('Initializing auth provider');
-    
+
     // Get initial session
     final session = await _supabaseService.getCurrentSession();
     if (session != null) {
@@ -60,9 +60,11 @@ class AuthProvider extends StateNotifier<AppAuthState> {
     }
 
     // Listen to auth state changes
-    _authStateSubscription = _supabaseService.onAuthStateChange.listen((event) {
+    _authStateSubscription =
+        _supabaseService.onAuthStateChange.listen((event) async {
       if (event.session?.user != null) {
-        AppLogger.auth('Auth state changed: User logged in', event.session!.user.id);
+        AppLogger.auth(
+            'Auth state changed: User logged in', event.session!.user.id);
         state = state.copyWith(
           user: UserState.fromUser(event.session!.user),
           isLoading: false,
@@ -95,7 +97,8 @@ class AuthProvider extends StateNotifier<AppAuthState> {
       );
 
       if (response.user == null) {
-        AppLogger.auth('Sign in failed: Invalid credentials', null, 'Invalid credentials');
+        AppLogger.auth(
+            'Sign in failed: Invalid credentials', null, 'Invalid credentials');
         throw AuthError.invalidCredentials();
       }
 
@@ -112,7 +115,9 @@ class AuthProvider extends StateNotifier<AppAuthState> {
       // Do not clear user field on error, just set isLoading to false and set error
       state = state.copyWith(
         isLoading: false,
-        error: e is AppError ? e.message : 'An unexpected error occurred during login',
+        error: e is AppError
+            ? e.message
+            : 'An unexpected error occurred during login',
       );
       rethrow;
     }
@@ -138,7 +143,8 @@ class AuthProvider extends StateNotifier<AppAuthState> {
       );
 
       if (response.user == null) {
-        AppLogger.auth('Registration failed: No user returned', null, 'Registration failed');
+        AppLogger.auth('Registration failed: No user returned', null,
+            'Registration failed');
         throw AuthError(
           message: 'Registration failed. Please try again.',
           code: 'AUTH_ERROR',
@@ -167,7 +173,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
       if (!mounted) return;
       AppLogger.auth('Registration error', null, e.toString());
       AppError error;
-      
+
       if (e is AuthException) {
         error = AuthError.fromSupabase(e);
       } else if (e is AppError) {
@@ -179,7 +185,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
           originalError: e,
         );
       }
-      
+
       state = state.copyWith(
         error: error.message,
         isLoading: false,
@@ -196,11 +202,11 @@ class AuthProvider extends StateNotifier<AppAuthState> {
         email: email,
         password: password,
       );
-      
+
       if (response.user != null) {
         // Update last login timestamp
         await _supabaseService.updateLastLogin(response.user!.id);
-        
+
         state = state.copyWith(
           user: UserState.fromUser(response.user!),
           isLoading: false,
@@ -231,7 +237,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
     } catch (e) {
       if (!mounted) return;
       AppError error;
-      
+
       if (e is AuthException) {
         error = AuthError.fromSupabase(e);
       } else if (e is AppError) {
@@ -243,7 +249,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
           originalError: e,
         );
       }
-      
+
       state = state.copyWith(
         error: error.message,
         isLoading: false,
@@ -263,7 +269,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
     } catch (e) {
       if (!mounted) return;
       AppError error;
-      
+
       if (e is AuthException) {
         error = AuthError.fromSupabase(e);
       } else if (e is AppError) {
@@ -275,7 +281,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
           originalError: e,
         );
       }
-      
+
       state = state.copyWith(
         error: error.message,
         isLoading: false,
@@ -295,7 +301,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
     } catch (e) {
       if (!mounted) return;
       AppError error;
-      
+
       if (e is AuthException) {
         error = AuthError.fromSupabase(e);
       } else if (e is AppError) {
@@ -307,7 +313,7 @@ class AuthProvider extends StateNotifier<AppAuthState> {
           originalError: e,
         );
       }
-      
+
       state = state.copyWith(
         error: error.message,
         isLoading: false,

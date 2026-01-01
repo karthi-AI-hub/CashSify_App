@@ -26,6 +26,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isReferralCodeLocked = false;
 
   @override
   void initState() {
@@ -36,8 +37,36 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _loadReferralCode() async {
     final prefs = await SharedPreferences.getInstance();
     final refCode = prefs.getString('pending_referral_code');
+    final isFromInviteLink =
+        prefs.getBool('referral_from_invite_link') ?? false;
+
     if (refCode != null && refCode.isNotEmpty) {
-      _referralCodeController.text = refCode;
+      setState(() {
+        _referralCodeController.text = refCode;
+        _isReferralCodeLocked = isFromInviteLink;
+      });
+
+      await prefs.remove('pending_referral_code');
+      await prefs.remove('referral_from_invite_link');
+
+      if (isFromInviteLink) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.link, color: Theme.of(context).colorScheme.surface),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text('Referral code auto-filled from invite link!'),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -59,7 +88,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _errorMessage = null;
     });
     try {
-      // Check if phone number already exists
       final phoneNumber = _phoneController.text.trim();
       final existing = await Supabase.instance.client
           .from('users')
@@ -73,7 +101,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         });
         return;
       }
-      // --- Validate referral code existence ---
       final referralCode = _referralCodeController.text.trim();
       if (referralCode.isNotEmpty) {
         final referralUser = await Supabase.instance.client
@@ -89,7 +116,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           return;
         }
       }
-      // Step 1: Create auth account
       final response = await Supabase.instance.client.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -100,7 +126,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (response.user == null) {
         throw AuthException('Registration failed. Please try again.');
       }
-      // Step 2: Register user profile with referral logic
       final generatedReferralCode = _generateReferralCode(phoneNumber);
       await Supabase.instance.client.rpc(
         'register_user_with_referral',
@@ -118,20 +143,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Column(
-        mainAxisSize: MainAxisSize.min, // ← Important for height
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.check_circle, color: Theme.of(context).colorScheme.surface),
-              const SizedBox(width: 12),
-              Text('Registration successful!'),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text('Please check your email to verify your account.'),
-        ],
-      ),
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.check_circle,
+                        color: Theme.of(context).colorScheme.surface),
+                    const SizedBox(width: 12),
+                    Text('Registration successful!'),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text('Please check your email to verify your account.'),
+              ],
+            ),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.primary,
           ),
@@ -152,7 +178,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   String _generateReferralCode(String phoneNumber) {
-    final lastFourDigits = phoneNumber.length >= 4 ? phoneNumber.substring(phoneNumber.length - 4) : phoneNumber;
+    final lastFourDigits = phoneNumber.length >= 4
+        ? phoneNumber.substring(phoneNumber.length - 4)
+        : phoneNumber;
     final random = DateTime.now().millisecondsSinceEpoch % 1000;
     final randomThreeDigits = (100 + random % 900).toString();
     return 'REF$lastFourDigits$randomThreeDigits';
@@ -302,33 +330,100 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         ? null
                         : () {
                             setState(() {
-                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
                             });
                           },
                   ),
                 ),
                 const SizedBox(height: 16),
-                AnimatedFormField(
-                  label: 'Referral Code (Optional)',
-                  hint: 'Enter referral code if you have one',
-                  controller: _referralCodeController,
-                  index: 5,
-                  totalFields: 6,
-                  validator: (value) {
-                    if (value != null && value.isNotEmpty) {
-                      final code = value.trim().toUpperCase();
-                      if (!code.startsWith('REF')) {
-                        return 'Referral code must start with REF';
-                      }
-                      if (code.length != 10 && code.length != 11) {
-                        return 'Referral code must be 10 characters';
-                      }
-                      if (!RegExp(r'^REF[A-Z0-9]{7,8}$').hasMatch(code)) {
-                        return 'Invalid referral code format';
-                      }
-                    }
-                    return null;
-                  },
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AnimatedFormField(
+                      label: _isReferralCodeLocked
+                          ? 'Referral Code (Auto-filled)'
+                          : 'Referral Code (Optional)',
+                      hint: _isReferralCodeLocked
+                          ? 'Code from invite link'
+                          : 'Enter referral code if you have one',
+                      controller: _referralCodeController,
+                      index: 5,
+                      totalFields: 6,
+                      readOnly: _isReferralCodeLocked,
+                      isLocked: _isReferralCodeLocked,
+                      textStyle: _isReferralCodeLocked
+                          ? TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            )
+                          : null,
+                      prefixIcon: Icon(
+                        _isReferralCodeLocked
+                            ? Icons.lock
+                            : Icons.card_giftcard,
+                        color: _isReferralCodeLocked
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      suffixIcon: _isReferralCodeLocked
+                          ? Icon(
+                              Icons.verified,
+                              color: Theme.of(context).colorScheme.primary,
+                            )
+                          : _referralCodeController.text.isNotEmpty &&
+                                  !_isReferralCodeLocked
+                              ? IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _referralCodeController.clear();
+                                    });
+                                  },
+                                  icon: Icon(Icons.clear),
+                                )
+                              : null,
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          final code = value.trim().toUpperCase();
+                          if (!code.startsWith('REF')) {
+                            return 'Referral code must start with REF';
+                          }
+                          if (code.length != 10 && code.length != 11) {
+                            return 'Referral code must be 10 characters';
+                          }
+                          if (!RegExp(r'^REF[A-Z0-9]{7,8}$').hasMatch(code)) {
+                            return 'Invalid referral code format';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                    if (_isReferralCodeLocked)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, left: 12.0),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Code locked from invite link',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 32),
                 AnimatedButton(
@@ -342,9 +437,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   children: [
                     const Text('Already have an account?'),
                     TextButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () => context.pop(),
+                      onPressed: _isLoading ? null : () => context.pop(),
                       child: const Text('Login'),
                     ),
                   ],
@@ -356,4 +449,4 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ),
     );
   }
-} 
+}

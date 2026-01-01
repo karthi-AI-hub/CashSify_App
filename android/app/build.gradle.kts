@@ -26,8 +26,8 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 28
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.9.1"
+        versionCode = 12
+        versionName = "2.0"
     }
 
     signingConfigs {
@@ -50,4 +50,14 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Unity Ads mediation
+    implementation("com.google.ads.mediation:unity:4.12.2.0")
+    
+    // Additional mediation networks for higher fill rates
+    implementation("com.google.ads.mediation:facebook:6.17.0.0")
+    implementation("com.google.ads.mediation:applovin:12.6.0.0")
+    implementation("com.google.ads.mediation:ironsource:8.3.0.0")
 }

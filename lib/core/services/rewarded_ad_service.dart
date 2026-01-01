@@ -42,10 +42,67 @@ class RewardedAdService {
   static const int _adExpirySeconds = 3600; // 1 hour
 
   bool _hasInitialized = false;
+  
+  // Preload more ads for better availability
+  Timer? _aggressiveReloadTimer;
 
   // Diagnostics: Print loaded ad unit and timestamp
   void _logAdLoaded(String adUnitId) {
     debugPrint('[RewardedAdService] Ad loaded: $adUnitId at ${DateTime.now()}');
+  }
+
+  // Log mediation network information
+  void _logMediationInfo(RewardedAd ad, String label) {
+    try {
+      final responseInfo = ad.responseInfo;
+      if (responseInfo != null) {
+        debugPrint('[RewardedAdService] Ad$label - Mediation Network: ${responseInfo.mediationAdapterClassName ?? 'Unknown'}');
+        debugPrint('[RewardedAdService] Ad$label - Response ID: ${responseInfo.responseId ?? 'Unknown'}');
+        
+        // Check if Unity Ads is being used
+        if (responseInfo.mediationAdapterClassName?.contains('unity') == true ||
+            responseInfo.mediationAdapterClassName?.contains('Unity') == true) {
+          debugPrint('[RewardedAdService] 🎯 UNITY ADS DETECTED! Ad$label served by Unity');
+        } else {
+          debugPrint('[RewardedAdService] 📱 Google AdMob served Ad$label');
+        }
+      }
+    } catch (e) {
+      debugPrint('[RewardedAdService] Error getting mediation info: $e');
+    }
+  }
+
+  // Log detailed error information for mediation debugging
+  void _logDetailedAdError(String label, LoadAdError error) {
+    debugPrint('[RewardedAdService] ❌ Ad$label Load Error Details:');
+    debugPrint('  - Code: ${error.code}');
+    debugPrint('  - Domain: ${error.domain}');
+    debugPrint('  - Message: ${error.message}');
+    
+    if (error.responseInfo != null) {
+      final responseInfo = error.responseInfo!;
+      debugPrint('  - Response ID: ${responseInfo.responseId ?? 'Unknown'}');
+      debugPrint('  - Mediation Adapter: ${responseInfo.mediationAdapterClassName ?? 'Unknown'}');
+      
+      // Check for Unity-specific errors
+      if (responseInfo.mediationAdapterClassName?.contains('unity') == true ||
+          responseInfo.mediationAdapterClassName?.contains('Unity') == true) {
+        debugPrint('  - 🎯 UNITY ADS ERROR: Unity mediation adapter failed');
+        debugPrint('  - Possible causes: Unity Dashboard not configured, Game ID invalid, or placement issues');
+      }
+      
+      // Log adapter responses for debugging
+      final adapterResponses = responseInfo.adapterResponses;
+      if (adapterResponses != null && adapterResponses.isNotEmpty) {
+        debugPrint('  - Adapter Responses:');
+        for (final adapterResponse in adapterResponses) {
+          debugPrint('    * ${adapterResponse.adapterClassName}: ${adapterResponse.latencyMillis}ms');
+          if (adapterResponse.adError != null) {
+            debugPrint('      Error: ${adapterResponse.adError!.message}');
+          }
+        }
+      }
+    }
   }
 
   // Diagnostics: Print ad error details
@@ -105,12 +162,14 @@ class RewardedAdService {
           _adALoadedAt = DateTime.now();
           _adAExponentialBackoff = 1;
           _logAdLoaded(adUnitId);
+          _logMediationInfo(ad, 'A');
           _scheduleExpiry('A');
         },
         onAdFailedToLoad: (error) {
           _adA = null;
           _isLoadingA = false;
           _logAdError('A', error);
+          _logDetailedAdError('A', error);
           _scheduleRetry(_loadAdA, 'A');
         },
       ),
@@ -134,12 +193,14 @@ class RewardedAdService {
           _adBLoadedAt = DateTime.now();
           _adBExponentialBackoff = 1;
           _logAdLoaded(adUnitId);
+          _logMediationInfo(ad, 'B');
           _scheduleExpiry('B');
         },
         onAdFailedToLoad: (error) {
           _adB = null;
           _isLoadingB = false;
           _logAdError('B', error);
+          _logDetailedAdError('B', error);
           _scheduleRetry(_loadAdB, 'B');
         },
       ),
@@ -163,12 +224,14 @@ class RewardedAdService {
           _adCLoadedAt = DateTime.now();
           _adCExponentialBackoff = 1;
           _logAdLoaded(adUnitId);
+          _logMediationInfo(ad, 'C');
           _scheduleExpiry('C');
         },
         onAdFailedToLoad: (error) {
           _adC = null;
           _isLoadingC = false;
           _logAdError('C', error);
+          _logDetailedAdError('C', error);
           _scheduleRetry(_loadAdC, 'C');
         },
       ),
@@ -332,20 +395,7 @@ class RewardedAdService {
     });
   }
 
-  void _setAdCallbacks(RewardedAd ad, String label) {
-    ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdShowedFullScreenContent: (ad) => debugPrint('[RewardedAdService] Ad$label shown'),
-      onAdDismissedFullScreenContent: (ad) {
-        debugPrint('[RewardedAdService] Ad$label dismissed');
-        ad.dispose();
-      },
-      onAdFailedToShowFullScreenContent: (ad, error) {
-        debugPrint('[RewardedAdService] Ad$label failed to show: ${error.message}');
-        ad.dispose();
-      },
-      onAdImpression: (ad) => debugPrint('[RewardedAdService] Ad$label impression'),
-    );
-  }
+
 
   // Expose ad state for UI/diagnostics
   bool get isAdALoaded => _adA != null && !_isAdExpired(_adALoadedAt);

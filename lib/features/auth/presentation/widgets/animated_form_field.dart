@@ -15,6 +15,9 @@ class AnimatedFormField extends StatelessWidget {
   final bool hasError;
   final bool readOnly;
   final ValueChanged<String>? onChanged;
+  final TextStyle? textStyle;
+  final Color? fillColor;
+  final bool isLocked;
 
   const AnimatedFormField({
     super.key,
@@ -31,6 +34,9 @@ class AnimatedFormField extends StatelessWidget {
     this.hasError = false,
     this.readOnly = false,
     this.onChanged,
+    this.textStyle,
+    this.fillColor,
+    this.isLocked = false,
   });
 
   @override

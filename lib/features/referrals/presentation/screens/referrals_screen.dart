@@ -749,13 +749,30 @@ class ReferralsScreen extends HookConsumerWidget {
       data: (c) => c,
       orElse: () => null,
     );
-    final playStoreBase = AppConfig.playStoreUrl;
-    final referralLink = code != null && code.isNotEmpty && code != 'No code available'
-      ? '$playStoreBase&ref=$code'
-      : playStoreBase;
-    final message = code != null && code.isNotEmpty && code != 'No code available'
-      ? "🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Use my referral code: $code to get a bonus when you sign up. Download the app here: $referralLink\n\n(Your code will be auto-filled if you use this link!) 🚀"
-      : "🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Download now: $referralLink and let's both win! 🚀";
+    
+    if (code == null || code.isEmpty || code == 'No code available') {
+      final playStoreBase = AppConfig.playStoreUrl;
+      final message = "🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Download now: $playStoreBase and let's both win! 🚀";
+      await Share.share(message);
+      return;
+    }
+
+    final universalInviteLink = "${AppConfig.playStoreUrl}&referrer=utm_source%3Dinvite%26utm_medium%3Dreferral%26utm_content%3D$code";
+    
+    final message = """🎉 Join me on CashSify and start earning rewards!
+
+💰 Use my referral code: $code
+
+🚀 Click this magic link to join:
+$universalInviteLink
+
+✨ This link will:
+• Open CashSify app if you have it installed
+• Take you to Play Store to download if you don't
+• Auto-fill my referral code for you!
+
+Let's both Earn! 🚀""";
+
     await Share.share(message);
   }
 }
