@@ -9,6 +9,7 @@ import 'package:cashsify_app/features/common_screens/contact_us_screen.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../core/providers/app_config_provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 class MaintenanceScreen extends ConsumerStatefulWidget {
   final String? message;
@@ -176,7 +177,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                             ),
                             const SizedBox(height: AppSpacing.md),
                             Text(
-                              widget.message ?? "CashSify is currently undergoing scheduled maintenance to bring you new features and improvements.",
+                              widget.message ?? "${AppConfig.appName} is currently undergoing scheduled maintenance to bring you new features and improvements.",
                               style: textTheme.bodyLarge?.copyWith(
                                     color: colorScheme.onSurfaceVariant,
                                     height: 1.5,

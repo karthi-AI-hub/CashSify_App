@@ -1,5 +1,6 @@
 // Dummy Watch Ads Screen (no ads / no database)
 import 'package:flutter/material.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 class WatchAdsScreen extends StatefulWidget {
   const WatchAdsScreen({super.key});
@@ -93,11 +94,11 @@ class _WatchAdsScreenState extends State<WatchAdsScreen> {
               child: _SectionCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text('About This Dummy Screen', style: TextStyle(fontWeight: FontWeight.bold)),
                     SizedBox(height: 12),
                     Text(
-                      'The Ads watched in the Demo screen will not be considered as CashSify coins. This is only for demonstration purposes.',
+                      'The Ads watched in the Demo screen will not be considered as ${AppConfig.appName} coins. This is only for demonstration purposes.',
                     ),
                   ],
                 ),

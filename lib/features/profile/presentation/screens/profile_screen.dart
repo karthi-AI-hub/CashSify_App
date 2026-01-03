@@ -28,6 +28,8 @@ import 'package:cashsify_app/core/config/app_config.dart';
 import 'change_password_screen.dart';
 import 'delete_account_screen.dart';
 import 'about_us_screen.dart';
+import 'package:flutter/foundation.dart';
+
 
 // Add this provider to fetch the referrer's name by ID
 final referrerNameProvider =
@@ -581,7 +583,7 @@ class ProfileScreen extends HookConsumerWidget {
           ),
           // Add this block for debug-storage if in debug mode
           Divider(height: 1),
-          // if (AppConfig.debug)
+          if (kDebugMode)
             _settingsTile(
               context,
               colorScheme,

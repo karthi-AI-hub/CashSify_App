@@ -39,7 +39,7 @@ class AboutUsScreen extends HookConsumerWidget {
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: CustomAppBar(
-          title: 'About CashSify',
+          title: 'About ${AppConfig.appName}',
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () => context.go('/profile'),
@@ -84,7 +84,7 @@ class AboutUsScreen extends HookConsumerWidget {
 
                         // App Name & Version
                         Text(
-                          'CashSify',
+                          '${AppConfig.appName}',
                           style: textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: colorScheme.primary,
@@ -109,7 +109,7 @@ class AboutUsScreen extends HookConsumerWidget {
 
                         // App Description
                         Text(
-                          'CashSify is a rewards platform where you can earn virtual coins by watching ads, referring friends, and completing simple tasks. These coins can be redeemed for various rewards and premium features within the platform.',
+                          '${AppConfig.appName} is a rewards platform where you can earn virtual coins by watching ads, referring friends, and completing simple tasks. These coins can be redeemed for various rewards and premium features within the platform.',
                           style: textTheme.bodyLarge,
                           textAlign: TextAlign.center,
                         ),
@@ -295,7 +295,7 @@ class AboutUsScreen extends HookConsumerWidget {
 
                 // Legal Information
                 Text(
-                  '© ${DateTime.now().year} CashSify. All rights reserved.',
+                  '© ${DateTime.now().year} ${AppConfig.appName}. All rights reserved.',
                   style: textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -318,13 +318,12 @@ class AboutUsScreen extends HookConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 
-                // Powered By CashSify
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Center(
                     child: Text(
-                      'Powered By CashSify',
+                      'Powered By ${AppConfig.appName}',
                       style: textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
@@ -434,7 +433,7 @@ class AboutUsScreen extends HookConsumerWidget {
       error: (_, __) => AppConfig.playStoreUrl,
     );
     
-    final message = "🎉 Discover CashSify - the ultimate rewards platform! Earn virtual coins by watching ads, referring friends, and completing simple tasks. Download now: $playStoreUrl and start earning rewards today! 🚀";
+    final message = "🎉 Discover ${AppConfig.appName} - the ultimate rewards platform! Earn virtual coins by watching ads, referring friends, and completing simple tasks. Download now: $playStoreUrl and start earning rewards today! 🚀";
     await Share.share(message);
   }
 }

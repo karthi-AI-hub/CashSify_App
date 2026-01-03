@@ -1,9 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/models/ad_watch_model.dart';
 import '../../domain/models/ad_earnings_model.dart';
+import '../../../../core/services/analytics_service.dart';
 
 class AdService {
   final SupabaseClient _supabase;
+  final AnalyticsService _analytics = AnalyticsService();
 
   AdService(this._supabase);
 
@@ -24,6 +26,9 @@ class AdService {
           'captcha_input': captchaInput,
         },
       );
+      if (response == true) {
+        await _analytics.logAdWatched();
+      }
       return response as bool;
     } catch (e) {
       if (e is PostgrestException) {

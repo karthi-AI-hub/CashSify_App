@@ -15,6 +15,7 @@ import '../../../../core/providers/loading_provider.dart';
 import '../../../../core/widgets/layout/loading_overlay.dart';
 import '../providers/referral_providers.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/services/analytics_service.dart';
 
 class ReferralsScreen extends HookConsumerWidget {
   const ReferralsScreen({super.key});
@@ -154,7 +155,7 @@ class ReferralsScreen extends HookConsumerWidget {
                       SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Text(
-                          'Your CashSify Code',
+                          'Your ${AppConfig.appName} Code',
                           style: textTheme.titleMedium?.copyWith(
                             color: colorScheme.onSurface,
                             fontWeight: FontWeight.bold,
@@ -752,14 +753,16 @@ class ReferralsScreen extends HookConsumerWidget {
     
     if (code == null || code.isEmpty || code == 'No code available') {
       final playStoreBase = AppConfig.playStoreUrl;
-      final message = "🎉 Join me on CashSify and start earning rewards for watching ads, referring friends, and more! Download now: $playStoreBase and let's both win! 🚀";
+      final message = "🎉 Join me on ${AppConfig.appName} and start earning rewards for watching ads, referring friends, and more! Download now: $playStoreBase and let's both win! 🚀";
+      final analytics = AnalyticsService();
+      await analytics.logReferralShared();
       await Share.share(message);
       return;
     }
 
     final universalInviteLink = "${AppConfig.playStoreUrl}&referrer=utm_source%3Dinvite%26utm_medium%3Dreferral%26utm_content%3D$code";
     
-    final message = """🎉 Join me on CashSify and start earning rewards!
+    final message = """🎉 Join me on ${AppConfig.appName} and start earning rewards!
 
 💰 Use my referral code: $code
 
@@ -767,12 +770,14 @@ class ReferralsScreen extends HookConsumerWidget {
 $universalInviteLink
 
 ✨ This link will:
-• Open CashSify app if you have it installed
+• Open ${AppConfig.appName} app if you have it installed
 • Take you to Play Store to download if you don't
 • Auto-fill my referral code for you!
 
 Let's both Earn! 🚀""";
 
+    final analytics = AnalyticsService();
+    await analytics.logReferralShared();
     await Share.share(message);
   }
 }

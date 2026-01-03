@@ -55,7 +55,7 @@ class AppConfigNotifier extends StateNotifier<Map<String, dynamic>?> {
         'youtube_url': '',
         'instagram_url': '',
         'twitter_url': '',
-        'support_email': 'cashsify@gmail.com',
+        'support_email': 'app.watch2earn@gmail.com',
         'support_phone': '+91 80722 23275',
         'website_url': '',
         'playstore_url': '',
@@ -74,7 +74,7 @@ class AppConfigNotifier extends StateNotifier<Map<String, dynamic>?> {
         'youtube_url': '',
         'instagram_url': '',
         'twitter_url': '',
-        'support_email': 'cashsify@gmail.com',
+        'support_email': 'app.watch2earn@gmail.com',
         'support_phone': '+91 80722 23275',
         'website_url': '',
         'playstore_url': '',
@@ -93,7 +93,7 @@ class AppConfigNotifier extends StateNotifier<Map<String, dynamic>?> {
         'youtube_url': '',
         'instagram_url': '',
         'twitter_url': '',
-        'support_email': 'cashsify@gmail.com',
+        'support_email': 'app.watch2earn@gmail.com',
         'support_phone': '+91 80722 23275',
         'website_url': '',
         'playstore_url': '',
@@ -128,7 +128,7 @@ final socialMediaUrlsProvider = FutureProvider<Map<String, String>>((ref) async 
 final contactInfoProvider = FutureProvider<Map<String, String>>((ref) async {
   final config = ref.watch(appConfigProvider);
   return {
-    'email': config?['support_email'] as String? ?? 'cashsify@gmail.com',
+    'email': config?['support_email'] as String? ?? 'app.watch2earn@gmail.com',
     'phone': config?['support_phone'] as String? ?? '+91 80722 23275',
     'website': config?['website_url'] as String? ?? '',
     'playstore': config?['playstore_url'] as String? ?? '',

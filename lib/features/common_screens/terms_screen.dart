@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cashsify_app/theme/app_spacing.dart';
 import 'package:cashsify_app/core/widgets/layout/custom_app_bar.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 class TermsScreen extends StatelessWidget {
   const TermsScreen({super.key});
@@ -32,12 +33,12 @@ class TermsScreen extends StatelessWidget {
             children: [
               _sectionTitle('1. Introduction', textTheme),
               _sectionText(
-                'By downloading or using the app, you agree to be bound by these Terms and Conditions. These terms govern your use of CashSify and outline your rights and responsibilities as a user.',
+                'By downloading or using the app, you agree to be bound by these Terms and Conditions. These terms govern your use of ${AppConfig.appName} and outline your rights and responsibilities as a user.',
                 textTheme,
               ),
               _sectionTitle('2. User Eligibility', textTheme),
               _sectionText(
-                'You must be at least 18 years old to use this app. By using CashSify, you confirm that you meet this age requirement.',
+                'You must be at least 18 years old to use this app. By using ${AppConfig.appName}, you confirm that you meet this age requirement.',
                 textTheme,
               ),
               _sectionTitle('3. Account Registration', textTheme),
@@ -57,7 +58,7 @@ class TermsScreen extends StatelessWidget {
               ),
               _sectionTitle('6. Advertisements', textTheme),
               _sectionText(
-                'CashSify relies on rewarded ads. We are not responsible for ad content or the availability of ads. Ad abuse may lead to account termination.',
+                '${AppConfig.appName} relies on rewarded ads. We are not responsible for ad content or the availability of ads. Ad abuse may lead to account termination.',
                 textTheme,
               ),
               _sectionTitle('7. Termination & Suspension', textTheme),
@@ -67,7 +68,7 @@ class TermsScreen extends StatelessWidget {
               ),
               _sectionTitle('8. Limitation of Liability', textTheme),
               _sectionText(
-                'CashSify is provided "as is". We do not guarantee uninterrupted or error-free operation. We are not liable for any loss or damage resulting from app use.',
+                '${AppConfig.appName} is provided "as is". We do not guarantee uninterrupted or error-free operation. We are not liable for any loss or damage resulting from app use.',
                 textTheme,
               ),
               _sectionTitle('9. Changes to Terms', textTheme),
@@ -83,7 +84,7 @@ class TermsScreen extends StatelessWidget {
               SizedBox(height: AppSpacing.xl),
               Center(
                 child: Text(
-                  '© 2025 CashSify. All rights reserved.',
+                  '© ${DateTime.now().year} ${AppConfig.appName}. All rights reserved.',
                   style: textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),

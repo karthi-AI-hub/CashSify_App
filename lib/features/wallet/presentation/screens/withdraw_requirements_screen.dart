@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cashsify_app/core/widgets/layout/custom_app_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cashsify_app/core/services/user_service.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 class WithdrawRequirementsScreen extends ConsumerWidget {
   const WithdrawRequirementsScreen({super.key});
@@ -179,7 +180,7 @@ class WithdrawRequirementsScreen extends ConsumerWidget {
               (
                 'At least 5 referrals',
                 (user.referralCount ?? 0) >= 5,
-                'Invite at least 5 friends to join CashSify using your referral code.',
+                'Invite at least 5 friends to join ${AppConfig.appName} using your referral code.',
                 null,
                 Icons.group_rounded,
                 null,
@@ -415,7 +416,7 @@ class _VerifyEmailGuide extends StatelessWidget {
           ),
           _StepTile(
             step: 2,
-            text: 'Check your inbox (and spam folder) for an email from CashSify.',
+            text: 'Check your inbox (and spam folder) for an email from ${AppConfig.appName}.',
             icon: Icons.inbox_rounded,
           ),
           _StepTile(

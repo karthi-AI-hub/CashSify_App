@@ -19,6 +19,7 @@ import 'package:cashsify_app/core/providers/user_provider.dart';
 import 'package:cashsify_app/theme/app_spacing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -283,7 +284,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Center(
                   child: Text(
-                    'Powered By CashSify',
+                    'Powered By ${AppConfig.appName}',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,

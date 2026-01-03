@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Allow: /screenshots/
+Allow: /logo.png
+
+Sitemap: https://watch2earn.app/sitemap.xml

@@ -6,6 +6,7 @@ import 'package:pdf/pdf.dart' show PdfColor, PdfColors, PdfPageFormat;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:cashsify_app/core/utils/logger.dart';
 import 'package:cashsify_app/core/services/storage_service.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 class PdfUtils {
   static final _storageService = StorageService();
@@ -76,7 +77,7 @@ class PdfUtils {
                           pw.SizedBox(height: 5),
                         ],
                         pw.Text(
-                          'CashSify',
+                          'Watch2Earn',
                           style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
                         ),
                         pw.Text(
@@ -84,7 +85,7 @@ class PdfUtils {
                           style: pw.TextStyle(fontSize: 10),
                         ),
                         pw.Text(
-                          'cashsify@gmail.com | +91 80722 23275',
+                          'app.watch2earn@gmail.com | +91 80722 23275',
                           style: pw.TextStyle(fontSize: 10),
                         ),
                       ],
@@ -165,7 +166,7 @@ class PdfUtils {
                 pw.SizedBox(height: 10),
                 pw.Center(
                   child: pw.Text(
-                    'Thank you for using CashSify App!',
+                    'Thank you for using ${AppConfig.appName} App!',
                     style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
                   ),
                 ),

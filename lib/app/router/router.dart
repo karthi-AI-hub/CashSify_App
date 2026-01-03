@@ -37,6 +37,7 @@ import 'package:cashsify_app/theme/app_spacing.dart';
 import 'package:cashsify_app/core/utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cashsify_app/features/wallet/presentation/screens/withdraw_requirements_screen.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 // Ensures splash is only shown on cold start
 class _SplashNavigationGuard {
@@ -57,6 +58,9 @@ final routerProvider =
 
   return GoRouter(
     initialLocation: effectiveInitialLocation,
+    observers: [
+      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+    ],
     redirect: (context, state) async {
       final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');

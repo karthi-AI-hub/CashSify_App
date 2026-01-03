@@ -14,20 +14,20 @@ class FAQScreen extends StatefulWidget {
 class _FAQScreenState extends State<FAQScreen> {
   final List<FAQSection> _allSections = const [
     FAQSection(
-      title: 'About CashSify',
+      title: 'About Watch2Earn',
       icon: Icons.info_outline,
       questions: [
         FAQItem(
-          question: 'What is CashSify?',
-          answer: 'CashSify is a rewards platform where users can earn virtual coins by watching ads, referring friends, and participating in various activities. These coins can be redeemed for rewards within the platform.',
+          question: 'What is Watch2Earn?',
+          answer: 'Watch2Earn is a rewards platform where users can earn virtual coins by watching ads, referring friends, and participating in various activities. These coins can be redeemed for rewards within the platform.',
         ),
         FAQItem(
-          question: 'Is CashSify free to use?',
-          answer: 'Yes, CashSify is completely free to download and use. You can start earning coins immediately after registration.',
+          question: 'Is Watch2Earn free to use?',
+          answer: 'Yes, Watch2Earn is completely free to download and use. You can start earning coins immediately after registration.',
         ),
         FAQItem(
-          question: 'Is CashSify available worldwide?',
-          answer: 'Currently, CashSify is available in select regions. Please check the app store in your country for availability.',
+          question: 'Is Watch2Earn available worldwide?',
+          answer: 'Currently, Watch2Earn is available in select regions. Please check the app store in your country for availability.',
         ),
       ],
     ),
@@ -49,7 +49,7 @@ class _FAQScreenState extends State<FAQScreen> {
         ),
         FAQItem(
           question: 'Do I get coins for referring friends?',
-          answer: 'Yes! When your friends join CashSify using your referral code, both you and your friend receive bonus coins. The exact amount varies based on current promotions.',
+          answer: 'Yes! When your friends join Watch2Earn using your referral code, both you and your friend receive bonus coins. The exact amount varies based on current promotions.',
         ),
       ],
     ),
@@ -93,7 +93,7 @@ class _FAQScreenState extends State<FAQScreen> {
         ),
         FAQItem(
           question: 'Can I have multiple accounts?',
-          answer: 'No, each phone number can only be associated with one CashSify account. Multiple accounts may result in suspension.',
+          answer: 'No, each phone number can only be associated with one Watch2Earn account. Multiple accounts may result in suspension.',
         ),
       ],
     ),
@@ -133,7 +133,7 @@ class _FAQScreenState extends State<FAQScreen> {
         ),
         FAQItem(
           question: 'How can I contact support?',
-          answer: 'You can reach our support team through the in-app contact form, email us at support@cashsify.com, or use the contact information in the About Us section.',
+          answer: 'You can reach our support team through the in-app contact form, email us at app.watch2earn@gmail.com, or use the contact information in the About Us section.',
         ),
         FAQItem(
           question: 'What are your support hours?',
@@ -147,7 +147,7 @@ class _FAQScreenState extends State<FAQScreen> {
       questions: [
         FAQItem(
           question: 'What are the terms of service?',
-          answer: 'Our terms of service outline the rules and guidelines for using CashSify. You can find the complete terms in the app settings or on our website.',
+          answer: 'Our terms of service outline the rules and guidelines for using Watch2Earn. You can find the complete terms in the app settings or on our website.',
         ),
         FAQItem(
           question: 'What is your privacy policy?',
@@ -159,7 +159,7 @@ class _FAQScreenState extends State<FAQScreen> {
         ),
         FAQItem(
           question: 'How do I report an issue?',
-          answer: 'Use the in-app contact form or email support@cashsify.com to report any issues. Please provide as much detail as possible.',
+          answer: 'Use the in-app contact form or email app.watch2earn@gmail.com to report any issues. Please provide as much detail as possible.',
         ),
       ],
     ),

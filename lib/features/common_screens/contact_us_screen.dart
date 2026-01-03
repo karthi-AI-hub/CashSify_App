@@ -10,10 +10,10 @@ class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({super.key});
 
 Future<void> _launchSupportEmail(BuildContext context) async {
-  const email = 'cashsify@gmail.com';
-  final subject = Uri.encodeComponent('CashSify Support Request');
+  const email = 'app.watch2earn@gmail.com';
+  final subject = Uri.encodeComponent('${AppConfig.appName} Support Request');
   final body = Uri.encodeComponent('''
-Hello CashSify Support Team,
+Hello ${AppConfig.appName} Support Team,
 
 I am writing regarding:
 
@@ -58,7 +58,7 @@ Best regards,
 
 Future<void> _launchWhatsApp(BuildContext context) async {
   const phone = '+918072223275';
-  const message = 'Hello CashSify Support!';
+  const message = 'Hello ${AppConfig.appName} Support!';
   final url = Uri.parse('https://wa.me/${phone.replaceAll('+', '')}?text=${Uri.encodeComponent(message)}');
 
   try {
@@ -151,7 +151,7 @@ Future<void> _copyToClipboard(BuildContext context, String text) async {
                 icon: Icons.email_outlined,
                 title: 'Email Support',
                 subtitle: 'Get help via email',
-                value: 'cashsify@gmail.com',
+                value: 'app.watch2earn@gmail.com',
                 onTap: () => _launchSupportEmail(context),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -177,7 +177,7 @@ Future<void> _copyToClipboard(BuildContext context, String text) async {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      '© 2025 CashSify Support',
+                      '© 2025 ${AppConfig.appName} Support',
                       style: textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -301,7 +301,7 @@ Future<void> _copyToClipboard(BuildContext context, String text) async {
         _buildFAQItem(
           context,
           question: 'Where can I find app updates?',
-          answer: 'Check the app store for the latest version of CashSify.',
+          answer: 'Check the app store for the latest version of ${AppConfig.appName}.',
         ),
       ],
     );

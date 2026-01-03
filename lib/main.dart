@@ -25,12 +25,22 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:cashsify_app/theme/app_spacing.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 final appLinks = AppLinks();
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp();
+    AppLogger.info('App startup: Firebase initialized');
+  } catch (e) {
+    AppLogger.error('App startup: Firebase initialization failed (missing config?): $e');
+  }
 
   // Add global error handler for uncaught exceptions
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -493,7 +503,7 @@ class _MyAppState extends ConsumerState<MyApp> {
                                         _updateError!.contains('not owned')
                                     ? 'This app was not installed from the Play Store. Please install or update the app from the Play Store to use in-app updates.'
                                     : 'There was a problem updating the app:\n\n${_updateError!}\nPlease try again. If the problem persists, update manually from the Play Store.')
-                                : 'A new version of CashSify is available. Please update to continue using the app.',
+                                : 'A new version of ${AppConfig.appName} is available. Please update to continue using the app.',
                             style: textTheme.bodyLarge?.copyWith(
                               color: colorScheme.onSurface,
                               height: 1.5,

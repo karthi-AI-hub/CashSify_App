@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:cashsify_app/core/services/supabase_service.dart';
 import 'package:cashsify_app/core/utils/logger.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 class StorageService {
   final _supabase = SupabaseService();
@@ -412,7 +413,6 @@ class StorageService {
     }
   }
 
-  /// Get the CashSify downloads directory path
   Future<String?> getCashSifyDownloadsPath() async {
     try {
       if (Platform.isAndroid) {
@@ -427,38 +427,35 @@ class StorageService {
         for (final path in possiblePaths) {
           final dir = Directory(path);
           if (await dir.exists()) {
-            final cashsifyDir = Directory('$path/CashSify');
+            final cashsifyDir = Directory('$path/${AppConfig.appName}');
             if (await cashsifyDir.exists()) {
               return cashsifyDir.path;
             }
           }
         }
         
-        // If no CashSify folder in Downloads, check app external storage
         final externalDir = await getExternalStorageDirectory();
         if (externalDir != null) {
-          final cashsifyDir = Directory('${externalDir.path}/CashSify');
+          final cashsifyDir = Directory('${externalDir.path}/${AppConfig.appName}');
           if (await cashsifyDir.exists()) {
             return cashsifyDir.path;
           }
         }
       }
       
-      // Fallback to app documents
       final appDir = await getApplicationDocumentsDirectory();
-      final cashsifyDir = Directory('${appDir.path}/CashSify');
+      final cashsifyDir = Directory('${appDir.path}/${AppConfig.appName}');
       if (await cashsifyDir.exists()) {
         return cashsifyDir.path;
       }
       
       return null;
     } catch (e) {
-      AppLogger.error('Error getting CashSify downloads path: $e');
+      AppLogger.error('Error getting ${AppConfig.appName} downloads path: $e');
       return null;
     }
   }
 
-  /// List all downloaded PDFs in the CashSify folder
   Future<List<FileSystemEntity>> listDownloadedPdfs() async {
     try {
       final downloadsPath = await getCashSifyDownloadsPath();
@@ -483,7 +480,7 @@ class StorageService {
         return bStat.modified.compareTo(aStat.modified);
       });
       
-      AppLogger.info('Found ${pdfFiles.length} downloaded PDFs in CashSify folder');
+      AppLogger.info('Found ${pdfFiles.length} downloaded PDFs in ${AppConfig.appName} folder');
       return pdfFiles;
     } catch (e) {
       AppLogger.error('Error listing downloaded PDFs: $e');
@@ -514,7 +511,7 @@ class StorageService {
         }
       }
       
-      AppLogger.info('Cleared $deletedCount downloaded PDFs from CashSify folder');
+      AppLogger.info('Cleared $deletedCount downloaded PDFs from ${AppConfig.appName} folder');
       return true;
     } catch (e) {
       AppLogger.error('Error clearing downloaded PDFs: $e');

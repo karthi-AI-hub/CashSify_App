@@ -2,13 +2,14 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 /// A utility class for centralized logging throughout the app.
 /// Supports both console and file logging for debugging purposes.
 class AppLogger {
-  static final _logger = Logger('CashSify');
+  static final _logger = Logger('${AppConfig.appName}');
   static File? _logFile;
-  static const String _logFileName = 'cashsify_logs.txt';
+  static const String _logFileName = '${AppConfig.appName}_logs.txt';
   static const int _maxLogFileSize = 10 * 1024 * 1024; // 5MB
   static const int _maxLogEntries = 1000; // Keep last 1000 entries
 
@@ -41,7 +42,7 @@ class AppLogger {
       // Create file if it doesn't exist
       if (!await _logFile!.exists()) {
         await _logFile!.create();
-        await _logFile!.writeAsString('=== CashSify App Logs ===\n');
+        await _logFile!.writeAsString('=== ${AppConfig.appName} App Logs ===\n');
       }
       
       // Check file size and rotate if necessary
@@ -77,7 +78,7 @@ class AppLogger {
             ? lines.sublist(lines.length - _maxLogEntries)
             : lines;
         await _logFile!.writeAsString(
-          '=== CashSify App Logs (Rotated) ===\n${recentLines.join('\n')}\n'
+          '=== ${AppConfig.appName} App Logs (Rotated) ===\n${recentLines.join('\n')}\n'
         );
       }
     } catch (e) {
@@ -165,7 +166,7 @@ class AppLogger {
     if (_logFile == null) return;
     
     try {
-      await _logFile!.writeAsString('=== CashSify App Logs (Cleared) ===\n');
+      await _logFile!.writeAsString('=== ${AppConfig.appName} App Logs (Cleared) ===\n');
       info('Logs cleared successfully');
     } catch (e) {
       print('Error clearing logs: $e');

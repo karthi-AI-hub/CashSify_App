@@ -15,6 +15,7 @@ import '../models/referral_history.dart';
 import '../../../../core/widgets/layout/custom_app_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cashsify_app/core/providers/user_provider.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 class ReferralHistoryScreen extends HookConsumerWidget {
   const ReferralHistoryScreen({super.key});
@@ -326,8 +327,8 @@ class ReferralHistoryScreen extends HookConsumerWidget {
   void _remindReferral(BuildContext context, ReferralHistory user) async {
     final nextPhase = getNextPendingPhase(user.status);
     final message = nextPhase.isNotEmpty
-        ? "Hey ${user.name}, don't forget to complete the next step: $nextPhase in CashSify and unlock more rewards!"
-        : "Hey ${user.name}, you've completed all referral steps in CashSify!";
+        ? "Hey ${user.name}, don't forget to complete the next step: $nextPhase in ${AppConfig.appName} and unlock more rewards!"
+        : "Hey ${user.name}, you've completed all referral steps in ${AppConfig.appName}!";
     await Share.share(message);
   }
 

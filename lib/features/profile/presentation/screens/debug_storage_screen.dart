@@ -12,6 +12,7 @@ import 'package:cashsify_app/core/utils/pdf_utils.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 class DebugStorageScreen extends ConsumerStatefulWidget {
   const DebugStorageScreen({super.key});
@@ -74,7 +75,7 @@ class _DebugStorageScreenState extends ConsumerState<DebugStorageScreen> {
       if (_logFilePath != null && await File(_logFilePath!).exists()) {
         await Share.shareXFiles(
           [XFile(_logFilePath!)],
-          text: 'CashSify App Logs',
+          text: '${AppConfig.appName} App Logs',
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -439,7 +440,7 @@ class _DebugStorageScreenState extends ConsumerState<DebugStorageScreen> {
                                           try {
                                             await Share.shareXFiles(
                                               [XFile(file.path)],
-                                              text: 'CashSify Withdrawal PDF',
+                                              text: '${AppConfig.appName} Withdrawal PDF',
                                             );
                                           } catch (e) {
                                             if (mounted) {

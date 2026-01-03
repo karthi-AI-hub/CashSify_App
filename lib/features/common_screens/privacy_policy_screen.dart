@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cashsify_app/theme/app_spacing.dart';
 import 'package:cashsify_app/core/widgets/layout/custom_app_bar.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
@@ -32,7 +33,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             children: [
               _sectionTitle('1. Introduction', textTheme),
               _sectionText(
-                'Your privacy is important to us. This Privacy Policy explains how CashSify collects, uses, and protects your personal information.',
+                'Your privacy is important to us. This Privacy Policy explains how ${AppConfig.appName} collects, uses, and protects your personal information.',
                 textTheme,
               ),
               _sectionTitle('2. Data We Collect', textTheme),
@@ -62,7 +63,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               ),
               _sectionTitle("7. Children's Privacy", textTheme),
               _sectionText(
-                'CashSify is not intended for use by individuals under the age of 18. We do not knowingly collect data from minors.',
+                '${AppConfig.appName} is not intended for use by individuals under the age of 18. We do not knowingly collect data from minors.',
                 textTheme,
               ),
               _sectionTitle('8. Changes to This Policy', textTheme),
@@ -78,7 +79,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               SizedBox(height: AppSpacing.xl),
               Center(
                 child: Text(
-                  '© 2025 CashSify. All rights reserved.',
+                  '© ${DateTime.now().year} ${AppConfig.appName}. All rights reserved.',
                   style: textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),

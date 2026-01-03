@@ -393,11 +393,13 @@ class _CoinCard extends StatelessWidget {
               children: [
                 Icon(icon, color: textColor, size: iconSize),
                 SizedBox(width: AppSpacing.sm),
-                Text(
-                  value.toString(),
-                  style: textTheme.displaySmall?.copyWith(color: textColor, fontWeight: FontWeight.bold, fontSize: valueFontSize),
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
+                Expanded(
+                  child: Text(
+                    value.toString(),
+                    style: textTheme.displaySmall?.copyWith(color: textColor, fontWeight: FontWeight.bold, fontSize: valueFontSize),
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
                 ),
               ],
             ),

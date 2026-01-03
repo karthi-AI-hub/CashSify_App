@@ -10,6 +10,7 @@ import 'package:cashsify_app/core/services/user_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 import 'dart:async';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -507,7 +508,7 @@ class _VerifyEmailGuideState extends State<_VerifyEmailGuide> {
             _StepTile(
               step: 2,
               text:
-                  'Check your inbox (and spam folder) for an email from CashSify.',
+                  'Check your inbox (and spam folder) for an email from ${AppConfig.appName}.',
               icon: Icons.inbox_rounded,
             ),
             _StepTile(
@@ -524,7 +525,7 @@ class _VerifyEmailGuideState extends State<_VerifyEmailGuide> {
           ] else ...[
             _StepTile(
               step: 1,
-              text: 'Open your email app and look for an email from CashSify.',
+              text: 'Open your email app and look for an email from ${AppConfig.appName}.',
               icon: Icons.inbox_rounded,
             ),
             _StepTile(

@@ -19,6 +19,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cashsify_app/theme/app_spacing.dart';
 import 'package:cashsify_app/theme/app_colors.dart';
 // import 'package:lottie/lottie.dart'; // Uncomment if you have a Lottie asset
+import 'package:cashsify_app/core/services/analytics_service.dart';
 
 enum WithdrawMethod { upi, bank }
 
@@ -750,6 +751,12 @@ class _WithdrawCoinsTab extends HookConsumerWidget {
           upiId: method.value == WithdrawMethod.upi ? user?.upiId : null,
           bankDetails: method.value == WithdrawMethod.bank ? user?.bankAccount : null,
           userId: user?.id ?? '', // Pass the user ID
+        );
+
+        final analytics = AnalyticsService();
+        await analytics.logWithdrawalRequested(
+          coins.toDouble(),
+          method.value == WithdrawMethod.upi ? 'upi' : 'bank',
         );
 
         if (context.mounted) {

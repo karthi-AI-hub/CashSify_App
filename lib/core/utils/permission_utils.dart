@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cashsify_app/core/utils/logger.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 /// Utility class to handle app permissions
 class PermissionUtils {
@@ -96,7 +97,7 @@ class PermissionUtils {
     await showPermissionDialog(
       context,
       title: 'Camera Permission',
-      message: 'CashSify needs camera access to let you take profile photos and verify your identity.',
+      message: '${AppConfig.appName} needs camera access to let you take profile photos and verify your identity.',
       onGranted: () => requestPermission(Permission.camera),
     );
   }
@@ -106,7 +107,7 @@ class PermissionUtils {
     await showPermissionDialog(
       context,
       title: 'Storage Permission',
-      message: 'CashSify needs storage access to save your profile photos and app data.',
+      message: '${AppConfig.appName} needs storage access to save your profile photos and app data.',
       onGranted: () => _isAndroid13OrHigher() 
           ? requestPermission(Permission.photos)
           : requestPermission(Permission.storage),

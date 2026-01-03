@@ -16,8 +16,8 @@ class AppConfig {
   static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
   // App Configuration
-  static const String appName = 'CashSify';
-  static const String appVersion = '1.9';
+  static const String appName = 'Watch2Earn';
+  static const String appVersion = '2.0';
   static const String slogan = 'Earn Cash Simply!';
   
   // Play Store URL

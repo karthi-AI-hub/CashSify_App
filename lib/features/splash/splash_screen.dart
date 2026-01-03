@@ -18,6 +18,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import '../../core/utils/logger.dart';
+import 'package:cashsify_app/core/config/app_config.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -238,7 +239,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                           ),
                           const SizedBox(height: AppSpacing.xl),
                           Text(
-                            'Welcome to CashSify',
+                            'Welcome to ${AppConfig.appName}',
                             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   color: colorScheme.primary,
                                   fontWeight: FontWeight.bold,
@@ -278,7 +279,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                 child: Text(
-                  'Powered By CashSify',
+                  'Powered By ${AppConfig.appName}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,

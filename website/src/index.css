@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+
+  --color-brand-primary: #3B82F6;
+  /* Modern Blue */
+  --color-brand-secondary: #6366F1;
+  /* Indigo */
+  --color-brand-accent: #10B981;
+  /* Success Mint */
+  --color-brand-bg: #FCFCFD;
+  /* Ultra Light Neutral */
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-reveal: reveal 0.8s cubic-bezier(0, 0, 0.2, 1) forwards;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body {
+  @apply bg-[#FCFCFD] text-[#0F172A] selection:bg-brand-primary/10;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  --grid-unit: 4px;
+  --spacing-xs: calc(var(--grid-unit) * 2);
+  --spacing-sm: calc(var(--grid-unit) * 4);
+  --spacing-md: calc(var(--grid-unit) * 8);
+  --spacing-lg: calc(var(--grid-unit) * 12);
+  --spacing-xl: calc(var(--grid-unit) * 20);
+
+  --font-tracking-tight: -0.025em;
+  --font-tracking-tighter: -0.05em;
+
+  --transition-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+  font-family: var(--font-display);
+  @apply tracking-tight;
+}
+
+.mesh-gradient {
+  background:
+    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.08) 0, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.05) 0, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.05) 0, transparent 50%);
+  background-color: #FCFCFD;
+}
+
+.bg-grid-slate {
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.glass {
+  @apply bg-white/60 backdrop-blur-xl border border-gray-100 shadow-sm;
+}
+
+.glass-thick {
+  @apply bg-white/90 backdrop-blur-2xl border border-gray-100 shadow-xl;
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-br from-gray-900 via-gray-800 to-gray-500;
+}
+
+.text-gradient-blue {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500;
+}
+
+@utility text-gradient-blue {
+  @apply bg-clip-text text-transparent bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-800;
+}
+
+
+@utility glass-thick {
+  @apply backdrop-blur-2xl bg-white/90 border border-gray-100;
+  box-shadow: 0 10px 40px -5px rgba(0, 0, 0, 0.03);
+}
+
+@utility glow-card {
+  @apply relative overflow-hidden transition-all duration-500;
+
+  &:hover {
+    box-shadow: 0 20px 50px rgba(59, 130, 246, 0.08);
+    transform: translateY(-4px);
+  }
+}
+
+.btn-primary {
+  @apply px-10 py-4 bg-brand-primary hover:bg-blue-600 text-white font-bold rounded-2xl transition-all duration-500 active:scale-95;
+  box-shadow: 0 10px 25px -5px rgba(59, 132, 246, 0.25);
+
+  &:hover {
+    box-shadow: 0 20px 35px -5px rgba(59, 132, 246, 0.35);
+  }
+}
+
+.btn-secondary {
+  @apply px-10 py-4 bg-white hover:bg-gray-50 text-gray-900 font-bold rounded-2xl transition-all duration-500 border border-gray-200 shadow-sm active:scale-95;
+}
+
+.btn-inverse {
+  @apply px-10 py-4 bg-white hover:bg-gray-50 text-blue-900 font-bold rounded-2xl transition-all duration-500 shadow-xl hover:shadow-2xl active:scale-95 border border-white/20;
+}
+
+.glow-card {
+  position: relative;
+}
+
+.glow-card::after {
+  content: "";
+  @apply absolute -inset-0.5 bg-gradient-to-r from-brand-primary/20 to-emerald-500/20 rounded-[inherit] opacity-0 blur-xl transition-opacity duration-500 -z-10 group-hover:opacity-100;
+}
