@@ -61,11 +61,14 @@ class AnimatedFormField extends StatelessWidget {
         obscureText: obscureText,
         keyboardType: keyboardType,
         readOnly: readOnly,
+        style: textStyle,
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
           prefixIcon: prefixIcon,
           suffixIcon: suffixIcon,
+          filled: isLocked || fillColor != null,
+          fillColor: fillColor ?? (isLocked ? theme.colorScheme.surfaceVariant.withOpacity(0.3) : null),
           errorStyle: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.error,
           ),

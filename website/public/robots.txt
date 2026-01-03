@@ -3,4 +3,4 @@ Allow: /
 Allow: /screenshots/
 Allow: /logo.png
 
-Sitemap: https://watch2earn.app/sitemap.xml
+Sitemap: https://appwatch2earn.vercel.app/sitemap.xml

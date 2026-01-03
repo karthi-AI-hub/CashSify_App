@@ -27,6 +27,7 @@ import 'package:cashsify_app/theme/app_spacing.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:cashsify_app/features/referrals/data/services/referral_service.dart';
 
 final appLinks = AppLinks();
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -128,7 +129,23 @@ void main(List<String> args) async {
           AppLogger.info(
               'App startup: Referral invite - code set and locked: $refCode');
         }
-      } else if (refCode != null && refCode.isNotEmpty) {
+      } 
+      
+      // New Domain Handling for Initial Link
+      else if (initialUri.host == 'appwatch2earn.vercel.app' && initialUri.path == '/invite') {
+           if (refCode != null && refCode.isNotEmpty) {
+             // Decode encoded ref code
+             final decodedCode = ReferralService().decodeReferralCode(refCode);
+             AppLogger.info('App startup: Decoded referral code: $decodedCode from $refCode');
+             
+             await prefs.setString('pending_referral_code', decodedCode);
+             await prefs.setBool('referral_from_invite_link', true);
+             AppLogger.info(
+                 'App startup: Web Invite - code set and locked: $decodedCode');
+           }
+      }
+      
+      else if (refCode != null && refCode.isNotEmpty) {
         await prefs.setString('pending_referral_code', refCode);
         await prefs.setBool('referral_from_invite_link', true);
         AppLogger.info('App startup: Referral code set: $refCode');
@@ -215,7 +232,27 @@ void main(List<String> args) async {
               GoRouter.of(context).go('/auth/register');
             }
           }
-        } else if (refCode != null && refCode.isNotEmpty) {
+        } 
+        
+        // New Domain Handling
+        else if (uri.host == 'appwatch2earn.vercel.app' && uri.path == '/invite') {
+             if (refCode != null && refCode.isNotEmpty) {
+               // Decode encoded ref code
+               final decodedCode = ReferralService().decodeReferralCode(refCode);
+               AppLogger.info('App runtime: Decoded referral code: $decodedCode from $refCode');
+               
+               await prefs.setString('pending_referral_code', decodedCode);
+               await prefs.setBool('referral_from_invite_link', true);
+               AppLogger.info(
+                   'App runtime: Web Invite - code set and locked: $decodedCode');
+               final context = navigatorKey.currentContext;
+               if (context != null) {
+                 GoRouter.of(context).go('/auth/register');
+               }
+             }
+        } 
+        
+        else if (refCode != null && refCode.isNotEmpty) {
           await prefs.setString('pending_referral_code', refCode);
           await prefs.setBool('referral_from_invite_link', true);
           AppLogger.info('App runtime: Referral code set: $refCode');

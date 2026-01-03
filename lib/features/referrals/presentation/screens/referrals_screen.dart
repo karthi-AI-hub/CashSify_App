@@ -760,7 +760,10 @@ class ReferralsScreen extends HookConsumerWidget {
       return;
     }
 
-    final universalInviteLink = "${AppConfig.playStoreUrl}&referrer=utm_source%3Dinvite%26utm_medium%3Dreferral%26utm_content%3D$code";
+    final referralService = ref.read(referralServiceProvider);
+    final encodedCode = referralService.encodeReferralCode(code);
+    
+    final universalInviteLink = "https://appwatch2earn.vercel.app/invite?ref=$encodedCode";
     
     final message = """🎉 Join me on ${AppConfig.appName} and start earning rewards!
 

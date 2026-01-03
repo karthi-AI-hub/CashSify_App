@@ -10,6 +10,7 @@ const Privacy = lazy(() => import('./pages/Privacy'))
 const Terms = lazy(() => import('./pages/Terms'))
 const Contact = lazy(() => import('./pages/Contact'))
 const FAQ = lazy(() => import('./pages/FAQ'))
+const Invite = lazy(() => import('./pages/Invite'))
 
 // Loading Component
 const PageLoader = () => (
@@ -48,6 +49,7 @@ function App() {
               <Route path="/terms" element={<Terms />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/faq" element={<FAQ />} />
+              <Route path="/invite" element={<Invite />} />
             </Routes>
           </Suspense>
         </main>

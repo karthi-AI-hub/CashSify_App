@@ -4,64 +4,64 @@
 
   <!-- Home Page & App Showcase Images -->
   <url>
-    <loc>https://watch2earn.app/</loc>
+    <loc>https://appwatch2earn.vercel.app/</loc>
     <lastmod>2026-01-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://watch2earn.app/logo.png</image:loc>
+      <image:loc>https://appwatch2earn.vercel.app/logo.png</image:loc>
       <image:title>Watch2Earn Official Logo</image:title>
       <image:caption>The premier global platform for passive income rewards.</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://watch2earn.app/screenshots/dashboard.png</image:loc>
+      <image:loc>https://appwatch2earn.vercel.app/screenshots/dashboard.png</image:loc>
       <image:title>Watch2Earn Dashboard Interface</image:title>
       <image:caption>Real-time earnings dashboard with global analytics.</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://watch2earn.app/screenshots/watch_ads.png</image:loc>
+      <image:loc>https://appwatch2earn.vercel.app/screenshots/watch_ads.png</image:loc>
       <image:title>Ad Viewing Interface</image:title>
       <image:caption>Seamless ad-watching experience for generating rewards.</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://watch2earn.app/screenshots/withdraw.png</image:loc>
+      <image:loc>https://appwatch2earn.vercel.app/screenshots/withdraw.png</image:loc>
       <image:title>Secure Withdrawal System</image:title>
       <image:caption>Instant global payouts via trusted payment gateways.</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://watch2earn.app/screenshots/history.png</image:loc>
+      <image:loc>https://appwatch2earn.vercel.app/screenshots/history.png</image:loc>
       <image:title>Transaction History</image:title>
     </image:image>
     <image:image>
-      <image:loc>https://watch2earn.app/screenshots/referral.png</image:loc>
+      <image:loc>https://appwatch2earn.vercel.app/screenshots/referral.png</image:loc>
       <image:title>Referral Rewards Program</image:title>
     </image:image>
   </url>
 
   <!-- Core Pages -->
   <url>
-    <loc>https://watch2earn.app/about</loc>
+    <loc>https://appwatch2earn.vercel.app/about</loc>
     <lastmod>2026-01-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://watch2earn.app/features</loc>
+    <loc>https://appwatch2earn.vercel.app/features</loc>
     <lastmod>2026-01-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://watch2earn.app/faq</loc>
+    <loc>https://appwatch2earn.vercel.app/faq</loc>
     <lastmod>2026-01-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://watch2earn.app/contact</loc>
+    <loc>https://appwatch2earn.vercel.app/contact</loc>
     <lastmod>2026-01-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -69,14 +69,14 @@
 
   <!-- Legal Pages -->
   <url>
-    <loc>https://watch2earn.app/privacy</loc>
+    <loc>https://appwatch2earn.vercel.app/privacy</loc>
     <lastmod>2026-01-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
 
   <url>
-    <loc>https://watch2earn.app/terms</loc>
+    <loc>https://appwatch2earn.vercel.app/terms</loc>
     <lastmod>2026-01-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>

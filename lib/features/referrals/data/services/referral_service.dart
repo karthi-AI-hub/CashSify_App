@@ -7,6 +7,36 @@ class ReferralService {
   final _supabase = SupabaseService();
   SupabaseService get supabase => _supabase;
 
+  /// Encodes the referral code to Base64 to hide it in the URL
+  String encodeReferralCode(String code) {
+    try {
+      final bytes = utf8.encode(code);
+      final base64String = base64Url.encode(bytes);
+      // Remove padding for cleaner URLs
+      return base64String.replaceAll('=', '');
+    } catch (e) {
+      AppLogger.error('Error encoding referral code: $e');
+      return code;
+    }
+  }
+
+  /// Decodes the referral code from Base64
+  String decodeReferralCode(String encoded) {
+    try {
+      // Add padding back if needed
+      String normalized = encoded;
+      while (normalized.length % 4 != 0) {
+        normalized += '=';
+      }
+      final bytes = base64Url.decode(normalized);
+      return utf8.decode(bytes);
+    } catch (e) {
+      AppLogger.error('Error decoding referral code: $e');
+      // Return original if decoding fails (backward compatibility)
+      return encoded;
+    }
+  }
+
   Future<Map<String, dynamic>> getReferralStats(String userId) async {
     try {
       AppLogger.info('Fetching referral stats for user: $userId');
